@@ -39,6 +39,7 @@ This is a **shared, two-person system** (joint finances). Each person runs their
 - **Current-user selection (no auth).** On load, a popup asks **who you are — Woody or Rajna** (stored client-side, no login). The choice personalizes _personal-scope_ views; it is not a security boundary. Applies to both the local app and the published view.
 - **Personal scope + shared goals.** Each person has their own paycheck, bank/checking account, and cards. Personal views (This Paycheck, Daily Check, personal debts) reflect the selected person; **savings goals (Wedding, Emergency, Vacation, Apartment) are shared** and common to both.
 - **Per-person accounts, merging later.** Two separate checking accounts today (one per person; the current CSV ledger is really Woody's account), with a design path toward a joint account later. Every ledger/target record carries an **`owner`** (`woody` | `rajna` | `shared`).
+- **Reusability is the ultimate goal (design principle, not a current pivot).** The system should work for a **single person, a couple, or an N-person household** with minimal change. Build accordingly — see the Reusability note below. No restructuring now; just avoid choices that would be expensive to generalize later.
 
 _All decisions are now settled — nothing blocks the build._
 
@@ -192,6 +193,15 @@ Each check renders as: **metric name · plan value · actual value · delta · s
 - **`transactions`.** Gain `owner` and (optionally) an `account_id` for which account's balance they move. Running balance becomes **per account** rather than one global stream. Keep single-entry (each txn hits one account as deposit/withdrawal; `description`/`source` name the destination).
 - **`plan_targets`.** Gain `owner`. Savings-goal targets gain **`start_date` / `end_date`** (variable deadlines) instead of an implicit EOY. Debt-payoff and investment targets keep their existing kind-specific `data` JSON.
 - All of the above keep the sync metadata (`id`, `created_at`, `updated_at`, `deleted_at`) for per-record LWW merge, and all flow through `snapshot.json`.
+
+### Reusability — keep in mind while building
+The ultimate goal is a system reusable for **1, 2, or N people**. No pivot now, but develop so generalizing is cheap:
+
+- **People are a list, not a constant.** Model household members as configurable data (a `people` list with id + display name), never hardcode `2` or the literal names "Woody"/"Rajna" in logic or UI. `owner` is a person id or `shared`; single-person mode is just a one-entry list (and the "Who are you?" popup can auto-skip).
+- **Rank tabs by how portable they are.** The **paycheck allocator (This Paycheck)** and **income/expense tracking (ledger + Daily Check)** are the most generic — design these first-class and household-agnostic so they drop into any setup. More bespoke, couple-specific "life tracking" surfaces can stay separate and optional.
+- **Keep modules decoupled.** Each tab/feature is a self-contained module over the shared data + metrics core, so an instance can enable only the tabs it needs. Avoid cross-tab coupling that assumes a specific household shape.
+- **Config over hardcoding.** Household size, member names, account set, safety-floor thresholds, and pay cadence should be data/config — so a new user configures rather than edits code.
+- **Don't over-build for it.** Favor the smallest choices that keep the door open (a list instead of two variables); defer any real multi-tenant/templating work until there's a second real user.
 
 ## Roadmap
 

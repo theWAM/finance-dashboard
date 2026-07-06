@@ -6,7 +6,9 @@ node_modules/
 *.sqlite
 *.sqlite3
 *.db
-data/dashboard.db
+*.db-wal
+*.db-shm
+data/dashboard.db*
 
 # Logs
 *.log

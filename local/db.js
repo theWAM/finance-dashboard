@@ -10,16 +10,17 @@
 //   - created_at / updated_at   ISO-8601 UTC timestamps
 //   - deleted_at ISO-8601 UTC tombstone (NULL = live row)
 
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DB_PATH = join(__dirname, "..", "data", "dashboard.db");
 
-const db = new Database(DB_PATH);
-db.pragma("journal_mode = WAL");
-db.pragma("foreign_keys = ON");
+// Uses Node's built-in SQLite (node:sqlite) — no native module to compile.
+const db = new DatabaseSync(DB_PATH);
+db.exec("PRAGMA journal_mode = WAL");
+db.exec("PRAGMA foreign_keys = ON");
 
 db.exec(`
   -- Ledger: one row per deposit/withdrawal. Running balance is COMPUTED, not stored.

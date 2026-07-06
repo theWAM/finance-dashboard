@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Local SQLite database — private, lives only on each person's machine, NEVER committed.
+# (The public bridge is data/snapshot.json, which IS committed.)
+*.sqlite
+*.sqlite3
+*.db
+data/dashboard.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+.vscode/

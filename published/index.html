@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Finance Dashboard</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 40px; color: #222; }
+    .meta { color: #5f6368; font-size: 0.9rem; }
+    .badge { display: inline-block; background: #eef; padding: 2px 8px; border-radius: 10px; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Finance Dashboard <span class="badge">read-only</span></h1>
+  <p class="meta" id="status">Loading snapshot…</p>
+
+  <!-- Phase 0 placeholder: confirms the published view can read the shared snapshot.
+       The real read-only dashboard (shared render core) arrives in later phases. -->
+  <pre id="dump"></pre>
+
+  <script type="module">
+    // GitHub Pages serves this file; snapshot.json sits one level up in /data.
+    const url = new URL("../data/snapshot.json", location.href);
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const snap = await res.json();
+      const when = snap.published_at ?? "never";
+      const who = snap.published_by ?? "—";
+      document.getElementById("status").textContent =
+        `Snapshot version ${snap.version} · published ${when} by ${who} · ` +
+        `${snap.transactions.length} transactions, ${snap.plan_targets.length} plan targets`;
+      document.getElementById("dump").textContent = JSON.stringify(snap, null, 2);
+    } catch (err) {
+      document.getElementById("status").textContent = `Could not load snapshot: ${err.message}`;
+    }
+  </script>
+</body>
+</html>

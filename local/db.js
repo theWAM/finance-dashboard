@@ -15,7 +15,8 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DB_PATH = join(__dirname, "..", "data", "dashboard.db");
+// Private local database, kept beside the server code and gitignored.
+const DB_PATH = join(__dirname, "dashboard.db");
 
 // Uses Node's built-in SQLite (node:sqlite) — no native module to compile.
 const db = new DatabaseSync(DB_PATH);

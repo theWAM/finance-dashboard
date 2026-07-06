@@ -1,5 +1,6 @@
-// The snapshot.json contract — the single, versioned, PUBLIC data file that
-// bridges the two people's local databases and feeds the published view.
+// The snapshot.json contract — the single, versioned, PUBLIC data file
+// (committed at docs/data/snapshot.json, served by GitHub Pages) that bridges
+// the two people's local databases and feeds the published view.
 //
 // Shape:
 // {

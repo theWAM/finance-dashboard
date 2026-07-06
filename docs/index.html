@@ -20,8 +20,8 @@
   <pre id="dump"></pre>
 
   <script type="module">
-    // GitHub Pages serves this file; snapshot.json sits one level up in /data.
-    const url = new URL("../data/snapshot.json", location.href);
+    // GitHub Pages serves docs/ at the site root; snapshot.json sits in ./data.
+    const url = new URL("./data/snapshot.json", location.href);
     try {
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

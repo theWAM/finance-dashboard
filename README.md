@@ -45,22 +45,23 @@ _All decisions are now settled — nothing blocks the build._
 
 ```
 finance-dashboard/
-├── local/            # Node + Express authoring server + editor UI (runs on localhost; NOT published)
+├── local/            # Node + Express authoring server (runs on localhost; NOT published)
 │   ├── server.js     # Express app: serves editor + JSON API
-│   └── db.js         # SQLite connection + schema (transactions, plan_targets, sync_meta)
+│   ├── db.js         # SQLite connection + schema (transactions, plan_targets, sync_meta)
+│   └── dashboard.db  # local SQLite DB — gitignored, private to each machine
 ├── shared/           # Pure logic shared by local app and published view
 │   ├── merge.js      # per-record last-writer-wins merge (+ tombstones)
 │   ├── metrics.js    # running balance + metric/sync computations
 │   └── snapshot.js   # snapshot.json build/parse — the data contract
-├── published/        # Static read-only site served by GitHub Pages
-│   └── index.html    # loads ../data/snapshot.json, renders read-only dashboard
-├── data/
-│   └── snapshot.json # committed, PUBLIC bridge between the two local apps
+├── docs/             # Static read-only site served by GitHub Pages (Pages source = master:/docs)
+│   ├── index.html    # loads ./data/snapshot.json, renders read-only dashboard
+│   └── data/
+│       └── snapshot.json  # committed, PUBLIC bridge between the two local apps
 ├── package.json
 └── .gitignore        # ignores node_modules + the local SQLite DB (never committed)
 ```
 
-> GitHub Pages should be configured to serve the `published/` (and `data/`) content. The local SQLite DB stays on each person's machine and is gitignored; only `snapshot.json` is committed.
+> **GitHub Pages is served from `master` → `/docs`** (Pages only supports the repo root or `/docs`, not arbitrary folders). The published site therefore lives in `docs/`, and the publish step writes the snapshot to `docs/data/snapshot.json`. The local SQLite DB stays on each person's machine and is gitignored; only the snapshot is committed.
 
 ## Getting started (local app)
 

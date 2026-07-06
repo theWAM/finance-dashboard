@@ -4,7 +4,7 @@ A **two-part system** that unifies the currently-scattered personal-finance arti
 
 > **Is the strategic plan still in sync with reality (the ledger), and are we on track against the metrics all these pages care about?**
 
-The whole point is consolidation: instead of a ledger in one place and a strategy in another that silently drift apart, the dashboard holds the ledger *and* the plan targets together so sync is computed automatically.
+The whole point is consolidation: instead of a ledger in one place and a strategy in another that silently drift apart, the dashboard holds the ledger *and* the plan targets together so sync is computed automatically. Beyond monitoring, it's also the **day-to-day driver** for two people — a "who are you?" entry that personalizes the view, a per-person **This Paycheck** 2-week planner (the spreadsheet's short-term job, with negative-balance guardrails), and a **Daily Check** that reconciles projected vs. actual bank balances.
 
 This is a **shared, two-person system** (joint finances). Each person runs their own local app; the published site is the common meeting point. Because the site is hosted on **GitHub Pages (static — the published view can't have a server)**, authoring and viewing are separated, and the published snapshot doubles as the sync hub between the two local apps:
 
@@ -36,6 +36,9 @@ This is a **shared, two-person system** (joint finances). Each person runs their
 - **Conflict strategy = per-record last-writer-wins merge**, using record `updated_at` + `deleted_at` tombstones.
 - **Transport = HTTP GET for refresh (pull), git commit/push for publish.**
 - **Dedicated repo.** The dashboard lives in its **own repository** (this one), separate from the portfolio site, with its own free GitHub Pages project site linked from the portfolio. This isolates push access (a partner gets access to finances only, not the whole portfolio) and keeps the portfolio a clean static site. Hosting stays free because the repo is public (free-tier Pages requires public repos).
+- **Current-user selection (no auth).** On load, a popup asks **who you are — Woody or Rajna** (stored client-side, no login). The choice personalizes _personal-scope_ views; it is not a security boundary. Applies to both the local app and the published view.
+- **Personal scope + shared goals.** Each person has their own paycheck, bank/checking account, and cards. Personal views (This Paycheck, Daily Check, personal debts) reflect the selected person; **savings goals (Wedding, Emergency, Vacation, Apartment) are shared** and common to both.
+- **Per-person accounts, merging later.** Two separate checking accounts today (one per person; the current CSV ledger is really Woody's account), with a design path toward a joint account later. Every ledger/target record carries an **`owner`** (`woody` | `rajna` | `shared`).
 
 _All decisions are now settled — nothing blocks the build._
 
@@ -120,31 +123,57 @@ With two writers there will occasionally be concurrent edits. Resolution is **pe
 
 ## What the dashboard needs to do
 
-### 1. Sync / drift detection (the primary job)
+### 1. People & personalization — "Who are you?" (Woody / Rajna)
+- On load, a **popup selects the current person** (no auth, stored client-side; changeable anytime).
+- The selection drives **personal-scope** surfaces: This Paycheck, Daily Check, and that person's own paycheck/bank/cards.
+- **Shared** surfaces (savings goals, joint net-worth, combined sync health) look the same for both.
+- Every ledger transaction and plan target carries an `owner` (`woody` | `rajna` | `shared`) so the app can filter personal vs. shared.
+
+### 2. This Paycheck — 2-week planner (per person) 🔑
+The in-app replacement for what the tracking spreadsheet did for short-term planning: for the selected person's current ~2-week paycheck cycle, show **exactly how much should go where** (bills, savings, investments, debt, buffer).
+
+- Starts from the paycheck deposit and lists planned allocations for the window, each **editable**.
+- Maintains a **running projected balance** through the window.
+- **Negative-balance guardrail:** if any edit drives the projected balance below zero (or a safety floor), the offending rows/plan are **flagged**.
+- **Warn-before-save:** trying to save a flagged plan prompts a confirmation ("this leaves you at −$X on <date> — save anyway?") before it's allowed.
+- Saved allocations materialize as (projected) transactions in the ledger for that window.
+
+### 3. Daily Check — reconciliation (per person's checking account)
+Answers "**what *should* be in my bank right now?**" and lets you fix reality when it diverges.
+
+- Shows the **projected running balance as of today** for the selected person's checking account (computed from the ledger).
+- Lets you enter the **actual** current bank balance; the app shows the difference.
+- A **"Correct" button** reconciles by adding the missing/adjusting transaction(s) — which are **written into the ledger (tracking)** so history stays accurate.
+
+### 4. Sync / drift detection (the original primary job)
 Compare what the **plan assumes** against what the **ledger shows**, and flag drift:
 
-- **Debt balances & payoff dates.** The plan has payoff simulators for the Apple Card and Discover (Rajna) card. Compare each simulator's assumed balance and monthly payment against the actual payments flowing through the ledger, and re-project the real payoff date vs. the plan's target.
-- **Savings-goal pace.** The plan sets end-of-year targets for the Wedding, Emergency, Vacation, and Apartment funds. Track cumulative contributions in the ledger vs. the planned monthly allocation → ahead / on-track / behind.
-- **Investment cadence.** Plan targets (e.g. combined Roth ~$636/mo, individual brokerage ~$364/mo) vs. actual Fidelity/Fundrise contributions in the ledger.
-- **Income assumptions.** Plan's take-home / paycheck assumptions vs. actual paycheck deposits (which grow over time in the ledger).
-- **Buffer / low-balance risk.** The ledger deliberately runs the running balance near ~$0 after each paycheck. Flag cycles where projected balance goes negative or below a safety threshold.
+- **Debt balances & payoff dates** — plan payoff targets (Apple Card, Discover/Rajna) vs. actual payments; re-project real payoff date.
+- **Savings-goal pace** — cumulative contributions vs. the pace required to hit the goal **by its deadline** (see §5) → ahead / on-track / behind.
+- **Investment cadence** — plan targets (e.g. Roth ~$636/mo, brokerage ~$364/mo) vs. actual Fidelity/Fundrise contributions.
+- **Income assumptions** — planned take-home vs. actual paycheck deposits.
+- **Buffer / low-balance risk** — flag cycles where projected balance goes negative or below a safety floor (shared logic with This Paycheck's guardrail).
 
-Each check should render as: **metric name · plan value · actual value · delta · status (✅ on track / ⚠️ drifting / ❌ off).**
+Each check renders as: **metric name · plan value · actual value · delta · status (✅ on track / ⚠️ drifting / ❌ off).**
 
-### 2. Core financial metrics (things the files care about)
+### 5. Savings goals with variable deadlines
+- Each savings goal has an editable **`start_date` and `end_date`** — the deadline is **not** assumed to be end-of-year.
+- Required pace = remaining amount ÷ time left in that window; pace status and progress bar are computed against the goal's own dates.
+
+### 6. Core financial metrics (things the files care about)
 - Net worth trajectory (savings + investments − debt) over time
 - Total debt outstanding and month-over-month paydown
 - Total interest paid / avoided (mirrors the plan's simulators)
 - Monthly cash flow: income vs. outflow, and monthly spending **excluding** CC payments (mirrors Chart1)
 - Savings rate and investment rate as % of take-home
-- Progress bars toward each savings-goal target
+- Progress bars toward each savings-goal target (vs. its deadline)
 - Coast FIRE progress (long-horizon metric the plan emphasizes)
 
-### 3. Presentation
-- Summary "health" strip at top: overall in-sync status + top warnings
-- Per-domain cards: Debt, Savings, Investments, Cash Flow, Long-term (Coast FIRE)
-- Trend charts over the ledger's date range
-- Drill-down into any flagged drift
+### 7. Presentation
+- **Entry popup:** pick Woody / Rajna.
+- Summary "health" strip: overall in-sync status + top warnings (incl. any negative-balance flags).
+- Per-domain cards: This Paycheck, Daily Check, Debt, Savings (with deadlines), Investments, Cash Flow, Long-term (Coast FIRE).
+- Trend charts over the ledger's date range; drill-down into any flagged drift.
 
 ---
 
@@ -153,19 +182,28 @@ Each check should render as: **metric name · plan value · actual value · delt
 - **Local app = Node + Express + SQLite.** Runs on localhost, no auth. SQLite (a single local file) holds the ledger transactions *and* the migrated plan targets. The metrics/sync engine lives here.
 - **Migrated plan targets.** `fin_plan.html`'s strategic assumptions become editable rows/settings in SQLite (e.g. `plan_targets`: debt payoff goals, savings allocations, investment cadence, Coast FIRE inputs). The old `fin_plan.html` is superseded by the app + published view.
 - **Shared render core.** Metrics/sync computation and the chart/card components are shared so the local app and the published view show identical results; the only differences are edit-vs-read-only and data source (SQLite live vs. committed snapshot).
-- **Snapshot format.** The publish step exports SQLite → a single versioned `dashboard/data/snapshot.json` (real numbers, public). That file is the contract the published static view fetches.
+- **Snapshot format.** The publish step exports SQLite → a single versioned `docs/data/snapshot.json` (real numbers, public). That file is the contract the published static view fetches.
 - **Publish flow.** Local edits in SQLite → "publish" exports `snapshot.json` → commit + push → GitHub Pages serves the updated read-only view.
-- **Separation of concerns.** `dashboard/local/` (Node server + editor UI), `dashboard/shared/` (metrics/sync + render components), `dashboard/published/` (static read-only entry), `dashboard/data/snapshot.json` (bridge). SQLite DB file stays gitignored; only the snapshot is committed.
+- **Separation of concerns.** `local/` (Node server + editor UI), `shared/` (metrics/sync + render components), `docs/` (static read-only entry), `docs/data/snapshot.json` (bridge). SQLite DB file stays gitignored; only the snapshot is committed.
+
+### Data model (updated for the people/accounts pivot)
+- **`people` / current user.** Fixed set `{woody, rajna}`. The current user is a client-side selection (localStorage), not a DB row that gates access.
+- **`accounts`.** First-class accounts, each with `owner` (`woody`|`rajna`|`shared`), `type` (`checking`|`credit_card`|`savings`|`investment`|`loan`), `name`, and `opening_balance`. Two checking accounts exist now (one per person); a future joint account is just another row with `owner = shared`. The **Daily Check** and running balance are computed **per checking account**.
+- **`transactions`.** Gain `owner` and (optionally) an `account_id` for which account's balance they move. Running balance becomes **per account** rather than one global stream. Keep single-entry (each txn hits one account as deposit/withdrawal; `description`/`source` name the destination).
+- **`plan_targets`.** Gain `owner`. Savings-goal targets gain **`start_date` / `end_date`** (variable deadlines) instead of an implicit EOY. Debt-payoff and investment targets keep their existing kind-specific `data` JSON.
+- All of the above keep the sync metadata (`id`, `created_at`, `updated_at`, `deleted_at`) for per-record LWW merge, and all flow through `snapshot.json`.
 
 ## Roadmap
 
-_Phases build on the two-part, two-person model: Node + SQLite local apps ↔ shared `snapshot.json` ↔ static published view. One open decision (conflict strategy) is confirmed in Phase 0 and shapes the record schema._
+_Phases build on the two-part, two-person model: Node + SQLite local apps ↔ shared `snapshot.json` ↔ static published view. Re-sequenced after the people/accounts pivot — foundation (ledger + owner/accounts + user selection) comes before the interactive tabs._
 
-- [ ] **Phase 0 — Scaffolding & sync design:** create `dashboard/` layout (`local/`, `shared/`, `published/`, `data/`); stand up Node + Express + SQLite; bake the sync metadata into the schema for per-record LWW merge (record `id`/`created_at`/`updated_at`/`deleted_at`; snapshot `version`/`published_at`/`published_by`); gitignore the DB file; define the `snapshot.json` contract.
-- [ ] **Phase 1 — Editable ledger (replaces the Sheet):** transaction model (Date, Description/category, Source/Recipient, Deposit, Withdrawal, auto running-balance) with sync metadata; spreadsheet-style editable grid with live cell updates persisted to SQLite; one-time CSV import to seed from `Sheet1.csv`.
-- [ ] **Phase 2 — Migrate plan targets:** model the `fin_plan.html` strategy as editable `plan_targets` (start with Apple Card & Discover payoff: balance, APR, monthly payment, target payoff date); editor UI.
-- [ ] **Phase 3 — Debt payoff sync (first feature):** compute actual payments per card from the ledger; re-project real payoff date & interest vs. the migrated target; render plan-vs-actual delta with status (✅/⚠️/❌).
-- [ ] **Phase 4 — Publish + refresh loop (multi-user core):** "publish" (SQLite → `snapshot.json` → git commit/push) and "refresh" (HTTP GET snapshot → per-record LWW merge with tombstones); version/timestamp tracking; refresh-before-publish; auto-refresh interval + manual buttons; both-clocks UI indicator.
-- [ ] **Phase 5 — Metrics engine:** net worth, total debt & paydown, savings/investment rates, monthly spend excl. CC, low-balance risk.
-- [ ] **Phase 6 — Dashboard UI (shared):** health strip, per-domain cards (Debt, Savings, Investments, Cash Flow, Coast FIRE), trend charts, drill-down — rendered by both the local app and the published view from the shared core.
-- [ ] **Phase 7 — Full sync coverage & polish:** extend plan-vs-actual sync to savings/investment/income targets and Coast FIRE; drift alerts; DB backups; conflict-audit view.
+- [x] **Phase 0 — Scaffolding & sync design** ✅ _(done)_ — repo layout, Node + built-in `node:sqlite`, schema with sync metadata (`id`/`created_at`/`updated_at`/`deleted_at`; snapshot `version`/`published_at`/`published_by`), `snapshot.json` contract, GitHub remote + Pages live at https://thewam.github.io/finance-dashboard/.
+- [ ] **Phase 1 — Data model + editable ledger:** add `people`/`accounts`/`owner` and per-account running balance; transaction model with sync metadata; spreadsheet-style editable grid persisted to SQLite; one-time CSV import seeding `Sheet1.csv` as Woody's checking account.
+- [ ] **Phase 2 — Current-user selection:** entry popup (Woody / Rajna, no auth, localStorage); personal-scope filtering (`owner`) wired through the app + published view.
+- [ ] **Phase 3 — This Paycheck (2-week planner)** 🔑 — per-person paycheck-cycle view with editable allocations, running projected balance, **negative-balance flag + warn-before-save**; saved allocations write projected transactions into the ledger.
+- [ ] **Phase 4 — Daily Check (reconciliation):** per-checking-account projected balance as of today vs. entered actual; "Correct" writes adjusting transactions into the ledger.
+- [ ] **Phase 5 — Migrate plan targets:** editable `plan_targets` with `owner`; savings goals get **variable `start_date`/`end_date`**; debt payoff targets (Apple Card & Discover: balance, APR, monthly payment, target date); editor UI.
+- [ ] **Phase 6 — Sync / drift detection:** debt payoff sync (re-project payoff date/interest vs. target) + savings-goal pace vs. deadline + income/investment cadence; plan-vs-actual deltas with status (✅/⚠️/❌).
+- [ ] **Phase 7 — Publish + refresh loop (multi-user core):** "publish" (SQLite → `snapshot.json` → git commit/push) and "refresh" (HTTP GET → per-record LWW merge with tombstones); version/timestamp tracking; refresh-before-publish; auto-refresh interval + manual buttons; both-clocks indicator.
+- [ ] **Phase 8 — Metrics engine + dashboard UI (shared):** net worth, debt paydown, savings/investment rates, monthly spend excl. CC; health strip + per-domain cards + trend charts, rendered by both local app and published view.
+- [ ] **Phase 9 — Polish:** Coast FIRE, drift alerts, DB backups, conflict-audit view, join-accounts (merge to a `shared` checking account) support.

@@ -20,11 +20,26 @@ It will:
 3. install its parts, and
 4. start it and open it in your browser at **http://localhost:3000**.
 
-The first time, macOS may ask permission to run a downloaded script — right‑click
-`setup.command` → **Open** → **Open** to allow it.
-
 That's it. Leave the little Terminal window open while you use the app; close it
 (or press **Ctrl‑C**) when you're done.
+
+### If macOS says *"can't be opened because Apple cannot check it for malicious software"*
+
+That's normal for a small script that isn't signed by a big company — it's safe;
+you just have to allow it once. Do **any one** of these:
+
+- **Right‑click** (or Control‑click) `setup.command` → **Open** → in the dialog click
+  **Open**. (Right‑clicking gives you an **Open** button the plain double‑click doesn't.)
+- Or open  **→ System Settings → Privacy & Security**, scroll down to the message
+  about `setup.command`, and click **Open Anyway** — then double‑click it again.
+- Or run it from **Terminal**, which is never blocked. Open the Terminal app and paste:
+  ```bash
+  bash ~/Downloads/finance-dashboard/setup.command
+  ```
+  (adjust the path if the folder is somewhere else).
+
+If you'd rather not deal with the prompt at all, just use the **manual steps** below —
+they do exactly the same thing.
 
 ---
 

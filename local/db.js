@@ -154,11 +154,26 @@ db.prepare("UPDATE people SET pay_cadence = 'monthly' WHERE id = 'rajna' AND pay
 
 // One checking account per person to start (the CSV ledger is Woody's account).
 // A joint account later is just another row with owner = 'shared'.
+//
+// Seeds are *placeholders* that must always lose to real published data in the
+// last-writer-wins merge: otherwise a machine seeded today (fresh updated_at)
+// would out-rank the snapshot's real opening_balance and refresh would keep the
+// $0 placeholder. So stamp seeds with the epoch. A genuine local edit bumps
+// updated_at to now and still wins over any snapshot, as intended.
+const SEED_TS = "1970-01-01T00:00:00.000Z";
 const seedAccount = db.prepare(
   `INSERT OR IGNORE INTO accounts (id, owner, type, name, opening_balance, created_at, updated_at)
    VALUES (?, ?, 'checking', ?, 0, ?, ?)`
 );
-seedAccount.run("woody-checking", "woody", "Woody — Checking", now, now);
-seedAccount.run("rajna-checking", "rajna", "Rajna — Checking", now, now);
+seedAccount.run("woody-checking", "woody", "Woody — Checking", SEED_TS, SEED_TS);
+seedAccount.run("rajna-checking", "rajna", "Rajna — Checking", SEED_TS, SEED_TS);
+
+// Self-heal machines seeded before the fix above: an untouched placeholder
+// account (opening_balance still 0) should defer to the snapshot's real opening
+// balance, so roll its updated_at back to the epoch. Idempotent (the guard skips
+// rows already at the epoch), and it never touches an account with real money in
+// its opening balance (e.g. Woody's 4.50).
+db.prepare("UPDATE accounts SET updated_at = ? WHERE opening_balance = 0 AND updated_at > ?")
+  .run(SEED_TS, SEED_TS);
 
 export default db;

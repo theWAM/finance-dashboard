@@ -101,9 +101,9 @@
   .who-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 28px; }
   .who-card { display: flex; flex-direction: column; align-items: center; gap: 22px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 24px; padding: 36px 28px; cursor: pointer; color: var(--text); transition: transform .08s ease, border-color .08s ease, background .08s ease; }
   .who-card:hover { border-color: var(--accent); background: var(--accent-weak); transform: translateY(-2px); }
-  .who-photo { width: 448px; height: 448px; border-radius: 50%; object-fit: cover; background: var(--accent); box-shadow: 0 12px 36px rgba(0,0,0,.4); }
-  .who-photo.initials { display: grid; place-items: center; color: #fff; font-size: 160px; font-weight: 700; }
-  .who-card .name { font-weight: 600; font-size: 30px; }
+  .who-photo { width: clamp(150px, 30vw, 460px); height: clamp(150px, 30vw, 460px); border-radius: 50%; object-fit: cover; background: var(--accent); box-shadow: 0 12px 36px rgba(0,0,0,.4); }
+  .who-photo.initials { display: grid; place-items: center; color: #fff; font-size: clamp(56px, 10vw, 160px); font-weight: 700; }
+  .who-card .name { font-weight: 600; font-size: clamp(20px, 2.2vw, 32px); }
 
   .modal-card.recur-card { width: min(440px, 92vw); padding: 26px; }
   .recur-card h2 { text-align: left; font-size: 18px; margin: 0 0 4px; }

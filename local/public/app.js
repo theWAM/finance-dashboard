@@ -703,8 +703,12 @@ async function loadSyncStatus() {
     const s = await api("/api/sync-status");
     const pub = s.last_published_at ? new Date(s.last_published_at).toLocaleString() : "never";
     const pulled = s.last_pulled_at ? new Date(s.last_pulled_at).toLocaleString() : "never";
-    $("#syncStatus").textContent = `v${s.local_version}`;
-    $("#syncStatus").title = `Site version ${s.local_version} · published ${pub}${s.published_by ? " by " + s.published_by : ""}\nLast refreshed: ${pulled} (v${s.last_pulled_version})`;
+    // Show the version of the data this machine is actually holding — the higher
+    // of what it last published and what it last pulled. (Showing only
+    // local_version made a machine that has only ever *refreshed* read "v0".)
+    const effective = Math.max(Number(s.local_version) || 0, Number(s.last_pulled_version) || 0);
+    $("#syncStatus").textContent = `v${effective}`;
+    $("#syncStatus").title = `Data version ${effective}\nPublished from here: v${s.local_version} (${pub}${s.published_by ? " by " + s.published_by : ""})\nLast refreshed: ${pulled} (v${s.last_pulled_version})`;
   } catch { /* ignore */ }
 }
 $("#publishBtn").addEventListener("click", async () => {

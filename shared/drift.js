@@ -31,7 +31,15 @@ export function computeDrift(transactions, planTargets = [], { asOf }) {
   const out = [];
   for (const pt of planTargets) {
     const d = pt.data || {};
-    const matched = rows.filter((t) => (t.source || "") === d.source && (Number(t.withdrawal) || 0) > 0);
+    let matched = rows.filter((t) => (t.source || "") === d.source && (Number(t.withdrawal) || 0) > 0);
+    // A savings goal only counts contributions made inside its own window. This
+    // is what lets several goals share one account/source (e.g. three trips all
+    // funded from "Vacation HYSA"): each goal sums the deposits between its own
+    // start and deadline instead of the whole running balance.
+    if (pt.kind === "savings_goal") {
+      matched = matched.filter((t) => (!d.start_date || t.txn_date >= d.start_date) &&
+                                      (!d.end_date || t.txn_date <= d.end_date));
+    }
     const paid = round2(matched.reduce((s, t) => s + (Number(t.withdrawal) || 0), 0));
 
     if (pt.kind === "savings_goal") {

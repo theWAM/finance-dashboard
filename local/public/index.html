@@ -115,11 +115,14 @@
   }
   .who-card:hover { border-color: var(--accent); background: var(--accent-weak); transform: translateY(-2px); }
   .who-photo {
-    width: 448px; height: 448px; border-radius: 50%; object-fit: cover;
+    /* Size as a share of the viewport so the cards keep the same proportion on
+       any screen (a fixed 448px looked huge on smaller laptops). */
+    width: clamp(150px, 30vw, 460px); height: clamp(150px, 30vw, 460px);
+    border-radius: 50%; object-fit: cover;
     background: var(--accent); box-shadow: 0 12px 36px rgba(0,0,0,.4);
   }
-  .who-photo.initials { display: grid; place-items: center; color: #fff; font-size: 160px; font-weight: 700; }
-  .who-card .name { font-weight: 600; font-size: 30px; }
+  .who-photo.initials { display: grid; place-items: center; color: #fff; font-size: clamp(56px, 10vw, 160px); font-weight: 700; }
+  .who-card .name { font-weight: 600; font-size: clamp(20px, 2.2vw, 32px); }
 
   .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
   .filters > label { color: var(--muted); font-size: 12px; display: inline-flex; gap: 6px; align-items: center; }

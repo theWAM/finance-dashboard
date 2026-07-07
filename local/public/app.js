@@ -11,6 +11,13 @@ const $ = (sel) => document.querySelector(sel);
 const fmt = (n) => (Number(n) || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+// Ledger ordering: by date, then a paycheck deposit sorts first within its day
+// (so the money lands before that day's allocations), then created_at.
+const isPaycheck = (t) => /paycheck/i.test(t.description || "") && (Number(t.deposit) || 0) > 0;
+const byDate = (a, b) =>
+  cmp(a.txn_date, b.txn_date) ||
+  (isPaycheck(a) === isPaycheck(b) ? 0 : isPaycheck(a) ? -1 : 1) ||
+  cmp(a.created_at || "", b.created_at || "");
 
 const params = new URLSearchParams(location.search);
 const state = {
@@ -308,8 +315,10 @@ function updateSelectionUI() {
   sa.checked = n > 0 && n === state._shown.length;
   sa.indeterminate = n > 0 && n < state._shown.length;
   document.querySelectorAll('#rows tr[data-id]').forEach((tr) => {
+    const sel = state.selected.has(tr.dataset.id);
     const cb = tr.querySelector('input[type="checkbox"]');
-    if (cb) cb.checked = state.selected.has(tr.dataset.id);
+    if (cb) cb.checked = sel;
+    tr.classList.toggle("row-selected", sel);
   });
 }
 
@@ -361,7 +370,7 @@ function computeView() {
 
   const live = rows
     .filter((r) => !r._deleted)
-    .sort((a, b) => cmp(a.txn_date, b.txn_date) || cmp(a.created_at || "", b.created_at || ""));
+    .sort(byDate);
   let bal = Number(state.account?.opening_balance) || 0;
   let deposits = 0, withdrawals = 0;
   const balById = new Map();
@@ -383,7 +392,7 @@ function render() {
   $("#empty").hidden = rows.length > 0;
   // Oldest → newest (top to bottom). Each row keeps its TRUE running balance
   // (computed over the whole ledger in computeView), so filtering never distorts it.
-  const display = [...shown].sort((a, b) => cmp(a.txn_date, b.txn_date) || cmp(a.created_at || "", b.created_at || ""));
+  const display = [...shown].sort(byDate);
   for (const r of display) tbody.appendChild(rowEl(r, balById.get(r._id)));
   renderAddRow();
 
@@ -414,6 +423,7 @@ function rowEl(row, bal) {
   if (row._deleted) tr.className = "to-delete";
   else if (row._new) tr.className = "new-row";
   else if (row._edited) tr.className = "edited";
+  if (state.selected.has(row._id)) tr.classList.add("row-selected");
 
   const checkTd = document.createElement("td");
   checkTd.className = "col-check";

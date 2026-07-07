@@ -139,6 +139,11 @@
   .col-check { width: 34px; text-align: center; }
   td.col-check { text-align: center; }
   .col-check input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+  /* Row checkboxes stay hidden until you hover the row (or they're checked). */
+  tbody td.col-check input { opacity: 0; transition: opacity .1s ease; }
+  tbody tr:hover td.col-check input,
+  tbody td.col-check input:checked { opacity: 1; }
+  tbody tr.row-selected { background: var(--accent-weak); }
 
   .ms { position: relative; }
   .ms-btn {

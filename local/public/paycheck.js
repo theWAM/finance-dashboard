@@ -12,6 +12,12 @@ const $ = (s) => document.querySelector(s);
 const fmt = (n) => (Number(n) || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+// A paycheck deposit sorts first within its day (money lands before allocations).
+const isPaycheck = (t) => /paycheck/i.test(t.description || "") && (Number(t.deposit) || 0) > 0;
+const byDate = (a, b) =>
+  cmp(a.txn_date, b.txn_date) ||
+  (isPaycheck(a) === isPaycheck(b) ? 0 : isPaycheck(a) ? -1 : 1) ||
+  cmp(a.created_at || "", b.created_at || "");
 const params = new URLSearchParams(location.search);
 const TODAY = new Date().toISOString().slice(0, 10);
 
@@ -111,7 +117,7 @@ function computeView() {
   for (const n of state.news) all.push({ ...n, _id: n._tempId, _new: true });
 
   const live = all.filter((r) => !r._deleted)
-    .sort((a, b) => cmp(a.txn_date, b.txn_date) || cmp(a.created_at || "", b.created_at || ""));
+    .sort(byDate);
   let bal = Number(state.account.opening_balance) || 0;
   let startBal = bal;
   const balById = new Map();
@@ -122,7 +128,7 @@ function computeView() {
   }
 
   // Display set: window rows (incl. staged deletes for restore), chronological.
-  const rows = all.filter((r) => inWin(r.txn_date)).sort((a, b) => cmp(a.txn_date, b.txn_date) || cmp(a.created_at || "", b.created_at || ""));
+  const rows = all.filter((r) => inWin(r.txn_date)).sort(byDate);
   let deposits = 0, withdrawals = 0, min = startBal, minRow = null, endBal = startBal;
   for (const r of rows) {
     if (r._deleted) continue;

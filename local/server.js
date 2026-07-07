@@ -23,7 +23,7 @@ const now = () => new Date().toISOString();
 // --- Read helpers ----------------------------------------------------------
 
 const allPeople = () =>
-  db.prepare("SELECT * FROM people WHERE deleted_at IS NULL ORDER BY name").all();
+  db.prepare("SELECT * FROM people WHERE deleted_at IS NULL ORDER BY sort_order, name").all();
 const allAccounts = () =>
   db.prepare("SELECT * FROM accounts WHERE deleted_at IS NULL ORDER BY name").all();
 const getAccount = (id) =>

@@ -110,6 +110,7 @@ ensureColumn("transactions", "account_id", "account_id TEXT");
 ensureColumn("transactions", "owner", "owner TEXT NOT NULL DEFAULT 'shared'");
 ensureColumn("plan_targets", "owner", "owner TEXT NOT NULL DEFAULT 'shared'");
 ensureColumn("people", "avatar", "avatar TEXT NOT NULL DEFAULT ''"); // URL/path to a profile image
+ensureColumn("people", "sort_order", "sort_order INTEGER NOT NULL DEFAULT 0"); // display order in pickers
 
 const now = new Date().toISOString();
 
@@ -139,6 +140,12 @@ const setAvatar = db.prepare(
 );
 setAvatar.run("/avatars/woody.jpg", "woody");
 setAvatar.run("/avatars/rajna.jpg", "rajna");
+
+// Default picker order for the seeded people (only while still at the default 0,
+// so a later manual reorder is preserved). Lower = earlier/left.
+const setOrder = db.prepare("UPDATE people SET sort_order = ? WHERE id = ? AND sort_order = 0");
+setOrder.run(1, "woody");
+setOrder.run(2, "rajna");
 
 // One checking account per person to start (the CSV ledger is Woody's account).
 // A joint account later is just another row with owner = 'shared'.

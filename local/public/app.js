@@ -1,11 +1,15 @@
 // Ledger grid: a spreadsheet-style editor over the local CRUD API.
-// Each cell edit PATCHes its field; adding/deleting rows POST/DELETE. After any
-// write we reload so the per-account running balance and totals stay correct.
+//
+// Edits are STAGED in memory, never written on keystroke. Cell edits, added
+// rows, and deletes accumulate as pending changes; the running balance and
+// totals are recomputed live from that staged state so you preview the result.
+// Nothing hits the database until you click Save (Discard drops the changes).
 
 const $ = (sel) => document.querySelector(sel);
 const fmt = (n) => (Number(n) || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
-// Optional ?account=<id> deep-links to a specific account (else the busiest).
 const params = new URLSearchParams(location.search);
 const state = {
   accountId: params.get("account"),
@@ -13,6 +17,11 @@ const state = {
   people: [],
   // ?user=<id> deep-links as a person; otherwise the last stored choice.
   currentUser: params.get("user") || localStorage.getItem("currentUser") || null,
+  account: null,          // the selected account's row (has opening_balance)
+  rows: [],               // transactions as last loaded from the server
+  edits: new Map(),       // id -> { field: value } staged edits to existing rows
+  dels: new Set(),        // ids staged for deletion
+  news: [],               // staged new rows ({ _tempId, created_at, ...fields })
 };
 
 async function api(path, opts) {
@@ -34,7 +43,7 @@ function toast(msg) {
   el.textContent = msg;
   el.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove("show"), 1400);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 1600);
 }
 
 // --- current user (no auth; personalizes the view) -------------------------
@@ -80,6 +89,7 @@ function showWho() {
 }
 
 async function selectUser(id) {
+  if (hasPending() && !confirm("Discard unsaved changes?")) return;
   state.currentUser = id;
   localStorage.setItem("currentUser", id);
   $("#who").hidden = true;
@@ -89,7 +99,7 @@ async function selectUser(id) {
   await loadLedger();
 }
 
-// --- load & render ---------------------------------------------------------
+// --- accounts --------------------------------------------------------------
 
 async function loadAccounts() {
   const { accounts } = await api("/api/accounts");
@@ -120,59 +130,106 @@ async function loadAccounts() {
   sel.value = state.accountId ?? "";
 }
 
-async function loadLedger() {
-  if (!state.accountId) return;
-  const { transactions, totals } = await api(`/api/transactions?account_id=${encodeURIComponent(state.accountId)}`);
-  renderRows(transactions);
-  $("#totIn").textContent = fmt(totals.deposits);
-  $("#totOut").textContent = fmt(totals.withdrawals);
-  const bal = transactions.length ? transactions[transactions.length - 1].running_balance
-                                  : (state.accounts.find((a) => a.id === state.accountId)?.opening_balance ?? 0);
-  const balEl = $("#balance");
-  balEl.textContent = fmt(bal);
-  balEl.classList.toggle("neg", bal < 0);
+// --- ledger data + staging -------------------------------------------------
+
+function clearPending() {
+  state.edits.clear();
+  state.dels.clear();
+  state.news = [];
+  addDraft = freshDraft();
 }
 
-function renderRows(txns) {
+async function loadLedger() {
+  if (!state.accountId) { state.rows = []; state.account = null; clearPending(); render(); return; }
+  const { account, transactions } = await api(`/api/transactions?account_id=${encodeURIComponent(state.accountId)}`);
+  state.account = account;
+  state.rows = transactions;
+  clearPending();
+  render();
+}
+
+// Merge staged changes over the loaded rows, then recompute the running balance
+// (oldest → newest) so the preview reflects unsaved edits. Deleted rows are kept
+// for display (struck-through) but excluded from the balance.
+function computeView() {
+  const rows = [];
+  for (const r of state.rows) {
+    if (state.dels.has(r.id)) { rows.push({ ...r, _id: r.id, _deleted: true }); continue; }
+    const e = state.edits.get(r.id);
+    rows.push({ ...r, ...(e || {}), _id: r.id, _edited: !!e });
+  }
+  for (const n of state.news) rows.push({ ...n, _id: n._tempId, _new: true });
+
+  const live = rows
+    .filter((r) => !r._deleted)
+    .sort((a, b) => cmp(a.txn_date, b.txn_date) || cmp(a.created_at || "", b.created_at || ""));
+  let bal = Number(state.account?.opening_balance) || 0;
+  let deposits = 0, withdrawals = 0;
+  const balById = new Map();
+  for (const t of live) {
+    const d = Number(t.deposit) || 0, w = Number(t.withdrawal) || 0;
+    deposits += d; withdrawals += w; bal = round2(bal + d - w);
+    balById.set(t._id, bal);
+  }
+  return { rows, balById, totals: { deposits: round2(deposits), withdrawals: round2(withdrawals) }, endBal: round2(bal) };
+}
+
+function render() {
+  const { rows, balById, totals, endBal } = computeView();
   const tbody = $("#rows");
   tbody.innerHTML = "";
-  $("#empty").hidden = txns.length > 0;
-  // Newest first for scanning; running_balance was computed oldest→newest.
-  for (const t of [...txns].reverse()) tbody.appendChild(rowEl(t));
+  $("#empty").hidden = rows.length > 0;
+  // Newest first for scanning; running_balance was computed oldest→newest above.
+  const display = [...rows].sort((a, b) => cmp(b.txn_date, a.txn_date) || cmp(b.created_at || "", a.created_at || ""));
+  for (const r of display) tbody.appendChild(rowEl(r, balById.get(r._id)));
   renderAddRow();
+
+  $("#totIn").textContent = fmt(totals.deposits);
+  $("#totOut").textContent = fmt(totals.withdrawals);
+  const balEl = $("#balance");
+  balEl.textContent = fmt(endBal);
+  balEl.classList.toggle("neg", endBal < 0);
+  renderControls();
 }
 
-function rowEl(t) {
+function rowEl(row, bal) {
   const tr = document.createElement("tr");
-  tr.dataset.id = t.id;
-  tr.appendChild(cell("date", t.txn_date, "col-date"));
-  tr.appendChild(cell("text", t.description, "", "categories", "Category"));
-  tr.appendChild(cell("text", t.source, "", null, "Source / Recipient"));
-  tr.appendChild(cell("number", t.deposit || "", "num col-dep"));
-  tr.appendChild(cell("number", t.withdrawal || "", "num col-wd"));
+  tr.dataset.id = row._id;
+  if (row._deleted) tr.className = "to-delete";
+  else if (row._new) tr.className = "new-row";
+  else if (row._edited) tr.className = "edited";
 
-  const bal = document.createElement("td");
-  bal.className = "bal" + (t.running_balance < 0 ? " neg" : "");
-  bal.textContent = fmt(t.running_balance);
-  if (t.running_balance < 0) bal.title = "Balance went negative here";
-  tr.appendChild(bal);
+  const dis = !!row._deleted;
+  tr.appendChild(cell("date", row.txn_date, "txn_date", "col-date", null, "", dis));
+  tr.appendChild(cell("text", row.description, "description", "", "categories", "Category", dis));
+  tr.appendChild(cell("text", row.source, "source", "", null, "Source / Recipient", dis));
+  tr.appendChild(cell("number", row.deposit || "", "deposit", "num col-dep", null, "", dis));
+  tr.appendChild(cell("number", row.withdrawal || "", "withdrawal", "num col-wd", null, "", dis));
+
+  const balTd = document.createElement("td");
+  balTd.className = "bal" + (bal < 0 ? " neg" : "");
+  balTd.textContent = row._deleted ? "—" : fmt(bal);
+  if (!row._deleted && bal < 0) balTd.title = "Balance goes negative here";
+  tr.appendChild(balTd);
 
   const act = document.createElement("td");
   act.className = "row-actions";
-  const del = document.createElement("button");
-  del.className = "del"; del.title = "Delete"; del.textContent = "×";
-  del.onclick = () => deleteTxn(t.id);
-  act.appendChild(del);
+  const btn = document.createElement("button");
+  btn.className = "del" + (row._deleted ? " restore" : "");
+  btn.title = row._deleted ? "Restore" : "Delete";
+  btn.textContent = row._deleted ? "↺" : "×";
+  btn.onclick = () => toggleDelete(row);
+  act.appendChild(btn);
   tr.appendChild(act);
 
-  // Wire each editable field to a PATCH on change.
+  // Stage each edit on change (blur/enter) — not on every keystroke.
   tr.querySelectorAll("input[data-field]").forEach((inp) => {
-    inp.addEventListener("change", () => saveField(t.id, inp.dataset.field, inp));
+    inp.addEventListener("change", () => stageEdit(row, inp.dataset.field, inp.value));
   });
   return tr;
 }
 
-function cell(type, value, cls = "", list = null, placeholder = "") {
+function cell(type, value, field, cls = "", list = null, placeholder = "", disabled = false) {
   const td = document.createElement("td");
   if (cls) td.className = cls;
   const inp = document.createElement("input");
@@ -181,57 +238,56 @@ function cell(type, value, cls = "", list = null, placeholder = "") {
   if (placeholder) inp.placeholder = placeholder;
   if (list) inp.setAttribute("list", list);
   if (type === "number") { inp.step = "0.01"; inp.min = "0"; }
-  inp.dataset.field = FIELD_BY_TYPE(type, cls, placeholder);
+  if (disabled) inp.disabled = true;
+  inp.dataset.field = field;
   td.appendChild(inp);
   return td;
 }
 
-// Map a cell to its transaction field (kept explicit so markup order can change).
-function FIELD_BY_TYPE(type, cls, placeholder) {
-  if (type === "date") return "txn_date";
-  if (cls.includes("col-dep")) return "deposit";
-  if (cls.includes("col-wd")) return "withdrawal";
-  if (placeholder.startsWith("Category")) return "description";
-  return "source";
+function stageEdit(row, field, value) {
+  if (row._new) {
+    const n = state.news.find((x) => x._tempId === row._id);
+    if (n) n[field] = value;
+  } else {
+    const e = state.edits.get(row._id) || {};
+    e[field] = value;
+    state.edits.set(row._id, e);
+  }
+  render();
 }
 
-// --- writes ----------------------------------------------------------------
-
-async function saveField(id, field, inp) {
-  try {
-    await api(`/api/transactions/${id}`, { method: "PATCH", body: { [field]: inp.value } });
-    toast("Saved");
-    await loadAccounts(); // balances in the dropdown may shift
-    await loadLedger();
-  } catch (e) { toast("Error: " + e.message); }
+function toggleDelete(row) {
+  if (row._new) {
+    state.news = state.news.filter((x) => x._tempId !== row._id);
+  } else if (state.dels.has(row._id)) {
+    state.dels.delete(row._id);
+  } else {
+    state.dels.add(row._id);
+    state.edits.delete(row._id); // pending edits on a to-be-deleted row are moot
+  }
+  render();
 }
 
-async function deleteTxn(id) {
-  try {
-    await api(`/api/transactions/${id}`, { method: "DELETE" });
-    toast("Deleted");
-    await loadAccounts();
-    await loadLedger();
-  } catch (e) { toast("Error: " + e.message); }
-}
+// --- add row ---------------------------------------------------------------
+
+const freshDraft = () => ({ txn_date: new Date().toISOString().slice(0, 10), description: "", source: "", deposit: "", withdrawal: "" });
+let addDraft = freshDraft();
+let tempCounter = 0;
 
 function renderAddRow() {
   const foot = $("#addFoot");
   foot.innerHTML = "";
   const tr = document.createElement("tr");
   tr.className = "add";
-  const today = new Date().toISOString().slice(0, 10);
-  const draft = { txn_date: today, description: "", source: "", deposit: "", withdrawal: "" };
-
   const mk = (type, key, cls = "", list = null, placeholder = "") => {
     const td = document.createElement("td");
     if (cls) td.className = cls;
     const inp = document.createElement("input");
-    inp.type = type; inp.value = draft[key]; inp.placeholder = placeholder;
+    inp.type = type; inp.value = addDraft[key]; inp.placeholder = placeholder;
     if (list) inp.setAttribute("list", list);
     if (type === "number") { inp.step = "0.01"; inp.min = "0"; }
-    inp.addEventListener("input", () => (draft[key] = inp.value));
-    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") addTxn(draft); });
+    inp.addEventListener("input", () => (addDraft[key] = inp.value));
+    inp.addEventListener("keydown", (e) => { if (e.key === "Enter") stageAdd(); });
     td.appendChild(inp); return td;
   };
   tr.appendChild(mk("date", "txn_date", "col-date"));
@@ -245,34 +301,87 @@ function renderAddRow() {
   act.className = "row-actions";
   const add = document.createElement("button");
   add.className = "btn"; add.textContent = "Add"; add.style.padding = "5px 10px";
-  add.onclick = () => addTxn(draft);
+  add.onclick = stageAdd;
   act.appendChild(add);
   tr.appendChild(act);
   foot.appendChild(tr);
 }
 
-async function addTxn(draft) {
-  if (!draft.txn_date) return toast("Date is required");
-  if (!draft.deposit && !draft.withdrawal) return toast("Enter a deposit or withdrawal");
+function stageAdd() {
+  if (!addDraft.txn_date) return toast("Date is required");
+  if (!addDraft.deposit && !addDraft.withdrawal) return toast("Enter a deposit or withdrawal");
+  state.news.push({ _tempId: "new-" + (++tempCounter), created_at: new Date().toISOString(), ...addDraft });
+  addDraft = freshDraft();
+  render();
+  toast("Row added (unsaved)");
+}
+
+// --- save / discard --------------------------------------------------------
+
+const pendingCount = () => state.edits.size + state.dels.size + state.news.length;
+const hasPending = () => pendingCount() > 0;
+
+function renderControls() {
+  const n = pendingCount();
+  const save = $("#saveBtn");
+  save.disabled = n === 0;
+  save.textContent = n ? `Save (${n})` : "Save";
+  $("#discardBtn").hidden = n === 0;
+  $("#dirtyNote").hidden = n === 0;
+}
+
+async function applyPending() {
+  if (!hasPending()) return;
+  const n = pendingCount();
+  $("#saveBtn").disabled = true;
   try {
-    await api("/api/transactions", {
-      method: "POST",
-      body: { account_id: state.accountId, ...draft, deposit: draft.deposit || 0, withdrawal: draft.withdrawal || 0 },
-    });
-    toast("Added");
+    for (const nr of state.news) {
+      await api("/api/transactions", {
+        method: "POST",
+        body: {
+          account_id: state.accountId, txn_date: nr.txn_date,
+          description: nr.description, source: nr.source,
+          deposit: Number(nr.deposit) || 0, withdrawal: Number(nr.withdrawal) || 0,
+        },
+      });
+    }
+    for (const [id, fields] of state.edits) {
+      await api(`/api/transactions/${id}`, { method: "PATCH", body: fields });
+    }
+    for (const id of state.dels) {
+      await api(`/api/transactions/${id}`, { method: "DELETE" });
+    }
     await loadAccounts();
-    await loadLedger();
-  } catch (e) { toast("Error: " + e.message); }
+    await loadLedger(); // clears pending + re-renders from the server
+    toast(`Saved ${n} change${n === 1 ? "" : "s"}`);
+  } catch (err) {
+    toast("Error saving: " + err.message);
+    renderControls(); // re-enable Save so the user can retry
+  }
+}
+
+function discardPending() {
+  if (!hasPending()) return;
+  clearPending();
+  render();
+  toast("Changes discarded");
 }
 
 // --- init ------------------------------------------------------------------
 
 $("#account").addEventListener("change", (e) => {
+  if (hasPending() && !confirm("Discard unsaved changes and switch account?")) {
+    e.target.value = state.accountId;
+    return;
+  }
   state.accountId = e.target.value;
   loadLedger();
 });
 
 $("#userChip").addEventListener("click", showWho);
+$("#saveBtn").addEventListener("click", applyPending);
+$("#discardBtn").addEventListener("click", discardPending);
+window.addEventListener("beforeunload", (e) => { if (hasPending()) { e.preventDefault(); e.returnValue = ""; } });
 
 (async function init() {
   try {

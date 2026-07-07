@@ -49,6 +49,7 @@
   td input:hover { border-color: var(--line); }
   td input:focus { outline: none; border-color: var(--accent); background: var(--panel-2); }
   td.num input { text-align: right; font-variant-numeric: tabular-nums; }
+  td.col-dep input { color: var(--pos); }
   td.bal { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); padding-right: 12px; white-space: nowrap; }
   td.bal.neg { color: var(--neg); }
   .col-date { width: 140px; } .col-dep, .col-wd, .col-bal { width: 120px; }
@@ -67,6 +68,15 @@
   }
   .btn:hover { filter: brightness(1.08); }
   .btn.ghost { background: var(--accent-weak); color: var(--text); }
+  .btn[disabled] { opacity: .4; cursor: default; }
+  .btn[disabled]:hover { filter: none; }
+  .dirty-note { color: #e0a336; font-size: 12px; white-space: nowrap; }
+
+  tr.edited { background: rgba(79,140,255,.08); }
+  tr.new-row { background: rgba(70,192,138,.10); }
+  tr.to-delete { opacity: .45; }
+  tr.to-delete input { text-decoration: line-through; }
+  .del.restore { color: var(--accent); }
 
   .userchip {
     display: inline-flex; align-items: center; gap: 8px; background: var(--panel-2);
@@ -127,6 +137,9 @@
     <span class="switch">switch</span>
   </button>
   <div class="grow"></div>
+  <span id="dirtyNote" class="dirty-note" hidden>unsaved changes</span>
+  <button id="discardBtn" class="btn ghost" hidden>Discard</button>
+  <button id="saveBtn" class="btn" disabled>Save</button>
   <div class="stat"><span class="label">Deposits</span><span class="value pos" id="totIn">—</span></div>
   <div class="stat"><span class="label">Withdrawals</span><span class="value neg" id="totOut">—</span></div>
   <div class="stat"><span class="label">Balance</span><span class="value" id="balance">—</span></div>

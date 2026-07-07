@@ -47,8 +47,10 @@ they do exactly the same thing.
 
 If you'd rather do it by hand:
 
-1. **Install Node.js** (version 22.5 or newer) from <https://nodejs.org> — pick the
-   "LTS" download and run the installer. This is the engine the app runs on.
+1. **Install Node.js** (version 22.5 or newer) from <https://nodejs.org/en/download> —
+   pick the **macOS Installer (.pkg)**, run it, and click through to the end. This is
+   the engine the app runs on. After it finishes, **close and reopen Terminal** so it
+   picks up the new command.
 2. **Download the app.** If you have `git`:
    ```bash
    git clone https://github.com/theWAM/finance-dashboard.git
@@ -110,9 +112,13 @@ npm run backup
 
 ## Troubleshooting
 
-- **`command not found: node` (or `npm`)** — Node.js isn't installed or isn't on
-  your PATH. Install it from <https://nodejs.org> and try again. (On this Mac,
-  Node lives in `/opt/homebrew/bin`; the setup script handles this for you.)
+- **`command not found: node` (or `npm`)** — Node.js isn't installed, or Terminal
+  was open before you installed it. Install it from <https://nodejs.org/en/download>,
+  then **fully quit and reopen Terminal** (a still-open window won't see a newly
+  installed command). To confirm it's there, run `node -v` — you should see a version
+  like `v22.…`. The `setup.command` script now waits for the installer to finish and
+  continues on its own, and it looks in the usual install spots
+  (`/usr/local/bin`, `/opt/homebrew/bin`) even when your PATH doesn't list them.
 - **The page won't load** — make sure the Terminal still shows
   `Finance Dashboard (local) running at http://localhost:3000`. If you closed it,
   run `npm start` again.

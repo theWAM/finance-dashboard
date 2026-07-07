@@ -25,23 +25,54 @@ if ! command -v git >/dev/null 2>&1; then
 fi
 
 # 2) Node.js (need >= 22.5) --------------------------------------------------
-need_node=1
-if command -v node >/dev/null 2>&1; then
-  major="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
-  [ "${major:-0}" -ge 22 ] && need_node=0
-fi
-if [ "$need_node" -ne 0 ]; then
-  echo "Node.js 22+ is required."
+# Look for a usable Node by PATH *and* by the places installers actually put it
+# (the official .pkg → /usr/local/bin, Homebrew on Apple Silicon → /opt/homebrew/bin).
+# Finder-launched scripts often have a minimal PATH, so probing absolute paths is
+# what makes this reliable right after someone installs Node.
+find_node() {
+  local cand v dir
+  for cand in node /usr/local/bin/node /opt/homebrew/bin/node /usr/bin/node; do
+    if command -v "$cand" >/dev/null 2>&1; then cand="$(command -v "$cand")"; fi
+    [ -x "$cand" ] || continue
+    v="$("$cand" -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
+    if [ "${v:-0}" -ge 22 ]; then
+      dir="$(cd "$(dirname "$cand")" && pwd)"
+      export PATH="$dir:$PATH"        # ensure node AND its sibling npm are reachable
+      return 0
+    fi
+  done
+  return 1
+}
+
+if ! find_node; then
+  echo "Node.js 22 or newer is required — it isn't installed yet."
   if command -v brew >/dev/null 2>&1; then
     echo "Installing Node.js with Homebrew…"
-    brew install node || bail "Homebrew couldn't install Node. Install it from https://nodejs.org and re-run."
+    brew install node || true
   else
-    echo "Opening the Node.js download page — install the LTS version, then run this again."
-    (command -v open >/dev/null 2>&1 && open "https://nodejs.org/") || true
-    bail "Node.js not found."
+    echo ""
+    echo "Opening the Node.js download page in your browser."
+    echo "→ Click the big LTS button, run the installer, and click through to the end."
+    (command -v open >/dev/null 2>&1 && open "https://nodejs.org/en/download") || true
+    echo ""
+    echo "No need to re-run this — I'll keep checking and continue automatically"
+    echo "once Node is installed. (Press Ctrl-C to stop.)"
+    tries=0
+    until find_node; do
+      sleep 5
+      tries=$((tries + 1))
+      [ $((tries % 6)) -eq 0 ] && echo "  …still waiting for Node.js to finish installing…"
+      if [ "$tries" -ge 180 ]; then     # ~15 min
+        bail "Still can't find Node.js. Finish the installer from https://nodejs.org/en/download, then run this again."
+      fi
+    done
   fi
+  find_node || bail "Node.js still isn't available. Install it from https://nodejs.org/en/download and run this again."
 fi
-echo "✓ Node $(node -v) and git $(git --version | awk '{print $3}') ready."
+
+# npm ships alongside node; make sure it's actually callable before we lean on it.
+command -v npm >/dev/null 2>&1 || bail "Found Node ($(node -v)) but not npm. Reinstall Node.js from https://nodejs.org/en/download."
+echo "✓ Node $(node -v), npm $(npm -v), git $(git --version | awk '{print $3}') ready."
 
 # 3) Locate or download the app ---------------------------------------------
 HERE="$(cd "$(dirname "$0")" && pwd)"

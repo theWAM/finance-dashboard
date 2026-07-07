@@ -27,7 +27,8 @@ function spanMonths(matched, asOf) {
  * @returns {Array} one result per target: { kind, name, owner, planLabel, actualLabel, detail, status, progress? }
  */
 export function computeDrift(transactions, planTargets = [], { asOf }) {
-  const rows = live(transactions).filter((t) => t.txn_date <= asOf);
+  const liveRows = live(transactions);
+  const rows = liveRows.filter((t) => t.txn_date <= asOf);
   const out = [];
   for (const pt of planTargets) {
     const d = pt.data || {};
@@ -35,11 +36,15 @@ export function computeDrift(transactions, planTargets = [], { asOf }) {
     // under different names); match a transaction if it hits any of them.
     const planSources = Array.isArray(d.sources) && d.sources.length ? d.sources : (d.source ? [d.source] : []);
     const srcSet = new Set(planSources);
-    let matched = rows.filter((t) => srcSet.has(t.source || "") && (Number(t.withdrawal) || 0) > 0);
-    // A savings goal only counts contributions made inside its own window. This
-    // is what lets several goals share one account/source (e.g. three trips all
-    // funded from "Vacation HYSA"): each goal sums the deposits between its own
-    // start and deadline instead of the whole running balance.
+    // Debts/investments measure cadence to date, so they only see rows up to
+    // today. A savings goal instead sums everything inside its own window —
+    // including future-dated (projected) contributions — because the ledger is a
+    // forward projection and the goal answers "how much will be saved by the
+    // deadline"; capping at today would zero out goals whose windows are still
+    // ahead. Windows also let several goals share one source (e.g. three trips
+    // funded from "Vacation HYSA") by partitioning its deposits by date.
+    const base = pt.kind === "savings_goal" ? liveRows : rows;
+    let matched = base.filter((t) => srcSet.has(t.source || "") && (Number(t.withdrawal) || 0) > 0);
     if (pt.kind === "savings_goal") {
       matched = matched.filter((t) => (!d.start_date || t.txn_date >= d.start_date) &&
                                       (!d.end_date || t.txn_date <= d.end_date));
@@ -48,13 +53,14 @@ export function computeDrift(transactions, planTargets = [], { asOf }) {
 
     if (pt.kind === "savings_goal") {
       const target = Number(d.target_amount) || 0;
-      const totalMonths = Math.max(1, monthsBetween(d.start_date, d.end_date));
-      const elapsed = Math.min(totalMonths, Math.max(0, monthsBetween(d.start_date, asOf)));
-      const requiredByNow = round2(target * (elapsed / totalMonths));
-      const pace = requiredByNow > 0 ? paid / requiredByNow : (paid >= target ? 1 : 0);
-      const status = paid >= target ? "good" : pace >= 0.95 ? "good" : pace >= 0.75 ? "warn" : "bad";
+      // `paid` is the full window (incl. planned/future contributions), so it
+      // answers "will the plan fund this goal by its deadline?". Also surface how
+      // much is actually set aside so far (window contributions up to today).
+      const toDate = round2(matched.filter((t) => t.txn_date <= asOf).reduce((s, t) => s + (Number(t.withdrawal) || 0), 0));
+      const pct = target ? paid / target : (paid > 0 ? 1 : 0);
+      const status = pct >= 0.95 ? "good" : pct >= 0.75 ? "warn" : "bad";
       out.push({ id: pt.id, kind: pt.kind, name: pt.name, owner: pt.owner, owners: d.owners, planValue: target, actualValue: paid,
-        detail: `${Math.round((paid / (target || 1)) * 100)}% of goal · on-pace ${Math.round(pace * 100)}% (by ${d.end_date})`,
+        detail: `${Math.round(pct * 100)}% funded by plan · $${toDate} saved so far (by ${d.end_date})`,
         progress: target ? Math.min(1, paid / target) : 0, status });
     } else if (pt.kind === "investment_cadence") {
       const months = spanMonths(matched, asOf);

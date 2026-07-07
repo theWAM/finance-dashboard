@@ -9,8 +9,12 @@ import express from "express";
 import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { writeFileSync, readFileSync, mkdirSync, readdirSync, copyFileSync } from "node:fs";
+import { execSync } from "node:child_process";
 import db from "./db.js";
 import { accountLedger, withRunningBalance, totals } from "../shared/metrics.js";
+import { buildSnapshot, parseSnapshot } from "../shared/snapshot.js";
+import { isNewer } from "../shared/merge.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -204,9 +208,104 @@ function applyUpdate(table, id, fields) {
   db.prepare(`UPDATE ${table} SET ${setSql}, updated_at = ? WHERE id = ?`).run(...values, now(), id);
 }
 
+// --- Sync: publish / refresh (Phase 7) -------------------------------------
+
+const ROOT = join(__dirname, "..");
+const meta = (k) => db.prepare("SELECT value FROM sync_meta WHERE key = ?").get(k)?.value;
+const setMeta = (k, v) => db.prepare("INSERT OR REPLACE INTO sync_meta (key, value) VALUES (?, ?)").run(k, String(v));
+const allRaw = (table) => db.prepare(`SELECT * FROM ${table}`).all(); // incl. tombstones
+
+app.get("/api/sync-status", (_req, res) => {
+  res.json({
+    local_version: Number(meta("local_version") || 0),
+    last_published_at: meta("last_published_at") || null,
+    published_by: meta("published_by") || null,
+    last_pulled_version: Number(meta("last_pulled_version") || 0),
+    last_pulled_at: meta("last_pulled_at") || null,
+  });
+});
+
+// Export SQLite → docs/data/snapshot.json (+ copy shared modules for the public
+// view), then optionally git commit & push. Pass { push:false } to skip git.
+app.post("/api/publish", (req, res) => {
+  const publishedBy = req.body?.publishedBy || "";
+  const doPush = req.body?.push !== false;
+  const version = Number(meta("local_version") || 0) + 1;
+  const snapshot = buildSnapshot({
+    version, publishedBy,
+    people: allRaw("people"),
+    accounts: allRaw("accounts"),
+    transactions: allRaw("transactions"),
+    planTargets: allRaw("plan_targets").map((r) => ({ ...r, data: safeParse(r.data) })),
+  });
+  const dataDir = join(ROOT, "docs", "data");
+  mkdirSync(dataDir, { recursive: true });
+  writeFileSync(join(dataDir, "snapshot.json"), JSON.stringify(snapshot, null, 2));
+  // Copy shared/*.js into docs/shared so the published view runs the same logic.
+  const sharedDst = join(ROOT, "docs", "shared");
+  mkdirSync(sharedDst, { recursive: true });
+  for (const f of readdirSync(join(ROOT, "shared"))) if (f.endsWith(".js")) copyFileSync(join(ROOT, "shared", f), join(sharedDst, f));
+
+  setMeta("local_version", version);
+  setMeta("last_published_at", new Date().toISOString());
+  setMeta("published_by", publishedBy);
+
+  let pushed = false, gitOut = "";
+  if (doPush) {
+    try {
+      execSync(`git add docs && git commit -m "Publish snapshot v${version}" && git push`, { cwd: ROOT, stdio: "pipe" });
+      pushed = true;
+    } catch (e) { gitOut = String(e.stderr || e.stdout || e.message).slice(0, 600); }
+  }
+  res.json({ ok: true, version, pushed, gitOut, counts: { transactions: snapshot.transactions.length } });
+});
+
+// Pull a published snapshot (from `source` URL, else the local committed file)
+// and merge it per-record last-writer-wins into SQLite.
+app.post("/api/refresh", async (req, res) => {
+  const source = req.body?.source;
+  let raw;
+  try {
+    raw = source ? await (await fetch(source)).text() : readFileSync(join(ROOT, "docs", "data", "snapshot.json"), "utf8");
+  } catch (e) { return res.status(400).json({ error: "could not read snapshot: " + e.message }); }
+  let snap;
+  try { snap = parseSnapshot(raw); } catch (e) { return res.status(400).json({ error: e.message }); }
+
+  const merged = {
+    people: mergeInto("people", snap.people),
+    accounts: mergeInto("accounts", snap.accounts),
+    transactions: mergeInto("transactions", snap.transactions),
+    plan_targets: mergeInto("plan_targets", (snap.plan_targets || []).map((r) => ({ ...r, data: typeof r.data === "string" ? r.data : JSON.stringify(r.data || {}) }))),
+  };
+  setMeta("last_pulled_version", snap.version || 0);
+  setMeta("last_pulled_at", new Date().toISOString());
+  res.json({ ok: true, version: snap.version, merged });
+});
+
+// Per-record LWW upsert of `incoming` into `table` (newer updated_at wins).
+function mergeInto(table, incoming = []) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+  const localById = new Map(allRaw(table).map((r) => [r.id, r]));
+  const upsert = db.prepare(`INSERT OR REPLACE INTO ${table} (${cols.join(", ")}) VALUES (${cols.map(() => "?").join(", ")})`);
+  let applied = 0;
+  db.exec("BEGIN");
+  try {
+    for (const rec of incoming) {
+      const local = localById.get(rec.id);
+      if (local && !isNewer(rec, local)) continue; // local is newer/equal — keep it
+      upsert.run(...cols.map((c) => (rec[c] !== undefined ? rec[c] : local ? local[c] : null)));
+      applied++;
+    }
+    db.exec("COMMIT");
+  } catch (e) { db.exec("ROLLBACK"); throw e; }
+  return applied;
+}
+
 // --- Editor UI -------------------------------------------------------------
 
 app.use(express.static(join(__dirname, "public")));
+// Serve the published docs/ site locally at /site for previewing the public view.
+app.use("/site", express.static(join(ROOT, "docs")));
 // Serve the shared/ modules (e.g. paycycle.js) so the browser can import them.
 app.use("/shared", express.static(join(__dirname, "..", "shared")));
 

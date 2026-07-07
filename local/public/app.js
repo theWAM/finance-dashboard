@@ -695,6 +695,38 @@ $("#bulkDelete").addEventListener("click", () => {
   toast(`Marked ${n} row${n === 1 ? "" : "s"} for deletion — Save to apply`);
 });
 $("#bulkClearSel").addEventListener("click", () => { state.selected.clear(); updateSelectionUI(); });
+
+// --- publish / refresh (Phase 7) -------------------------------------------
+
+async function loadSyncStatus() {
+  try {
+    const s = await api("/api/sync-status");
+    const pub = s.last_published_at ? new Date(s.last_published_at).toLocaleString() : "never";
+    const pulled = s.last_pulled_at ? new Date(s.last_pulled_at).toLocaleString() : "never";
+    $("#syncStatus").textContent = `v${s.local_version}`;
+    $("#syncStatus").title = `Site version ${s.local_version} · published ${pub}${s.published_by ? " by " + s.published_by : ""}\nLast refreshed: ${pulled} (v${s.last_pulled_version})`;
+  } catch { /* ignore */ }
+}
+$("#publishBtn").addEventListener("click", async () => {
+  if (hasPending() && !confirm("You have unsaved changes that won't be included. Publish anyway?")) return;
+  if (!confirm("Publish a snapshot to the PUBLIC site? This commits and pushes real balances.")) return;
+  $("#publishBtn").disabled = true;
+  try {
+    const r = await api("/api/publish", { method: "POST", body: { publishedBy: state.currentUser } });
+    toast(r.pushed ? `Published v${r.version} to the site` : `Snapshot v${r.version} written (push failed — see console)`);
+    if (!r.pushed && r.gitOut) console.warn("git:", r.gitOut);
+    loadSyncStatus();
+  } catch (e) { toast("Publish failed: " + e.message); }
+  $("#publishBtn").disabled = false;
+});
+$("#refreshBtn").addEventListener("click", async () => {
+  if (hasPending() && !confirm("Refresh merges the latest published data. Discard unsaved changes?")) return;
+  try {
+    const r = await api("/api/refresh", { method: "POST", body: {} });
+    toast(`Refreshed from v${r.version || 0}`);
+    await loadAccounts(); await loadLedger(); loadSyncStatus();
+  } catch (e) { toast("Refresh failed: " + e.message); }
+});
 window.addEventListener("beforeunload", (e) => { if (hasPending()) { e.preventDefault(); e.returnValue = ""; } });
 
 (async function init() {
@@ -712,6 +744,7 @@ window.addEventListener("beforeunload", (e) => { if (hasPending()) { e.preventDe
     renderUserChip();
     await loadAccounts();
     await loadLedger();
+    loadSyncStatus();
   } catch (e) {
     document.querySelector("main").innerHTML = `<div class="empty">Failed to load: ${e.message}</div>`;
   }

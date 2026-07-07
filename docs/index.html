@@ -1,40 +1,51 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Finance Dashboard</title>
-  <style>
-    body { font-family: system-ui, Arial, sans-serif; margin: 40px; color: #222; }
-    .meta { color: #5f6368; font-size: 0.9rem; }
-    .badge { display: inline-block; background: #eef; padding: 2px 8px; border-radius: 10px; }
-    code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Finance Dashboard</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel-2: #1e222b; --line: #2a2f3a;
+    --text: #e7e9ee; --muted: #9aa3b2; --accent: #4f8cff; --accent-weak: #24304b;
+    --pos: #46c08a; --neg: #ef6b7b; --warn: #e0a336;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); font-size: 14px; }
+  header { padding: 18px 24px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  header h1 { font-size: 16px; margin: 0; font-weight: 700; }
+  header .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  main { padding: 22px 24px 80px; }
+  .muted { color: var(--muted); }
+</style>
 </head>
 <body>
-  <h1>Finance Dashboard <span class="badge">read-only</span></h1>
-  <p class="meta" id="status">Loading snapshot…</p>
+<header>
+  <h1>Finance Dashboard</h1>
+  <div class="meta" id="meta">Read-only published view</div>
+</header>
+<main><div id="dashRoot"><p class="muted">Loading…</p></div></main>
 
-  <!-- Phase 0 placeholder: confirms the published view can read the shared snapshot.
-       The real read-only dashboard (shared render core) arrives in later phases. -->
-  <pre id="dump"></pre>
-
-  <script type="module">
-    // GitHub Pages serves docs/ at the site root; snapshot.json sits in ./data.
-    const url = new URL("./data/snapshot.json", location.href);
+<script type="module">
+  import { renderDashboard } from "./shared/dashboard-render.js";
+  (async function () {
     try {
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const snap = await res.json();
-      const when = snap.published_at ?? "never";
-      const who = snap.published_by ?? "—";
-      document.getElementById("status").textContent =
-        `Snapshot version ${snap.version} · published ${when} by ${who} · ` +
-        `${snap.transactions.length} transactions, ${snap.plan_targets.length} plan targets`;
-      document.getElementById("dump").textContent = JSON.stringify(snap, null, 2);
-    } catch (err) {
-      document.getElementById("status").textContent = `Could not load snapshot: ${err.message}`;
+      const snap = await (await fetch("./data/snapshot.json", { cache: "no-store" })).json();
+      if (!snap.version) {
+        document.getElementById("dashRoot").innerHTML = '<p class="muted">No data published yet.</p>';
+        return;
+      }
+      const when = snap.published_at ? new Date(snap.published_at).toLocaleString() : "—";
+      document.getElementById("meta").textContent = `Version ${snap.version} · updated ${when}${snap.published_by ? " by " + snap.published_by : ""}`;
+      renderDashboard(document.getElementById("dashRoot"), {
+        accounts: snap.accounts || [],
+        transactions: snap.transactions || [],
+        planTargets: snap.plan_targets || [],
+      });
+    } catch (e) {
+      document.getElementById("dashRoot").innerHTML = `<p class="muted">Could not load snapshot: ${e.message}</p>`;
     }
-  </script>
+  })();
+</script>
 </body>
 </html>

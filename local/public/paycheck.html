@@ -104,6 +104,13 @@
   .who-photo { width: 448px; height: 448px; border-radius: 50%; object-fit: cover; background: var(--accent); box-shadow: 0 12px 36px rgba(0,0,0,.4); }
   .who-photo.initials { display: grid; place-items: center; color: #fff; font-size: 160px; font-weight: 700; }
   .who-card .name { font-weight: 600; font-size: 30px; }
+
+  .modal-card.recur-card { width: min(440px, 92vw); padding: 26px; }
+  .recur-card h2 { text-align: left; font-size: 18px; margin: 0 0 4px; }
+  .recur-summary { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
+  .recur-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0; color: var(--muted); font-size: 13px; }
+  .recur-row select, .recur-row input { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; color: var(--text); font: inherit; }
+  .recur-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
 </style>
 </head>
 <body>
@@ -187,6 +194,30 @@
   <div class="modal-card">
     <h2>Who are you?</h2>
     <div class="who-options" id="whoOptions"></div>
+  </div>
+</div>
+
+<div class="modal" id="recurModal" hidden>
+  <div class="modal-card recur-card">
+    <h2>Make this recurring?</h2>
+    <div class="recur-summary" id="recurSummary">—</div>
+    <div class="recur-row">
+      <span>Repeat</span>
+      <select id="recurFreq">
+        <option value="monthly">Monthly (same day)</option>
+        <option value="period">Every pay period</option>
+        <option value="biweekly">Every 2 weeks</option>
+        <option value="weekly">Weekly</option>
+      </select>
+    </div>
+    <div class="recur-row">
+      <span>Until</span>
+      <input type="date" id="recurUntil">
+    </div>
+    <div class="recur-actions">
+      <button id="recurOnce" class="btn ghost">Just this once</button>
+      <button id="recurAdd" class="btn">Add recurring</button>
+    </div>
   </div>
 </div>
 

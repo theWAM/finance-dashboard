@@ -346,13 +346,86 @@ function renderAddRow() {
   add.onclick = addRow; act.appendChild(add); tr.appendChild(act);
   foot.appendChild(tr);
 }
+const pushNew = (t) => state.news.push({ _tempId: "new-" + (++tempId), created_at: new Date().toISOString(), txn_date: t.txn_date, description: t.description, source: t.source, deposit: t.deposit, withdrawal: t.withdrawal });
+
 function addRow() {
   if (!addDraft.txn_date) return toast("Date is required");
   if (!addDraft.deposit && !addDraft.withdrawal) return toast("Enter a deposit or withdrawal");
   if (!inWin(addDraft.txn_date) && !confirm("That date is outside this pay window — add it anyway?")) return;
-  state.news.push({ _tempId: "new-" + (++tempId), created_at: new Date().toISOString(), ...addDraft });
-  addDraft = freshDraft(); render();
+  const base = { ...addDraft };
+  pushNew(base);           // the entry itself is always added to this period
+  addDraft = freshDraft();
+  render();
+  openRecurModal(base);    // then offer to repeat it going forward
 }
+
+// --- recurring entries -----------------------------------------------------
+
+const daysBetween = (a, b) => { const p = (s) => { const [y, m, d] = s.split("-").map(Number); return Date.UTC(y, m - 1, d); }; return Math.round((p(b) - p(a)) / 86400000); };
+
+// Default stop date: the ledger's furthest date, or a year out — whichever later.
+function defaultUntil(D) {
+  const latest = state.txns.reduce((mx, t) => (t.txn_date > mx ? t.txn_date : mx), D);
+  const [y, m, d] = D.split("-").map(Number);
+  const yearOut = `${y + 1}-${String(m).padStart(2, "0")}-${String(Math.min(d, 28)).padStart(2, "0")}`;
+  return latest > yearOut ? latest : yearOut;
+}
+
+let recurBase = null;
+function openRecurModal(base) {
+  recurBase = base;
+  const amt = Number(base.deposit) || Number(base.withdrawal) || 0;
+  $("#recurSummary").textContent = `${base.description || "Entry"} · ${base.source || "—"} · ${fmt(amt)} — starting ${base.txn_date}`;
+  $("#recurFreq").value = "monthly";
+  $("#recurUntil").value = defaultUntil(base.txn_date);
+  $("#recurModal").hidden = false;
+}
+const closeRecurModal = () => { $("#recurModal").hidden = true; recurBase = null; };
+
+// Generate the future occurrences of `base` at the chosen frequency, up to `until`.
+function generateRecurring(base, freq, until) {
+  const D = base.txn_date;
+  let count = 0;
+  const CAP = 300;
+  if (freq === "weekly" || freq === "biweekly") {
+    const step = freq === "weekly" ? 7 : 14;
+    for (let n = 1; n <= CAP; n++) { const date = shiftDay(D, n * step); if (date > until) break; pushNew({ ...base, txn_date: date }); count++; }
+  } else if (freq === "monthly") {
+    const [y, m, d] = D.split("-").map(Number);
+    for (let n = 1; n <= CAP; n++) {
+      const t = y * 12 + (m - 1) + n, yy = Math.floor(t / 12), mm = (t % 12) + 1;
+      if (`${yy}-${String(mm).padStart(2, "0")}-01` > until) break;
+      const dim = new Date(Date.UTC(yy, mm, 0)).getUTCDate();
+      if (d > dim) continue; // day doesn't exist this month — skip
+      const date = `${yy}-${String(mm).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      if (date > until) break;
+      pushNew({ ...base, txn_date: date }); count++;
+    }
+  } else if (freq === "period") {
+    const cur = windowFor(state.cadence, state.anchor, D);
+    const offset = daysBetween(cur.start, D); // same relative position each period
+    let win = windowFor(state.cadence, state.anchor, cur.nextStart);
+    for (let n = 0; n < CAP; n++) {
+      const date = shiftDay(win.start, offset);
+      if (date > until) break;
+      if (date <= win.end) { pushNew({ ...base, txn_date: date }); count++; }
+      win = windowFor(state.cadence, state.anchor, win.nextStart);
+    }
+  }
+  return count;
+}
+
+$("#recurAdd").addEventListener("click", () => {
+  if (!recurBase) return closeRecurModal();
+  const freq = $("#recurFreq").value;
+  const until = $("#recurUntil").value || defaultUntil(recurBase.txn_date);
+  const n = generateRecurring(recurBase, freq, until);
+  closeRecurModal();
+  render();
+  toast(n ? `Added ${n} future occurrence${n === 1 ? "" : "s"} — review and Save` : "No occurrences in that range");
+});
+$("#recurOnce").addEventListener("click", closeRecurModal);
+$("#recurModal").addEventListener("click", (e) => { if (e.target.id === "recurModal") closeRecurModal(); });
 
 // --- save / discard --------------------------------------------------------
 

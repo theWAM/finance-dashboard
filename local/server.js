@@ -253,6 +253,18 @@ app.post("/api/publish", (req, res) => {
     for (const f of readdirSync(avatarSrc)) copyFileSync(join(avatarSrc, f), join(avatarDst, f));
   } catch { /* no avatars dir — fine */ }
 
+  // Generate the read-only Ledger + This-Paycheck pages from the local app
+  // files: same markup and logic, just rewrite the absolute /shared import to a
+  // relative one and inject the snapshot-backed fetch shim (docs/mock-api.js).
+  // Regenerated every publish so they never drift from the local app.
+  const pub = join(__dirname, "public");
+  const relImports = (s) => s.replace(/from "\/shared\//g, 'from "./shared/');
+  const injectShim = (html, src) => html.replace(`<script type="module" src="${src}">`, `<script type="module" src="./mock-api.js"></script>\n<script type="module" src="${src}">`);
+  writeFileSync(join(ROOT, "docs", "app.js"), relImports(readFileSync(join(pub, "app.js"), "utf8")));
+  writeFileSync(join(ROOT, "docs", "paycheck.js"), relImports(readFileSync(join(pub, "paycheck.js"), "utf8")));
+  writeFileSync(join(ROOT, "docs", "ledger.html"), injectShim(readFileSync(join(pub, "index.html"), "utf8"), "./app.js"));
+  writeFileSync(join(ROOT, "docs", "paycheck.html"), injectShim(readFileSync(join(pub, "paycheck.html"), "utf8"), "./paycheck.js"));
+
   setMeta("local_version", version);
   setMeta("last_published_at", new Date().toISOString());
   setMeta("published_by", publishedBy);

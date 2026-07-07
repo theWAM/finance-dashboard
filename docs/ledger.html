@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Finance Dashboard — Ledger</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel-2: #1e222b; --line: #2a2f3a;
+    --text: #e7e9ee; --muted: #9aa3b2; --accent: #4f8cff; --accent-weak: #24304b;
+    --pos: #46c08a; --neg: #ef6b7b; --danger: #b3303f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    margin: 0; background: var(--bg); color: var(--text); font-size: 14px;
+  }
+  header {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+    padding: 16px 24px; border-bottom: 1px solid var(--line); background: var(--panel);
+    position: sticky; top: 0; z-index: 5;
+  }
+  h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  .grow { flex: 1; }
+  .nav { display: flex; gap: 4px; }
+  .nav a { color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+  .nav a:hover { color: var(--text); background: var(--panel-2); }
+  .nav a.active { color: var(--text); background: var(--accent-weak); }
+  select, input, button { font: inherit; color: inherit; }
+  select {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 7px 10px; color: var(--text);
+  }
+  .stat { display: flex; flex-direction: column; gap: 2px; }
+  .stat .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  .stat .value { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 15px; }
+  .value.pos { color: var(--pos); } .value.neg { color: var(--neg); }
+
+  main { padding: 16px 24px 80px; }
+  table { border-collapse: collapse; width: 100%; }
+  thead th {
+    position: sticky; top: 65px; background: var(--bg); text-align: left;
+    color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase;
+    letter-spacing: .04em; padding: 8px 10px; border-bottom: 1px solid var(--line);
+    z-index: 4;
+  }
+  tbody td { padding: 2px 4px; border-bottom: 1px solid var(--line); }
+  tbody tr:hover { background: var(--panel); }
+  td input {
+    width: 100%; background: transparent; border: 1px solid transparent;
+    border-radius: 6px; padding: 6px 8px; color: var(--text);
+  }
+  td input:hover { border-color: var(--line); }
+  td input:focus { outline: none; border-color: var(--accent); background: var(--panel-2); }
+  td.num input { text-align: right; font-variant-numeric: tabular-nums; }
+  td.col-dep input { color: var(--pos); }
+  td.bal { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); padding-right: 12px; white-space: nowrap; }
+  td.bal.neg { color: var(--neg); }
+  .col-date { width: 140px; } .col-dep, .col-wd, .col-bal { width: 120px; }
+  .row-actions { width: 40px; text-align: center; }
+  .del {
+    background: transparent; border: none; color: var(--muted); cursor: pointer;
+    border-radius: 6px; padding: 4px 8px; font-size: 15px;
+  }
+  .del:hover { color: var(--neg); background: var(--panel-2); }
+
+  tr.add td { padding-top: 10px; }
+  tr.add input { border-color: var(--line); background: var(--panel-2); }
+  .btn {
+    background: var(--accent); border: none; color: white; border-radius: 8px;
+    padding: 7px 14px; cursor: pointer; font-weight: 600;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn.ghost { background: var(--accent-weak); color: var(--text); }
+  .btn[disabled] { opacity: .4; cursor: default; }
+  .btn[disabled]:hover { filter: none; }
+  .dirty-note { color: #e0a336; font-size: 12px; white-space: nowrap; }
+
+  tr.edited { background: rgba(79,140,255,.08); }
+  tr.new-row { background: rgba(70,192,138,.10); }
+  tr.to-delete { opacity: .45; }
+  tr.to-delete input { text-decoration: line-through; }
+  .del.restore { color: var(--accent); }
+
+  .userchip {
+    display: inline-flex; align-items: center; gap: 8px; background: var(--panel-2);
+    border: 1px solid var(--line); border-radius: 999px; padding: 5px 6px 5px 12px; cursor: pointer;
+  }
+  .userchip:hover { border-color: var(--accent); }
+  .userchip .avatar {
+    width: 24px; height: 24px; border-radius: 50%; background: var(--accent);
+    color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 700;
+    overflow: hidden;
+  }
+  .userchip .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .userchip .switch { color: var(--muted); font-size: 11px; }
+
+  .modal {
+    position: fixed; inset: 0; background: rgba(6,8,12,.72); backdrop-filter: blur(3px);
+    display: grid; place-items: center; z-index: 20;
+  }
+  .modal[hidden] { display: none; }
+  .modal-card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+    padding: 32px; width: min(1120px, 96vw); box-shadow: 0 24px 60px rgba(0,0,0,.5);
+  }
+  .modal-card h2 { margin: 0 0 6px; font-size: 24px; text-align: center; }
+  .modal-card p { margin: 0 0 24px; color: var(--muted); font-size: 14px; text-align: center; }
+  .who-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 28px; }
+  .who-card {
+    display: flex; flex-direction: column; align-items: center; gap: 22px;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 24px;
+    padding: 36px 28px; cursor: pointer; color: var(--text); font: inherit;
+    transition: transform .08s ease, border-color .08s ease, background .08s ease;
+  }
+  .who-card:hover { border-color: var(--accent); background: var(--accent-weak); transform: translateY(-2px); }
+  .who-photo {
+    /* Size as a share of the viewport so the cards keep the same proportion on
+       any screen (a fixed 448px looked huge on smaller laptops). */
+    width: clamp(150px, 30vw, 460px); height: clamp(150px, 30vw, 460px);
+    border-radius: 50%; object-fit: cover;
+    background: var(--accent); box-shadow: 0 12px 36px rgba(0,0,0,.4);
+  }
+  .who-photo.initials { display: grid; place-items: center; color: #fff; font-size: clamp(56px, 10vw, 160px); font-weight: 700; }
+  .who-card .name { font-weight: 600; font-size: clamp(20px, 2.2vw, 32px); }
+
+  .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .filters > label { color: var(--muted); font-size: 12px; display: inline-flex; gap: 6px; align-items: center; }
+  .filters input[type="date"] {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 6px 9px; color: var(--text);
+  }
+  .filters input[type="date"]:focus { outline: none; border-color: var(--accent); }
+  .filters .btn { padding: 6px 12px; }
+  .filter-count { color: var(--muted); font-size: 12px; }
+
+  .bulkbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; padding: 10px 14px; background: var(--accent-weak); border: 1px solid var(--accent); border-radius: 10px; }
+  .bulkbar[hidden] { display: none; }
+  .bulkbar select, .bulkbar input { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; color: var(--text); font: inherit; }
+  .bulkbar input[type="text"] { min-width: 160px; }
+  .bulk-count { font-weight: 600; }
+  .col-check { width: 34px; text-align: center; }
+  td.col-check { text-align: center; }
+  .col-check input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+  /* Row checkboxes stay hidden until you hover the row (or they're checked). */
+  tbody td.col-check input { opacity: 0; transition: opacity .1s ease; }
+  tbody tr:hover td.col-check input,
+  tbody td.col-check input:checked { opacity: 1; }
+  tbody tr.row-selected { background: var(--accent-weak); }
+
+  .ms { position: relative; }
+  .ms-btn {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 6px 12px; color: var(--text); cursor: pointer;
+  }
+  .ms-btn:hover, .ms-btn.active { border-color: var(--accent); }
+  .ms-panel {
+    position: absolute; top: calc(100% + 4px); left: 0; z-index: 8;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 6px; min-width: 210px; max-height: 340px; overflow: auto;
+    box-shadow: 0 12px 30px rgba(0,0,0,.45);
+  }
+  .ms-panel[hidden] { display: none; }
+  .ms-opt {
+    display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+    border-radius: 6px; cursor: pointer; font-size: 13px; white-space: nowrap;
+  }
+  .ms-opt:hover { background: var(--panel-2); }
+  .ms-opt input { width: 15px; height: 15px; accent-color: var(--accent); }
+
+  .flag { color: var(--neg); font-size: 11px; margin-left: 6px; }
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 16px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10;
+  }
+  .toast.show { opacity: 1; }
+  .empty { color: var(--muted); padding: 40px; text-align: center; }
+
+  .daily-check {
+    position: fixed; bottom: 20px; right: 20px; z-index: 12; width: 300px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 16px; box-shadow: 0 16px 40px rgba(0,0,0,.5);
+  }
+  .daily-check[hidden] { display: none; }
+  .dc-close { position: absolute; top: 8px; right: 10px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; }
+  .dc-close:hover { color: var(--text); }
+  .dc-label { color: var(--muted); font-size: 12px; }
+  .dc-amount { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; margin: 2px 0 10px; }
+  .dc-ask { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .dc-ask span { flex: 1; }
+  .dc-btn { width: 32px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer; font-size: 14px; }
+  .dc-btn.ok { color: var(--pos); } .dc-btn.ok:hover { border-color: var(--pos); }
+  .dc-btn.no { color: var(--neg); } .dc-btn.no:hover { border-color: var(--neg); }
+  .dc-correct label { display: block; color: var(--muted); font-size: 12px; }
+  .dc-correct input { width: 100%; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; color: var(--text); font-size: 15px; text-align: right; margin-top: 4px; }
+  .dc-diff { font-size: 12px; color: var(--muted); margin: 8px 0; min-height: 16px; }
+  .dc-correct .btn { width: 100%; }
+</style>
+</head>
+<body>
+<header>
+  <nav class="nav">
+    <a href="./" class="active">Ledger</a>
+    <a href="./paycheck.html">This Paycheck</a>
+    <a href="./plan.html">Plan</a>
+    <a href="./dashboard.html">Dashboard</a>
+  </nav>
+  <select id="account" title="Account"></select>
+  <button id="userChip" class="userchip" title="Switch person" hidden>
+    <span class="avatar" id="userAvatar"></span>
+    <span id="userName"></span>
+    <span class="switch">switch</span>
+  </button>
+  <button id="publishBtn" class="btn ghost" title="Publish a snapshot to the public site">Publish</button>
+  <button id="refreshBtn" class="btn ghost" title="Refresh from the published site">Refresh</button>
+  <span id="syncStatus" class="filter-count" title=""></span>
+  <div class="grow"></div>
+  <span id="dirtyNote" class="dirty-note" hidden>unsaved changes</span>
+  <button id="discardBtn" class="btn ghost" hidden>Discard</button>
+  <button id="saveBtn" class="btn" disabled>Save</button>
+  <div class="stat"><span class="label">Deposits</span><span class="value pos" id="totIn">—</span></div>
+  <div class="stat"><span class="label">Withdrawals</span><span class="value neg" id="totOut">—</span></div>
+  <div class="stat"><span class="label">Balance</span><span class="value" id="balance">—</span></div>
+</header>
+
+<main>
+  <div class="filters">
+    <select id="fPreset" title="Timeframe">
+      <option value="custom" hidden>Custom range</option>
+      <option value="3paychecks">3 paychecks</option>
+      <option value="last30">Last 30 days</option>
+      <option value="next30">Next 30 days</option>
+      <option value="last60">Last 60 days</option>
+      <option value="next60">Next 60 days</option>
+      <option value="last90">Last 90 days</option>
+      <option value="next90">Next 90 days</option>
+      <option value="last6mo">Last 6 months</option>
+      <option value="next6mo">Next 6 months</option>
+      <option value="thisyear">This year</option>
+      <option value="lastyear">Last year</option>
+      <option value="nextyear">Next year</option>
+      <option value="all">All time</option>
+    </select>
+    <label>From <input type="date" id="fFrom"></label>
+    <label>To <input type="date" id="fTo"></label>
+    <div class="ms" id="msCategory"></div>
+    <div class="ms" id="msSource"></div>
+    <button id="fClear" class="btn ghost" hidden>Clear</button>
+    <span id="fCount" class="filter-count"></span>
+  </div>
+
+  <div id="bulkBar" class="bulkbar" hidden>
+    <span class="bulk-count" id="bulkCount">0 selected</span>
+    <select id="bulkField">
+      <option value="">Set a field…</option>
+      <option value="txn_date">Date</option>
+      <option value="description">Category</option>
+      <option value="source">Source / Recipient</option>
+      <option value="deposit">Deposit</option>
+      <option value="withdrawal">Withdrawal</option>
+    </select>
+    <span id="bulkValueWrap"></span>
+    <button id="bulkApply" class="btn" disabled>Apply to selected</button>
+    <div class="grow"></div>
+    <button id="bulkDelete" class="btn ghost">Delete selected</button>
+    <button id="bulkClearSel" class="btn ghost">Clear selection</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th class="col-check"><input type="checkbox" id="selectAll" title="Select all shown"></th>
+        <th class="col-date">Date</th>
+        <th>Category</th>
+        <th>Source / Recipient</th>
+        <th class="col-dep" style="text-align:right">Deposit +</th>
+        <th class="col-wd" style="text-align:right">Withdrawal −</th>
+        <th class="col-bal" style="text-align:right">Balance</th>
+        <th class="row-actions"></th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+    <tfoot id="addFoot"></tfoot>
+  </table>
+  <div id="empty" class="empty" hidden>No transactions yet. Add one below.</div>
+</main>
+
+<datalist id="categories">
+  <option>Paycheck</option><option>Bonus</option><option>Bill</option>
+  <option>Savings</option><option>Investments</option><option>Loan Payment</option>
+  <option>Credit Card Payment</option><option>Tax Refund</option><option>Zelle</option>
+  <option>Transfer</option><option>Housing</option><option>Groceries</option><option>Food</option>
+  <option>Transportation</option><option>Misc</option><option>Fun</option><option>Expense</option>
+</datalist>
+
+<div class="toast" id="toast"></div>
+
+<div id="dailyCheck" class="daily-check" hidden>
+  <button class="dc-close" id="dcClose" title="Dismiss">×</button>
+  <div class="dc-label">You should have in the bank today</div>
+  <div class="dc-amount" id="dcAmount">—</div>
+  <div class="dc-ask" id="dcAsk">
+    <span>Does your bank match?</span>
+    <button id="dcYes" class="dc-btn ok" title="Matches">✓</button>
+    <button id="dcNo" class="dc-btn no" title="Doesn't match">✗</button>
+  </div>
+  <div class="dc-correct" id="dcCorrect" hidden>
+    <label>Your actual balance
+      <input type="number" id="dcActual" step="0.01" placeholder="0.00">
+    </label>
+    <div class="dc-diff" id="dcDiff"></div>
+    <button id="dcApply" class="btn" disabled>Correct</button>
+  </div>
+</div>
+
+<div class="modal" id="who" hidden>
+  <div class="modal-card">
+    <h2>Who are you?</h2>
+    <div class="who-options" id="whoOptions"></div>
+  </div>
+</div>
+
+<script type="module" src="./mock-api.js"></script>
+<script type="module" src="./app.js"></script>
+</body>
+</html>

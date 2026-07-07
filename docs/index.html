@@ -17,6 +17,10 @@
   header .meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
   main { padding: 22px 24px 80px; }
   .muted { color: var(--muted); }
+  .nav { display: flex; gap: 4px; margin-top: 8px; }
+  .nav a { color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+  .nav a:hover { color: var(--text); background: var(--panel-2); }
+  .nav a.active { color: var(--text); background: var(--accent-weak); }
 </style>
 </head>
 <body>
@@ -24,6 +28,11 @@
   <div>
     <h1>Finance Dashboard</h1>
     <div class="meta" id="meta">Read-only published view</div>
+    <nav class="nav">
+      <a href="./index.html" class="active">Dashboard</a>
+      <a href="./ledger.html">Ledger</a>
+      <a href="./paycheck.html">This Paycheck</a>
+    </nav>
   </div>
   <label class="meta" style="display:inline-flex;align-items:center;gap:8px;">View
     <select id="userSel" style="background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;">

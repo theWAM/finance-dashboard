@@ -47,12 +47,21 @@ async function loadPeople() {
 const initials = (name) => (name || "?").trim().slice(0, 1).toUpperCase();
 const currentPerson = () => state.people.find((p) => p.id === state.currentUser) || null;
 
+// A person's profile image, falling back to their initials on a colored circle.
+function avatarMarkup(person, photoClass) {
+  return person.avatar
+    ? `<img class="${photoClass}" src="${person.avatar}" alt="${person.name}">`
+    : `<span class="${photoClass} initials">${initials(person.name)}</span>`;
+}
+
 function renderUserChip() {
   const chip = $("#userChip");
   const person = currentPerson();
   // A single-person household needs no chip (nobody to switch to).
   if (!person || state.people.length <= 1) { chip.hidden = true; return; }
-  $("#userAvatar").textContent = initials(person.name);
+  const av = $("#userAvatar");
+  if (person.avatar) av.innerHTML = `<img src="${person.avatar}" alt="">`;
+  else av.textContent = initials(person.name);
   $("#userName").textContent = person.name;
   chip.hidden = false;
 }
@@ -62,8 +71,8 @@ function showWho() {
   box.innerHTML = "";
   for (const p of state.people) {
     const btn = document.createElement("button");
-    btn.className = "who-option";
-    btn.innerHTML = `<span class="avatar">${initials(p.name)}</span><span class="name">${p.name}</span>`;
+    btn.className = "who-card";
+    btn.innerHTML = `${avatarMarkup(p, "who-photo")}<span class="name">${p.name}</span>`;
     btn.onclick = () => selectUser(p.id);
     box.appendChild(btn);
   }

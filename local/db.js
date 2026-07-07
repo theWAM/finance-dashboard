@@ -109,6 +109,7 @@ function ensureColumn(table, column, ddl) {
 ensureColumn("transactions", "account_id", "account_id TEXT");
 ensureColumn("transactions", "owner", "owner TEXT NOT NULL DEFAULT 'shared'");
 ensureColumn("plan_targets", "owner", "owner TEXT NOT NULL DEFAULT 'shared'");
+ensureColumn("people", "avatar", "avatar TEXT NOT NULL DEFAULT ''"); // URL/path to a profile image
 
 const now = new Date().toISOString();
 
@@ -130,6 +131,14 @@ const seedPerson = db.prepare(
 );
 seedPerson.run("woody", "Woody", now, now);
 seedPerson.run("rajna", "Rajna", now, now);
+
+// Backfill default avatars for the seeded people without clobbering a chosen one.
+// (Served statically from local/public/avatars/.)
+const setAvatar = db.prepare(
+  "UPDATE people SET avatar = ? WHERE id = ? AND (avatar IS NULL OR avatar = '')"
+);
+setAvatar.run("/avatars/woody.jpg", "woody");
+setAvatar.run("/avatars/rajna.jpg", "rajna");
 
 // One checking account per person to start (the CSV ledger is Woody's account).
 // A joint account later is just another row with owner = 'shared'.

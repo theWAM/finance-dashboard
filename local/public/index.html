@@ -74,9 +74,11 @@
   }
   .userchip:hover { border-color: var(--accent); }
   .userchip .avatar {
-    width: 22px; height: 22px; border-radius: 50%; background: var(--accent);
+    width: 24px; height: 24px; border-radius: 50%; background: var(--accent);
     color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 700;
+    overflow: hidden;
   }
+  .userchip .avatar img { width: 100%; height: 100%; object-fit: cover; }
   .userchip .switch { color: var(--muted); font-size: 11px; }
 
   .modal {
@@ -90,18 +92,20 @@
   }
   .modal-card h2 { margin: 0 0 6px; font-size: 20px; }
   .modal-card p { margin: 0 0 20px; color: var(--muted); font-size: 13px; }
-  .who-options { display: grid; gap: 10px; }
-  .who-option {
-    display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
-    background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px;
-    padding: 12px 14px; cursor: pointer; color: var(--text); font: inherit;
+  .who-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 16px; }
+  .who-card {
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 16px;
+    padding: 22px 16px; cursor: pointer; color: var(--text); font: inherit;
+    transition: transform .08s ease, border-color .08s ease, background .08s ease;
   }
-  .who-option:hover { border-color: var(--accent); background: var(--accent-weak); }
-  .who-option .avatar {
-    width: 34px; height: 34px; border-radius: 50%; background: var(--accent);
-    color: #fff; display: grid; place-items: center; font-weight: 700;
+  .who-card:hover { border-color: var(--accent); background: var(--accent-weak); transform: translateY(-2px); }
+  .who-photo {
+    width: 112px; height: 112px; border-radius: 50%; object-fit: cover;
+    background: var(--accent); box-shadow: 0 6px 18px rgba(0,0,0,.35);
   }
-  .who-option .name { font-weight: 600; }
+  .who-photo.initials { display: grid; place-items: center; color: #fff; font-size: 40px; font-weight: 700; }
+  .who-card .name { font-weight: 600; font-size: 16px; }
 
   .flag { color: var(--neg); font-size: 11px; margin-left: 6px; }
   .toast {

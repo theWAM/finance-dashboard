@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Finance Dashboard — Plan</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel-2: #1e222b; --line: #2a2f3a;
+    --text: #e7e9ee; --muted: #9aa3b2; --accent: #4f8cff; --accent-weak: #24304b;
+    --pos: #46c08a; --neg: #ef6b7b; --warn: #e0a336;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); font-size: 14px; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 16px 24px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; }
+  .nav { display: flex; gap: 4px; }
+  .nav a { color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+  .nav a:hover { color: var(--text); background: var(--panel-2); }
+  .nav a.active { color: var(--text); background: var(--accent-weak); }
+  .grow { flex: 1; }
+  button, select, input { font: inherit; color: inherit; }
+  .btn { background: var(--accent); border: none; color: #fff; border-radius: 8px; padding: 7px 14px; cursor: pointer; font-weight: 600; }
+  .btn:hover { filter: brightness(1.08); }
+  .btn.ghost { background: var(--accent-weak); color: var(--text); }
+  .btn[disabled] { opacity: .4; cursor: default; }
+  .dirty-note { color: var(--warn); font-size: 12px; white-space: nowrap; }
+
+  main { padding: 20px 24px 80px; max-width: 1080px; }
+  section { margin-bottom: 26px; }
+  section h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 10px; }
+  table { border-collapse: collapse; width: 100%; }
+  thead th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  tbody td { padding: 2px 4px; border-bottom: 1px solid var(--line); }
+  td input, td select { width: 100%; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 7px 8px; color: var(--text); }
+  td input:hover, td select:hover { border-color: var(--line); }
+  td input:focus, td select:focus { outline: none; border-color: var(--accent); background: var(--panel-2); }
+  td select { background: var(--panel-2); }
+  td.num input { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.new-row { background: rgba(70,192,138,.10); }
+  tr.edited { background: rgba(79,140,255,.08); }
+  .row-actions { width: 40px; text-align: center; }
+  .del { background: transparent; border: none; color: var(--muted); cursor: pointer; border-radius: 6px; padding: 4px 8px; font-size: 15px; }
+  .del:hover { color: var(--neg); background: var(--panel-2); }
+  .add-row { margin-top: 8px; }
+  .add-row .btn { padding: 5px 12px; font-size: 13px; }
+
+  .userchip { display: inline-flex; align-items: center; gap: 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 5px 6px 5px 12px; cursor: pointer; }
+  .userchip .avatar { width: 24px; height: 24px; border-radius: 50%; overflow: hidden; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+  .userchip .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .userchip .switch { color: var(--muted); font-size: 11px; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<header>
+  <nav class="nav">
+    <a href="./">Ledger</a>
+    <a href="./paycheck.html">This Paycheck</a>
+    <a href="./plan.html" class="active">Plan</a>
+    <a href="./dashboard.html">Dashboard</a>
+  </nav>
+  <button id="userChip" class="userchip" title="Switch person" hidden>
+    <span class="avatar" id="userAvatar"></span><span id="userName"></span><span class="switch">switch</span>
+  </button>
+  <div class="grow"></div>
+  <span id="dirtyNote" class="dirty-note" hidden>unsaved changes</span>
+  <button id="discardBtn" class="btn ghost" hidden>Discard</button>
+  <button id="saveBtn" class="btn" disabled>Save plan</button>
+</header>
+
+<main id="planRoot"></main>
+
+<div class="toast" id="toast"></div>
+<script type="module" src="./plan.js"></script>
+</body>
+</html>

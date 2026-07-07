@@ -31,7 +31,11 @@ export function computeDrift(transactions, planTargets = [], { asOf }) {
   const out = [];
   for (const pt of planTargets) {
     const d = pt.data || {};
-    let matched = rows.filter((t) => (t.source || "") === d.source && (Number(t.withdrawal) || 0) > 0);
+    // A plan can name several ledger sources (e.g. both people funding one goal
+    // under different names); match a transaction if it hits any of them.
+    const planSources = Array.isArray(d.sources) && d.sources.length ? d.sources : (d.source ? [d.source] : []);
+    const srcSet = new Set(planSources);
+    let matched = rows.filter((t) => srcSet.has(t.source || "") && (Number(t.withdrawal) || 0) > 0);
     // A savings goal only counts contributions made inside its own window. This
     // is what lets several goals share one account/source (e.g. three trips all
     // funded from "Vacation HYSA"): each goal sums the deposits between its own

@@ -9,12 +9,12 @@ const fmt = (n) => (Number(n) || 0).toLocaleString("en-US", { style: "currency",
 // kind → section config. Each field: [dataKey, label, type]. `pct` = stored as a
 // fraction but shown/edited as a percentage.
 const SECTIONS = [
-  { kind: "debt_payoff", title: "Debts", fields: [["balance", "Balance", "money"], ["apr", "APR", "pct"], ["monthly_payment", "Monthly payment", "money"], ["target_date", "Target payoff", "date"], ["source", "Ledger source", "text"]] },
-  { kind: "savings_goal", title: "Savings goals", fields: [["target_amount", "Target", "money"], ["start_date", "Start", "date"], ["end_date", "Deadline", "date"], ["source", "Ledger source", "text"]] },
-  { kind: "investment_cadence", title: "Investments", fields: [["monthly_target", "Monthly target", "money"], ["source", "Ledger source", "text"]] },
+  { kind: "debt_payoff", title: "Debts", fields: [["balance", "Balance", "money"], ["apr", "APR", "pct"], ["monthly_payment", "Monthly payment", "money"], ["target_date", "Target payoff", "date"], ["sources", "Ledger source(s)", "sources"]] },
+  { kind: "savings_goal", title: "Savings goals", fields: [["target_amount", "Target", "money"], ["start_date", "Start", "date"], ["end_date", "Deadline", "date"], ["sources", "Ledger source(s)", "sources"]] },
+  { kind: "investment_cadence", title: "Investments", fields: [["monthly_target", "Monthly target", "money"], ["sources", "Ledger source(s)", "sources"]] },
 ];
 
-const state = { people: [], currentUser: localStorage.getItem("currentUser") || null, targets: [], removed: new Set(), dirty: false };
+const state = { people: [], currentUser: localStorage.getItem("currentUser") || null, targets: [], removed: new Set(), dirty: false, sources: [] };
 let tempId = 0;
 
 async function api(path, opts) {
@@ -36,6 +36,9 @@ function renderUserChip() {
 async function load() {
   state.people = (await api("/api/people")).people;
   renderUserChip();
+  // Every distinct ledger source, to power the source autocomplete/dropdown.
+  const { transactions } = await api("/api/transactions");
+  state.sources = [...new Set(transactions.map((t) => t.source).filter(Boolean))].sort((a, b) => a.localeCompare(b));
   const { plan_targets } = await api("/api/plan-targets");
   state.targets = plan_targets.map((t) => ({ id: t.id, owner: t.owner, kind: t.kind, name: t.name, data: { ...t.data }, _new: false, _dirty: false }));
   state.removed = new Set();
@@ -48,6 +51,10 @@ function markDirty(t) { if (t) t._dirty = true; state.dirty = true; renderContro
 function render() {
   const root = $("#planRoot");
   root.innerHTML = "";
+  // Shared autocomplete list of every ledger source (for the source pickers).
+  let dl = document.getElementById("allSources");
+  if (!dl) { dl = document.createElement("datalist"); dl.id = "allSources"; document.body.appendChild(dl); }
+  dl.innerHTML = state.sources.map((s) => `<option value="${String(s).replace(/"/g, "&quot;")}"></option>`).join("");
   for (const sec of SECTIONS) {
     const section = document.createElement("section");
     const rows = state.targets.filter((t) => t.kind === sec.kind);
@@ -92,6 +99,7 @@ function rowEl(t, sec) {
 
   for (const [key, , type] of sec.fields) {
     const td = document.createElement("td");
+    if (type === "sources") { td.appendChild(sourcesField(t)); tr.appendChild(td); continue; }
     if (type === "money" || type === "pct") td.className = "num";
     const inp = document.createElement("input");
     if (type === "date") inp.type = "date";
@@ -169,6 +177,51 @@ function renderOtHead(head, list) {
 // APR is stored as a fraction (0.2624) but shown as a percent (26.24).
 const pctToInput = (v) => (v == null || v === "" ? "" : Math.round((v <= 1 ? v * 100 : v) * 100) / 100);
 const inputToPct = (v) => (v === "" ? 0 : Number(v) / 100);
+
+// Multi-select of ledger sources: a tag list plus a typeahead input backed by
+// the shared #allSources datalist. Stored as data.sources (array). Supports
+// several sources because both people may fund one goal under different names.
+function sourcesField(t) {
+  if (!Array.isArray(t.data.sources)) t.data.sources = t.data.source ? [t.data.source] : [];
+  delete t.data.source; // migrated to the array form
+  const wrap = document.createElement("div");
+  wrap.className = "src-multi";
+  const inp = document.createElement("input");
+  inp.type = "text"; inp.className = "src-input"; inp.placeholder = "add source…";
+  inp.setAttribute("list", "allSources");
+
+  const renderChips = () => {
+    wrap.querySelectorAll(".src-chip").forEach((e) => e.remove());
+    t.data.sources.forEach((s, i) => {
+      const chip = document.createElement("span");
+      chip.className = "src-chip";
+      chip.appendChild(document.createTextNode(s));
+      const x = document.createElement("button");
+      x.type = "button"; x.className = "src-x"; x.textContent = "×"; x.title = "Remove";
+      x.onclick = () => { t.data.sources.splice(i, 1); markDirty(t); renderChips(); };
+      chip.appendChild(x);
+      wrap.insertBefore(chip, inp);
+    });
+  };
+  const add = (val) => {
+    const v = (val ?? inp.value).trim();
+    inp.value = "";
+    if (v && !t.data.sources.includes(v)) { t.data.sources.push(v); markDirty(t); }
+    renderChips();
+  };
+  inp.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); add(); }
+    else if (e.key === "Backspace" && !inp.value && t.data.sources.length) { t.data.sources.pop(); markDirty(t); renderChips(); }
+  });
+  // Picking a datalist suggestion (exact match) commits immediately; free text
+  // commits on Enter or blur.
+  inp.addEventListener("input", () => { if (state.sources.includes(inp.value)) add(inp.value); });
+  inp.addEventListener("change", () => add());
+
+  wrap.appendChild(inp);
+  renderChips();
+  return wrap;
+}
 
 function textInput(value, onChange) {
   const inp = document.createElement("input"); inp.type = "text"; inp.value = value ?? "";

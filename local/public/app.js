@@ -22,6 +22,7 @@ const state = {
   edits: new Map(),       // id -> { field: value } staged edits to existing rows
   dels: new Set(),        // ids staged for deletion
   news: [],               // staged new rows ({ _tempId, created_at, ...fields })
+  filter: { from: "", to: "", categories: new Set(), sources: new Set() }, // date window → category set → source set
 };
 
 async function api(path, opts) {
@@ -140,12 +141,96 @@ function clearPending() {
 }
 
 async function loadLedger() {
-  if (!state.accountId) { state.rows = []; state.account = null; clearPending(); render(); return; }
+  if (!state.accountId) { state.rows = []; state.account = null; clearPending(); resetFilter(); buildFilters(); render(); return; }
   const { account, transactions } = await api(`/api/transactions?account_id=${encodeURIComponent(state.accountId)}`);
   state.account = account;
   state.rows = transactions;
   clearPending();
+  resetFilter();          // a fresh account starts unfiltered
+  buildFilters();         // rebuild category/source checkboxes for this account
   render();
+}
+
+// --- filtering (date window → category → source) ---------------------------
+
+const filterActive = () => {
+  const f = state.filter;
+  return !!(f.from || f.to || f.categories.size || f.sources.size);
+};
+
+function matchesFilter(r) {
+  const f = state.filter;
+  if (f.from && r.txn_date < f.from) return false;
+  if (f.to && r.txn_date > f.to) return false;
+  // Within a facet, any checked value matches (OR); facets combine (AND).
+  if (f.categories.size && !f.categories.has(r.description || "")) return false;
+  if (f.sources.size && !f.sources.has(r.source || "")) return false;
+  return true;
+}
+
+function resetFilter() {
+  state.filter = { from: "", to: "", categories: new Set(), sources: new Set() };
+  const from = $("#fFrom"), to = $("#fTo");
+  if (from) from.value = "";
+  if (to) to.value = "";
+}
+
+// Distinct values of a field across the loaded ledger, sorted case-insensitively.
+function distinctValues(key) {
+  const set = new Set();
+  for (const r of state.rows) set.add(r[key] ?? "");
+  return [...set].sort((a, b) => cmp(a.toLowerCase(), b.toLowerCase()));
+}
+
+function buildFilters() {
+  buildMultiselect("msCategory", "Category", distinctValues("description"), state.filter.categories);
+  buildMultiselect("msSource", "Source", distinctValues("source"), state.filter.sources);
+}
+
+// A checkbox dropdown over `values`; checking several matches ANY of them.
+function buildMultiselect(elId, label, values, selected) {
+  const el = $("#" + elId);
+  el.innerHTML = "";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "ms-btn";
+  const relabel = () => {
+    btn.textContent = (selected.size ? `${label} (${selected.size})` : label) + " ▾";
+    btn.classList.toggle("active", selected.size > 0);
+  };
+  relabel();
+
+  const panel = document.createElement("div");
+  panel.className = "ms-panel";
+  panel.hidden = true;
+  for (const v of values) {
+    const opt = document.createElement("label");
+    opt.className = "ms-opt";
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = selected.has(v);
+    cb.addEventListener("change", () => {
+      if (cb.checked) selected.add(v); else selected.delete(v);
+      relabel();
+      render();
+    });
+    const span = document.createElement("span");
+    span.textContent = v === "" ? "(blank)" : v;
+    opt.append(cb, span);
+    panel.appendChild(opt);
+  }
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const willOpen = panel.hidden;
+    closeAllPanels();
+    panel.hidden = !willOpen;
+  });
+  panel.addEventListener("click", (e) => e.stopPropagation());
+  el.append(btn, panel);
+}
+
+function closeAllPanels() {
+  document.querySelectorAll(".ms-panel").forEach((p) => (p.hidden = true));
 }
 
 // Merge staged changes over the loaded rows, then recompute the running balance
@@ -176,19 +261,34 @@ function computeView() {
 
 function render() {
   const { rows, balById, totals, endBal } = computeView();
+  const active = filterActive();
+  const shown = active ? rows.filter(matchesFilter) : rows;
+
   const tbody = $("#rows");
   tbody.innerHTML = "";
   $("#empty").hidden = rows.length > 0;
-  // Newest first for scanning; running_balance was computed oldest→newest above.
-  const display = [...rows].sort((a, b) => cmp(b.txn_date, a.txn_date) || cmp(b.created_at || "", a.created_at || ""));
+  // Newest first for scanning. Each row keeps its TRUE running balance (computed
+  // over the whole ledger in computeView), so filtering never distorts balances.
+  const display = [...shown].sort((a, b) => cmp(b.txn_date, a.txn_date) || cmp(b.created_at || "", a.created_at || ""));
   for (const r of display) tbody.appendChild(rowEl(r, balById.get(r._id)));
   renderAddRow();
 
-  $("#totIn").textContent = fmt(totals.deposits);
-  $("#totOut").textContent = fmt(totals.withdrawals);
+  // Deposits/Withdrawals reflect the filtered view (e.g. total for a category);
+  // Balance stays the account's true end balance regardless of filter.
+  const shownTotals = active
+    ? shown.filter((r) => !r._deleted).reduce((t, r) => ({
+        deposits: round2(t.deposits + (Number(r.deposit) || 0)),
+        withdrawals: round2(t.withdrawals + (Number(r.withdrawal) || 0)),
+      }), { deposits: 0, withdrawals: 0 })
+    : totals;
+  $("#totIn").textContent = fmt(shownTotals.deposits);
+  $("#totOut").textContent = fmt(shownTotals.withdrawals);
   const balEl = $("#balance");
   balEl.textContent = fmt(endBal);
   balEl.classList.toggle("neg", endBal < 0);
+
+  $("#fClear").hidden = !active;
+  $("#fCount").textContent = active ? `showing ${shown.length} of ${rows.length}` : "";
   renderControls();
 }
 
@@ -381,6 +481,11 @@ $("#account").addEventListener("change", (e) => {
 $("#userChip").addEventListener("click", showWho);
 $("#saveBtn").addEventListener("click", applyPending);
 $("#discardBtn").addEventListener("click", discardPending);
+
+$("#fFrom").addEventListener("change", (e) => { state.filter.from = e.target.value; render(); });
+$("#fTo").addEventListener("change", (e) => { state.filter.to = e.target.value; render(); });
+$("#fClear").addEventListener("click", () => { resetFilter(); buildFilters(); render(); });
+document.addEventListener("click", () => closeAllPanels()); // click-away closes dropdowns
 window.addEventListener("beforeunload", (e) => { if (hasPending()) { e.preventDefault(); e.returnValue = ""; } });
 
 (async function init() {

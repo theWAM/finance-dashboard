@@ -1,19 +1,19 @@
-// This Paycheck — a per-person planner for the current pay window.
-//
-// The window comes from the person's pay cadence (config) anchored to their most
-// recent paycheck in the ledger. Allocations are seeded from a recurring template
-// (plan_targets kind=recurring_allocation). We project the running balance from
-// the account's balance at the window start, flag any point it goes negative, and
-// warn before applying. "Save template" persists the recurring plan; "Apply to
-// ledger" materializes this window's entries as (projected) transactions.
+// This Paycheck — the current pay window as a focused, editable slice of the
+// ledger. The window is [payday, next payday) from the person's cadence, anchored
+// to their most recent paycheck. We prefill the ledger entries that fall inside
+// that window (what's *known to happen* this pay period — paycheck, savings,
+// investments, card payments, car note, …), project the running balance from the
+// balance entering the window, flag where it goes negative, and warn before
+// saving. Edits/adds/deletes are staged and written back to the ledger on Save.
 
-import { windowFor, previousWindowFor, inWindow } from "/shared/paycycle.js";
+import { windowFor } from "/shared/paycycle.js";
 
 const $ = (s) => document.querySelector(s);
 const fmt = (n) => (Number(n) || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 const params = new URLSearchParams(location.search);
+const TODAY = new Date().toISOString().slice(0, 10);
 
 const state = {
   people: [],
@@ -21,14 +21,11 @@ const state = {
   account: null,
   cadence: "biweekly",
   window: null,
-  prevWindow: null,
-  txns: [],
-  startBal: 0,
-  rows: [],               // working allocation rows
-  removedPlanIds: new Set(),
-  tplDirty: false,
+  txns: [],               // all account transactions as last loaded
+  edits: new Map(),       // id -> { field: value }
+  dels: new Set(),        // ids staged for deletion
+  news: [],               // staged new rows
 };
-
 let tempId = 0;
 
 async function api(path, opts) {
@@ -47,18 +44,16 @@ const currentPerson = () => state.people.find((p) => p.id === state.currentUser)
 function renderUserChip() {
   const chip = $("#userChip"); const p = currentPerson();
   if (!p || state.people.length <= 1) { chip.hidden = true; return; }
-  const av = $("#userAvatar");
-  av.innerHTML = p.avatar ? `<img src="${p.avatar}" alt="">` : initials(p.name);
+  $("#userAvatar").innerHTML = p.avatar ? `<img src="${p.avatar}" alt="">` : initials(p.name);
   $("#userName").textContent = p.name;
   chip.hidden = false;
 }
 function showWho() {
   const box = $("#whoOptions"); box.innerHTML = "";
   for (const p of state.people) {
-    const b = document.createElement("button");
-    b.className = "who-card";
+    const b = document.createElement("button"); b.className = "who-card";
     b.innerHTML = (p.avatar ? `<img class="who-photo" src="${p.avatar}" alt="${p.name}">` : `<span class="who-photo initials">${initials(p.name)}</span>`) + `<span class="name">${p.name}</span>`;
-    b.onclick = () => { localStorage.setItem("currentUser", p.id); location.href = "./paycheck.html"; };
+    b.onclick = () => { if (hasPending() && !confirm("Discard unsaved changes?")) return; localStorage.setItem("currentUser", p.id); location.href = "./paycheck.html"; };
     box.appendChild(b);
   }
   $("#who").hidden = false;
@@ -73,166 +68,170 @@ async function init() {
     if (state.people.length <= 1) state.currentUser = state.people[0]?.id ?? null;
     else if (!state.people.some((p) => p.id === state.currentUser)) { showWho(); return; }
     renderUserChip();
-
-    const person = currentPerson();
-    state.cadence = person?.pay_cadence || "biweekly";
+    state.cadence = currentPerson()?.pay_cadence || "biweekly";
 
     const { accounts } = await api("/api/accounts");
     state.account = accounts.find((a) => a.owner === state.currentUser && a.type === "checking")
                  || accounts.find((a) => a.owner === state.currentUser) || null;
-    if (!state.account) { $("main").innerHTML = `<div class="empty">No checking account for ${person?.name || "this person"} yet.</div>`; return; }
+    if (!state.account) { $("main").innerHTML = `<div class="empty">No checking account for this person yet.</div>`; return; }
 
-    const { transactions } = await api(`/api/transactions?account_id=${encodeURIComponent(state.account.id)}`);
-    state.txns = transactions;
-
-    const today = new Date().toISOString().slice(0, 10);
-    const anchor = anchorPaycheck(transactions, today);
-    state.window = windowFor(state.cadence, anchor, today);
-    state.prevWindow = previousWindowFor(state.cadence, anchor, today);
-    state.startBal = balanceBefore(state.window.start);
-
-    await loadTemplate();
-    render();
-  } catch (e) {
-    $("main").innerHTML = `<div class="empty">Failed to load: ${e.message}</div>`;
-  }
+    await loadWindow();
+  } catch (e) { $("main").innerHTML = `<div class="empty">Failed to load: ${e.message}</div>`; }
 }
 
-// Anchor = most recent paycheck deposit on/before today; else the latest/only one; else today.
+async function loadWindow() {
+  const { transactions } = await api(`/api/transactions?account_id=${encodeURIComponent(state.account.id)}`);
+  state.txns = transactions;
+  const anchor = anchorPaycheck(transactions, TODAY);
+  state.window = windowFor(state.cadence, anchor, TODAY);
+  clearPending();
+  render();
+}
+
+// Anchor = most recent paycheck deposit on/before today; else the latest/only; else today.
 function anchorPaycheck(txns, today) {
   const pays = txns.filter((t) => /paycheck/i.test(t.description || "") && Number(t.deposit) > 0).map((t) => t.txn_date).sort();
   if (!pays.length) return today;
   const past = pays.filter((d) => d <= today);
-  return (past.length ? past[past.length - 1] : pays[pays.length - 1]);
+  return past.length ? past[past.length - 1] : pays[pays.length - 1];
 }
 
-// Account balance as of the day before `startISO` (opening + all prior net).
-function balanceBefore(startISO) {
-  let bal = Number(state.account.opening_balance) || 0;
+function clearPending() { state.edits.clear(); state.dels.clear(); state.news = []; addDraft = freshDraft(); }
+const inWin = (d) => d >= state.window.start && d < state.window.nextStart;
+
+// Merge staged changes over the ledger, run the running balance oldest→newest,
+// then surface just this window's rows with their projected balance.
+function computeView() {
+  const all = [];
   for (const t of state.txns) {
-    if (t.txn_date < startISO) bal += (Number(t.deposit) || 0) - (Number(t.withdrawal) || 0);
+    if (state.dels.has(t.id)) { all.push({ ...t, _id: t.id, _deleted: true }); continue; }
+    const e = state.edits.get(t.id);
+    all.push({ ...t, ...(e || {}), _id: t.id, _edited: !!e });
   }
-  return round2(bal);
-}
+  for (const n of state.news) all.push({ ...n, _id: n._tempId, _new: true });
 
-async function loadTemplate() {
-  const { plan_targets } = await api(`/api/plan-targets?owner=${encodeURIComponent(state.currentUser)}&kind=recurring_allocation`);
-  state.rows = plan_targets.map((pt) => ({
-    _id: "t" + (++tempId),
-    planId: pt.id,
-    category: pt.data.category ?? pt.name ?? "",
-    source: pt.data.source ?? pt.name ?? "",
-    amount: pt.data.amount ?? 0,
-    flow: pt.data.flow === "in" ? "in" : "out",
-  }));
-  state.removedPlanIds = new Set();
-  state.tplDirty = false;
-}
-
-// --- render ----------------------------------------------------------------
-
-function project() {
-  let bal = state.startBal, income = 0, out = 0, min = bal, minAt = null;
-  const projById = new Map();
-  for (const r of state.rows) {
-    const amt = Number(r.amount) || 0;
-    if (r.flow === "in") { bal = round2(bal + amt); income += amt; }
-    else { bal = round2(bal - amt); out += amt; }
-    projById.set(r._id, bal);
-    if (bal < min) { min = bal; minAt = r; }
+  const live = all.filter((r) => !r._deleted)
+    .sort((a, b) => cmp(a.txn_date, b.txn_date) || cmp(a.created_at || "", b.created_at || ""));
+  let bal = Number(state.account.opening_balance) || 0;
+  let startBal = bal;
+  const balById = new Map();
+  for (const t of live) {
+    bal = round2(bal + (Number(t.deposit) || 0) - (Number(t.withdrawal) || 0));
+    balById.set(t._id, bal);
+    if (t.txn_date < state.window.start) startBal = bal;
   }
-  return { projById, income: round2(income), out: round2(out), endBal: bal, min: round2(min), minAt };
+
+  // Display set: window rows (incl. staged deletes for restore), chronological.
+  const rows = all.filter((r) => inWin(r.txn_date)).sort((a, b) => cmp(a.txn_date, b.txn_date) || cmp(a.created_at || "", b.created_at || ""));
+  let deposits = 0, withdrawals = 0, min = startBal, minRow = null, endBal = startBal;
+  for (const r of rows) {
+    if (r._deleted) continue;
+    deposits += Number(r.deposit) || 0;
+    withdrawals += Number(r.withdrawal) || 0;
+    const b = balById.get(r._id);
+    endBal = b;
+    if (b < min) { min = b; minRow = r; }
+  }
+  return { rows, balById, startBal, endBal: round2(endBal), deposits: round2(deposits), withdrawals: round2(withdrawals), min: round2(min), minRow };
 }
 
 function render() {
-  const p = project();
+  const v = computeView();
   $("#winTitle").textContent = `This Paycheck — ${state.account.name}`;
-  $("#winSub").textContent = state.window
-    ? `${state.cadence} · ${state.window.start} → ${state.window.end}`
-    : "";
-  $("#startBal").textContent = fmt(state.startBal);
-  $("#incomeTotal").textContent = fmt(p.income);
-  $("#outTotal").textContent = fmt(p.out);
-  const endEl = $("#endBal"); endEl.textContent = fmt(p.endBal); endEl.classList.toggle("neg", p.endBal < 0); endEl.classList.toggle("pos", p.endBal >= 0);
+  $("#winSub").textContent = `${state.cadence} · ${state.window.start} → ${state.window.end}`;
+  $("#startBal").textContent = fmt(v.startBal);
+  $("#incomeTotal").textContent = fmt(v.deposits);
+  $("#outTotal").textContent = fmt(v.withdrawals);
+  const endEl = $("#endBal"); endEl.textContent = fmt(v.endBal);
+  endEl.classList.toggle("neg", v.endBal < 0); endEl.classList.toggle("pos", v.endBal >= 0);
 
   const banner = $("#banner");
-  if (p.min < 0) {
+  if (v.min < 0) {
     banner.className = "banner warn"; banner.hidden = false;
-    banner.textContent = `⚠ This plan dips to ${fmt(p.min)} (at “${p.minAt?.source || p.minAt?.category || "an allocation"}”). Adjust amounts or you’ll overdraw.`;
+    const where = v.minRow ? `“${v.minRow.source || v.minRow.description || "an entry"}”` : "the starting balance";
+    banner.textContent = `⚠ This pay period dips to ${fmt(v.min)} (at ${where}). Adjust amounts or you’ll overdraw.`;
   } else {
     banner.className = "banner ok"; banner.hidden = false;
-    banner.textContent = `On track — ends the window at ${fmt(p.endBal)}.`;
+    banner.textContent = `On track — ends the pay period at ${fmt(v.endBal)}.`;
   }
 
   const tbody = $("#rows"); tbody.innerHTML = "";
-  $("#empty").hidden = state.rows.length > 0;
-  for (const r of state.rows) tbody.appendChild(rowEl(r, p.projById.get(r._id)));
+  $("#empty").hidden = v.rows.length > 0;
+  for (const r of v.rows) tbody.appendChild(rowEl(r, v.balById.get(r._id)));
   renderAddRow();
-
-  $("#saveTplBtn").disabled = !state.tplDirty;
-  $("#saveTplBtn").textContent = state.tplDirty ? "Save template*" : "Save template";
+  renderControls();
 }
 
-function rowEl(r, proj) {
+function rowEl(row, proj) {
   const tr = document.createElement("tr");
-  if (proj < 0) tr.className = "neg-row";
+  if (row._deleted) tr.className = "to-delete";
+  else if (row._new) tr.className = "new-row";
+  else if (row._edited) tr.className = "edited";
+  else if (proj < 0) tr.className = "neg-row";
+  const dis = !!row._deleted;
 
-  tr.appendChild(cell("text", r.category, "categories", "Category", (v) => (r.category = v)));
-  tr.appendChild(cell("text", r.source, null, "Source / Recipient", (v) => (r.source = v)));
+  tr.appendChild(cell("date", row.txn_date, "txn_date", "col-date", null, "", dis));
+  tr.appendChild(cell("text", row.description, "description", "", "categories", "Category", dis));
+  tr.appendChild(cell("text", row.source, "source", "", null, "Source / Recipient", dis));
+  tr.appendChild(cell("number", row.deposit || "", "deposit", "num col-dep", null, "", dis));
+  tr.appendChild(cell("number", row.withdrawal || "", "withdrawal", "num col-wd", null, "", dis));
 
-  const dirTd = document.createElement("td");
-  const flowBtn = document.createElement("button");
-  flowBtn.className = "flow-toggle";
-  flowBtn.textContent = r.flow === "in" ? "Income +" : "Expense −";
-  flowBtn.style.color = r.flow === "in" ? "var(--pos)" : "var(--text)";
-  flowBtn.onclick = () => { r.flow = r.flow === "in" ? "out" : "in"; markDirty(); render(); };
-  dirTd.appendChild(flowBtn);
-  tr.appendChild(dirTd);
-
-  const amtTd = document.createElement("td"); amtTd.className = "num col-amt" + (r.flow === "in" ? " in" : "");
-  const amt = document.createElement("input"); amt.type = "number"; amt.step = "0.01"; amt.min = "0"; amt.value = r.amount || "";
-  amt.addEventListener("change", () => { r.amount = amt.value; markDirty(); render(); });
-  amtTd.appendChild(amt); tr.appendChild(amtTd);
-
-  const projTd = document.createElement("td"); projTd.className = "proj col-proj" + (proj < 0 ? " neg" : "");
-  projTd.textContent = fmt(proj); tr.appendChild(projTd);
+  const projTd = document.createElement("td");
+  projTd.className = "proj col-proj" + (!row._deleted && proj < 0 ? " neg" : "");
+  projTd.textContent = row._deleted ? "—" : fmt(proj);
+  tr.appendChild(projTd);
 
   const act = document.createElement("td"); act.className = "row-actions";
-  const del = document.createElement("button"); del.className = "del"; del.textContent = "×"; del.title = "Remove";
-  del.onclick = () => { if (r.planId) state.removedPlanIds.add(r.planId); state.rows = state.rows.filter((x) => x !== r); markDirty(); render(); };
+  const del = document.createElement("button");
+  del.className = "del" + (row._deleted ? " restore" : "");
+  del.textContent = row._deleted ? "↺" : "×"; del.title = row._deleted ? "Restore" : "Delete";
+  del.onclick = () => toggleDelete(row);
   act.appendChild(del); tr.appendChild(act);
+
+  tr.querySelectorAll("input[data-field]").forEach((inp) => inp.addEventListener("change", () => stageEdit(row, inp.dataset.field, inp.value)));
   return tr;
 }
 
-function cell(type, value, list, placeholder, onChange) {
-  const td = document.createElement("td");
+function cell(type, value, field, cls = "", list = null, ph = "", disabled = false) {
+  const td = document.createElement("td"); if (cls) td.className = cls;
   const inp = document.createElement("input");
-  inp.type = type; inp.value = value ?? ""; if (placeholder) inp.placeholder = placeholder; if (list) inp.setAttribute("list", list);
-  inp.addEventListener("change", () => { onChange(inp.value); markDirty(); render(); });
-  td.appendChild(inp); return td;
+  inp.type = type; inp.value = value ?? ""; if (ph) inp.placeholder = ph; if (list) inp.setAttribute("list", list);
+  if (type === "number") { inp.step = "0.01"; inp.min = "0"; }
+  if (disabled) inp.disabled = true;
+  inp.dataset.field = field; td.appendChild(inp); return td;
 }
 
-const addDraft = () => ({ category: "", source: "", amount: "", flow: "out" });
-let draft = addDraft();
+function stageEdit(row, field, value) {
+  if (row._new) { const n = state.news.find((x) => x._tempId === row._id); if (n) n[field] = value; }
+  else { const e = state.edits.get(row._id) || {}; e[field] = value; state.edits.set(row._id, e); }
+  render();
+}
+function toggleDelete(row) {
+  if (row._new) state.news = state.news.filter((x) => x._tempId !== row._id);
+  else if (state.dels.has(row._id)) state.dels.delete(row._id);
+  else { state.dels.add(row._id); state.edits.delete(row._id); }
+  render();
+}
+
+// Add row defaults to the window's payday (a date inside the window).
+const freshDraft = () => ({ txn_date: state.window ? state.window.start : TODAY, description: "", source: "", deposit: "", withdrawal: "" });
+let addDraft = freshDraft();
 function renderAddRow() {
   const foot = $("#addFoot"); foot.innerHTML = "";
   const tr = document.createElement("tr"); tr.className = "add";
-  const mk = (type, key, list, ph) => {
-    const td = document.createElement("td"); const inp = document.createElement("input");
-    inp.type = type; inp.value = draft[key]; if (ph) inp.placeholder = ph; if (list) inp.setAttribute("list", list);
+  const mk = (type, key, cls, list, ph) => {
+    const td = document.createElement("td"); if (cls) td.className = cls;
+    const inp = document.createElement("input"); inp.type = type; inp.value = addDraft[key]; if (ph) inp.placeholder = ph; if (list) inp.setAttribute("list", list);
     if (type === "number") { inp.step = "0.01"; inp.min = "0"; }
-    inp.addEventListener("input", () => (draft[key] = inp.value));
+    inp.addEventListener("input", () => (addDraft[key] = inp.value));
     inp.addEventListener("keydown", (e) => { if (e.key === "Enter") addRow(); });
     td.appendChild(inp); return td;
   };
-  tr.appendChild(mk("text", "category", "categories", "Category"));
-  tr.appendChild(mk("text", "source", null, "Source / Recipient"));
-  const dirTd = document.createElement("td");
-  const fb = document.createElement("button"); fb.className = "flow-toggle";
-  fb.textContent = draft.flow === "in" ? "Income +" : "Expense −";
-  fb.onclick = () => { draft.flow = draft.flow === "in" ? "out" : "in"; renderAddRow(); };
-  dirTd.appendChild(fb); tr.appendChild(dirTd);
-  tr.appendChild(mk("number", "amount", null, "0.00"));
+  tr.appendChild(mk("date", "txn_date", "col-date"));
+  tr.appendChild(mk("text", "description", "", "categories", "Category"));
+  tr.appendChild(mk("text", "source", "", null, "Source / Recipient"));
+  tr.appendChild(mk("number", "deposit", "num col-dep", null, "0.00"));
+  tr.appendChild(mk("number", "withdrawal", "num col-wd", null, "0.00"));
   tr.appendChild(document.createElement("td"));
   const act = document.createElement("td"); act.className = "row-actions";
   const add = document.createElement("button"); add.className = "btn"; add.textContent = "Add"; add.style.padding = "5px 10px";
@@ -240,62 +239,42 @@ function renderAddRow() {
   foot.appendChild(tr);
 }
 function addRow() {
-  if (!draft.amount) return toast("Enter an amount");
-  state.rows.push({ _id: "t" + (++tempId), planId: null, category: draft.category, source: draft.source, amount: draft.amount, flow: draft.flow });
-  draft = addDraft(); markDirty(); render();
+  if (!addDraft.txn_date) return toast("Date is required");
+  if (!addDraft.deposit && !addDraft.withdrawal) return toast("Enter a deposit or withdrawal");
+  if (!inWin(addDraft.txn_date) && !confirm("That date is outside this pay window — add it anyway?")) return;
+  state.news.push({ _tempId: "new-" + (++tempId), created_at: new Date().toISOString(), ...addDraft });
+  addDraft = freshDraft(); render();
 }
 
-function markDirty() { state.tplDirty = true; }
+// --- save / discard --------------------------------------------------------
 
-// --- actions ---------------------------------------------------------------
+const pendingCount = () => state.edits.size + state.dels.size + state.news.length;
+const hasPending = () => pendingCount() > 0;
+function renderControls() {
+  const n = pendingCount();
+  const save = $("#saveBtn"); save.disabled = n === 0; save.textContent = n ? `Save to ledger (${n})` : "Save to ledger";
+  $("#discardBtn").hidden = n === 0;
+  $("#dirtyNote").hidden = n === 0;
+}
 
-$("#fillBtn").addEventListener("click", () => {
-  const pw = state.prevWindow;
-  const rows = state.txns
-    .filter((t) => inWindow(t.txn_date, pw))
-    .sort((a, b) => cmp(a.txn_date, b.txn_date))
-    .map((t) => ({ _id: "t" + (++tempId), planId: null, category: t.description || "", source: t.source || "", amount: Number(t.deposit) > 0 ? t.deposit : t.withdrawal, flow: Number(t.deposit) > 0 ? "in" : "out" }));
-  if (!rows.length) return toast(`No entries found in the previous window (${pw.start} → ${pw.end}).`);
-  if (state.rows.length && !confirm("Replace the current allocations with last paycheck’s entries?")) return;
-  for (const r of state.rows) if (r.planId) state.removedPlanIds.add(r.planId);
-  state.rows = rows; markDirty(); render();
-  toast(`Filled ${rows.length} entries from ${pw.start} → ${pw.end}`);
-});
-
-$("#saveTplBtn").addEventListener("click", async () => {
-  $("#saveTplBtn").disabled = true;
+$("#saveBtn").addEventListener("click", async () => {
+  if (!hasPending()) return;
+  const v = computeView();
+  if (v.min < 0 && !confirm(`This pay period dips to ${fmt(v.min)}. Save to the ledger anyway?`)) return;
+  const n = pendingCount();
+  $("#saveBtn").disabled = true;
   try {
-    for (const r of state.rows) {
-      const body = { owner: state.currentUser, kind: "recurring_allocation", name: r.source || r.category, data: { category: r.category, source: r.source, amount: Number(r.amount) || 0, flow: r.flow } };
-      if (r.planId) await api(`/api/plan-targets/${r.planId}`, { method: "PATCH", body });
-      else { const res = await api("/api/plan-targets", { method: "POST", body }); r.planId = res.plan_target.id; }
+    for (const nr of state.news) {
+      await api("/api/transactions", { method: "POST", body: { account_id: state.account.id, owner: state.currentUser, txn_date: nr.txn_date, description: nr.description, source: nr.source, deposit: Number(nr.deposit) || 0, withdrawal: Number(nr.withdrawal) || 0 } });
     }
-    for (const id of state.removedPlanIds) await api(`/api/plan-targets/${id}`, { method: "DELETE" });
-    state.removedPlanIds = new Set(); state.tplDirty = false;
-    toast("Template saved");
-    render();
-  } catch (e) { toast("Error: " + e.message); render(); }
+    for (const [id, fields] of state.edits) await api(`/api/transactions/${id}`, { method: "PATCH", body: fields });
+    for (const id of state.dels) await api(`/api/transactions/${id}`, { method: "DELETE" });
+    await loadWindow();
+    toast(`Saved ${n} change${n === 1 ? "" : "s"} to the ledger`);
+  } catch (e) { toast("Error: " + e.message); renderControls(); }
 });
 
-$("#applyBtn").addEventListener("click", async () => {
-  if (!state.rows.length) return toast("Nothing to apply");
-  const p = project();
-  if (p.min < 0 && !confirm(`This plan dips to ${fmt(p.min)} during the window. Apply to the ledger anyway?`)) return;
-  $("#applyBtn").disabled = true;
-  try {
-    for (const r of state.rows) {
-      const amt = Number(r.amount) || 0;
-      await api("/api/transactions", {
-        method: "POST",
-        body: { account_id: state.account.id, owner: state.currentUser, txn_date: state.window.start, description: r.category, source: r.source, deposit: r.flow === "in" ? amt : 0, withdrawal: r.flow === "out" ? amt : 0 },
-      });
-    }
-    toast(`Applied ${state.rows.length} entries to ${state.account.name} for ${state.window.start}`);
-    // refresh starting balance / anchor in case this created the window's paycheck
-    const { transactions } = await api(`/api/transactions?account_id=${encodeURIComponent(state.account.id)}`);
-    state.txns = transactions;
-  } catch (e) { toast("Error: " + e.message); }
-  $("#applyBtn").disabled = false;
-});
+$("#discardBtn").addEventListener("click", () => { if (!hasPending()) return; clearPending(); render(); toast("Changes discarded"); });
+window.addEventListener("beforeunload", (e) => { if (hasPending()) { e.preventDefault(); e.returnValue = ""; } });
 
 init();

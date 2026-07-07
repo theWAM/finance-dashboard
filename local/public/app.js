@@ -168,11 +168,19 @@ function matchesFilter(r) {
   return true;
 }
 
+// Default view: transactions from 1 month before to 1 month after today.
+function defaultDateWindow() {
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const from = new Date(); from.setMonth(from.getMonth() - 1);
+  const to = new Date(); to.setMonth(to.getMonth() + 1);
+  return { from: iso(from), to: iso(to) };
+}
+
 function resetFilter() {
-  state.filter = { from: "", to: "", categories: new Set(), sources: new Set() };
-  const from = $("#fFrom"), to = $("#fTo");
-  if (from) from.value = "";
-  if (to) to.value = "";
+  const { from, to } = defaultDateWindow();
+  state.filter = { from, to, categories: new Set(), sources: new Set() };
+  if ($("#fFrom")) $("#fFrom").value = from;
+  if ($("#fTo")) $("#fTo").value = to;
 }
 
 // Distinct values of a field across the loaded ledger, sorted case-insensitively.
@@ -267,9 +275,9 @@ function render() {
   const tbody = $("#rows");
   tbody.innerHTML = "";
   $("#empty").hidden = rows.length > 0;
-  // Newest first for scanning. Each row keeps its TRUE running balance (computed
-  // over the whole ledger in computeView), so filtering never distorts balances.
-  const display = [...shown].sort((a, b) => cmp(b.txn_date, a.txn_date) || cmp(b.created_at || "", a.created_at || ""));
+  // Oldest → newest (top to bottom). Each row keeps its TRUE running balance
+  // (computed over the whole ledger in computeView), so filtering never distorts it.
+  const display = [...shown].sort((a, b) => cmp(a.txn_date, b.txn_date) || cmp(a.created_at || "", b.created_at || ""));
   for (const r of display) tbody.appendChild(rowEl(r, balById.get(r._id)));
   renderAddRow();
 
@@ -484,7 +492,12 @@ $("#discardBtn").addEventListener("click", discardPending);
 
 $("#fFrom").addEventListener("change", (e) => { state.filter.from = e.target.value; render(); });
 $("#fTo").addEventListener("change", (e) => { state.filter.to = e.target.value; render(); });
-$("#fClear").addEventListener("click", () => { resetFilter(); buildFilters(); render(); });
+$("#fClear").addEventListener("click", () => {
+  // Clear wipes to show-all (not the default window), so nothing is hidden.
+  state.filter = { from: "", to: "", categories: new Set(), sources: new Set() };
+  $("#fFrom").value = ""; $("#fTo").value = "";
+  buildFilters(); render();
+});
 document.addEventListener("click", () => closeAllPanels()); // click-away closes dropdowns
 window.addEventListener("beforeunload", (e) => { if (hasPending()) { e.preventDefault(); e.returnValue = ""; } });
 

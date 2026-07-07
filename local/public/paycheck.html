@@ -52,11 +52,16 @@
   td input:hover { border-color: var(--line); }
   td input:focus { outline: none; border-color: var(--accent); background: var(--panel-2); }
   td.num input { text-align: right; font-variant-numeric: tabular-nums; }
-  td.in input { color: var(--pos); }
+  td.col-dep input { color: var(--pos); }
   td.proj { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); padding-right: 12px; white-space: nowrap; }
   td.proj.neg { color: var(--neg); font-weight: 600; }
   tr.neg-row { background: rgba(239,107,123,.09); }
-  .col-amt { width: 130px; } .col-proj { width: 140px; }
+  tr.edited { background: rgba(79,140,255,.08); }
+  tr.new-row { background: rgba(70,192,138,.10); }
+  tr.to-delete { opacity: .45; } tr.to-delete input { text-decoration: line-through; }
+  .col-date { width: 130px; } .col-dep, .col-wd { width: 120px; } .col-proj { width: 150px; }
+  .dirty-note { color: var(--warn); font-size: 12px; white-space: nowrap; }
+  .del.restore { color: var(--accent); }
   .row-actions { width: 40px; text-align: center; }
   .del { background: transparent; border: none; color: var(--muted); cursor: pointer; border-radius: 6px; padding: 4px 8px; font-size: 15px; }
   .del:hover { color: var(--neg); background: var(--panel-2); }
@@ -110,19 +115,20 @@
   <div id="banner" class="banner" hidden></div>
 
   <div class="toolbar">
-    <button id="fillBtn" class="btn ghost">Fill from last paycheck</button>
-    <div class="grow"></div>
-    <button id="saveTplBtn" class="btn ghost" disabled>Save template</button>
-    <button id="applyBtn" class="btn">Apply to ledger</button>
+    <span class="grow"></span>
+    <span id="dirtyNote" class="dirty-note" hidden>unsaved changes</span>
+    <button id="discardBtn" class="btn ghost" hidden>Discard</button>
+    <button id="saveBtn" class="btn" disabled>Save to ledger</button>
   </div>
 
   <table>
     <thead>
       <tr>
+        <th class="col-date">Date</th>
         <th>Category</th>
         <th>Source / Recipient</th>
-        <th style="width:120px">Direction</th>
-        <th class="col-amt" style="text-align:right">Amount</th>
+        <th class="col-dep" style="text-align:right">Deposit +</th>
+        <th class="col-wd" style="text-align:right">Withdrawal −</th>
         <th class="col-proj" style="text-align:right">Projected balance</th>
         <th class="row-actions"></th>
       </tr>
@@ -130,7 +136,7 @@
     <tbody id="rows"></tbody>
     <tfoot id="addFoot"></tfoot>
   </table>
-  <div id="empty" class="empty" hidden>No allocations yet. Add one below, or “Fill from last paycheck”.</div>
+  <div id="empty" class="empty" hidden>No entries scheduled in this pay window. Add one below.</div>
 </main>
 
 <datalist id="categories">

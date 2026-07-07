@@ -185,6 +185,22 @@
 
 <main>
   <div class="filters">
+    <select id="fPreset" title="Timeframe">
+      <option value="custom" hidden>Custom range</option>
+      <option value="3paychecks">3 paychecks</option>
+      <option value="last30">Last 30 days</option>
+      <option value="next30">Next 30 days</option>
+      <option value="last60">Last 60 days</option>
+      <option value="next60">Next 60 days</option>
+      <option value="last90">Last 90 days</option>
+      <option value="next90">Next 90 days</option>
+      <option value="last6mo">Last 6 months</option>
+      <option value="next6mo">Next 6 months</option>
+      <option value="thisyear">This year</option>
+      <option value="lastyear">Last year</option>
+      <option value="nextyear">Next year</option>
+      <option value="all">All time</option>
+    </select>
     <label>From <input type="date" id="fFrom"></label>
     <label>To <input type="date" id="fTo"></label>
     <div class="ms" id="msCategory"></div>

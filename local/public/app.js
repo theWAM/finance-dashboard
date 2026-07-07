@@ -170,9 +170,8 @@ function matchesFilter(r) {
   return true;
 }
 
-// Default view: one paycheck ago → the next paycheck, using the current person's
-// cadence anchored to their most recent paycheck. Falls back to today if unknown.
-function defaultDateWindow() {
+// The current person's cadence + the paycheck to anchor pay-window math to.
+function payAnchor() {
   const today = new Date().toISOString().slice(0, 10);
   const person = state.people.find((p) => p.id === state.currentUser);
   const cadence = person?.pay_cadence || "biweekly";
@@ -181,16 +180,57 @@ function defaultDateWindow() {
     .map((t) => t.txn_date).sort();
   let anchor = today;
   if (pays.length) { const past = pays.filter((d) => d <= today); anchor = past.length ? past[past.length - 1] : pays[pays.length - 1]; }
-  const cur = windowFor(cadence, anchor, today);
-  const prev = previousWindowFor(cadence, anchor, today);
-  return { from: prev.start, to: cur.nextStart }; // prev payday → next payday
+  return { cadence, anchor, today };
+}
+
+// Map a timeframe preset key to a { from, to } date window ("" = open-ended).
+function presetWindow(key) {
+  const now = new Date();
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const t = iso(now);
+  const addDays = (n) => { const d = new Date(now); d.setDate(d.getDate() + n); return iso(d); };
+  const addMonths = (n) => { const d = new Date(now); d.setMonth(d.getMonth() + n); return iso(d); };
+  const y = now.getFullYear();
+  switch (key) {
+    case "3paychecks": {
+      const { cadence, anchor } = payAnchor();
+      const prev = previousWindowFor(cadence, anchor, t);      // one paycheck ago
+      const cur = windowFor(cadence, anchor, t);               // current period
+      const next = windowFor(cadence, anchor, cur.nextStart);  // next period
+      return { from: prev.start, to: next.nextStart };         // prev · current · next
+    }
+    case "last30": return { from: addDays(-30), to: t };
+    case "next30": return { from: t, to: addDays(30) };
+    case "last60": return { from: addDays(-60), to: t };
+    case "next60": return { from: t, to: addDays(60) };
+    case "last90": return { from: addDays(-90), to: t };
+    case "next90": return { from: t, to: addDays(90) };
+    case "last6mo": return { from: addMonths(-6), to: t };
+    case "next6mo": return { from: t, to: addMonths(6) };
+    case "thisyear": return { from: `${y}-01-01`, to: `${y}-12-31` };
+    case "lastyear": return { from: `${y - 1}-01-01`, to: `${y - 1}-12-31` };
+    case "nextyear": return { from: `${y + 1}-01-01`, to: `${y + 1}-12-31` };
+    case "all": return { from: "", to: "" };
+    default: return { from: "", to: "" };
+  }
+}
+
+function applyPreset(key) {
+  const { from, to } = presetWindow(key);
+  state.filter.from = from;
+  state.filter.to = to;
+  $("#fFrom").value = from;
+  $("#fTo").value = to;
+  $("#fPreset").value = key;
+  render();
 }
 
 function resetFilter() {
-  const { from, to } = defaultDateWindow();
+  const { from, to } = presetWindow("3paychecks"); // default timeframe
   state.filter = { from, to, categories: new Set(), sources: new Set() };
   if ($("#fFrom")) $("#fFrom").value = from;
   if ($("#fTo")) $("#fTo").value = to;
+  if ($("#fPreset")) $("#fPreset").value = "3paychecks";
 }
 
 // Distinct values of a field across the loaded ledger, sorted case-insensitively.
@@ -500,12 +540,13 @@ $("#userChip").addEventListener("click", showWho);
 $("#saveBtn").addEventListener("click", applyPending);
 $("#discardBtn").addEventListener("click", discardPending);
 
-$("#fFrom").addEventListener("change", (e) => { state.filter.from = e.target.value; render(); });
-$("#fTo").addEventListener("change", (e) => { state.filter.to = e.target.value; render(); });
+$("#fPreset").addEventListener("change", (e) => applyPreset(e.target.value));
+$("#fFrom").addEventListener("change", (e) => { state.filter.from = e.target.value; $("#fPreset").value = "custom"; render(); });
+$("#fTo").addEventListener("change", (e) => { state.filter.to = e.target.value; $("#fPreset").value = "custom"; render(); });
 $("#fClear").addEventListener("click", () => {
   // Clear wipes to show-all (not the default window), so nothing is hidden.
   state.filter = { from: "", to: "", categories: new Set(), sources: new Set() };
-  $("#fFrom").value = ""; $("#fTo").value = "";
+  $("#fFrom").value = ""; $("#fTo").value = ""; $("#fPreset").value = "all";
   buildFilters(); render();
 });
 document.addEventListener("click", () => closeAllPanels()); // click-away closes dropdowns

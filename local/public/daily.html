@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Finance Dashboard — Daily Check</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel-2: #1e222b; --line: #2a2f3a;
+    --text: #e7e9ee; --muted: #9aa3b2; --accent: #4f8cff; --accent-weak: #24304b;
+    --pos: #46c08a; --neg: #ef6b7b; --warn: #e0a336;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); font-size: 14px; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 16px 24px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  .nav { display: flex; gap: 4px; }
+  .nav a { color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+  .nav a:hover { color: var(--text); background: var(--panel-2); }
+  .nav a.active { color: var(--text); background: var(--accent-weak); }
+  .grow { flex: 1; }
+  button { font: inherit; color: inherit; }
+  .btn { background: var(--accent); border: none; color: #fff; border-radius: 8px; padding: 9px 18px; cursor: pointer; font-weight: 600; }
+  .btn:hover { filter: brightness(1.08); }
+  .btn[disabled] { opacity: .4; cursor: default; }
+  .btn[disabled]:hover { filter: none; }
+
+  .userchip { display: inline-flex; align-items: center; gap: 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 5px 6px 5px 12px; cursor: pointer; }
+  .userchip:hover { border-color: var(--accent); }
+  .userchip .avatar { width: 24px; height: 24px; border-radius: 50%; overflow: hidden; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+  .userchip .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .userchip .switch { color: var(--muted); font-size: 11px; }
+
+  main { padding: 40px 24px; display: grid; place-items: start center; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 28px; width: min(560px, 94vw); }
+  .card h1 { font-size: 18px; margin: 0 0 4px; }
+  .card .as-of { color: var(--muted); font-size: 13px; margin-bottom: 22px; }
+  .rowline { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .rowline:last-of-type { border-bottom: none; }
+  .rowline .k { color: var(--muted); }
+  .rowline .v { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 20px; }
+  .v.pos { color: var(--pos); } .v.neg { color: var(--neg); }
+  input.actual { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; color: var(--text); font-size: 18px; text-align: right; width: 180px; font-variant-numeric: tabular-nums; }
+  input.actual:focus { outline: none; border-color: var(--accent); }
+  .diff-note { color: var(--muted); font-size: 13px; margin: 16px 0 20px; line-height: 1.5; }
+  .actions { display: flex; gap: 10px; align-items: center; }
+
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; opacity: 0; transition: opacity .2s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+
+  .modal { position: fixed; inset: 0; background: rgba(6,8,12,.72); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 20; }
+  .modal[hidden] { display: none; }
+  .modal-card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 28px; width: min(560px, 92vw); }
+  .modal-card h2 { margin: 0 0 18px; font-size: 20px; text-align: center; }
+  .who-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 16px; }
+  .who-card { display: flex; flex-direction: column; align-items: center; gap: 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 16px; padding: 20px 14px; cursor: pointer; color: var(--text); }
+  .who-card:hover { border-color: var(--accent); background: var(--accent-weak); }
+  .who-photo { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; background: var(--accent); }
+  .who-photo.initials { display: grid; place-items: center; color: #fff; font-size: 44px; font-weight: 700; }
+  .who-card .name { font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <nav class="nav">
+    <a href="./">Ledger</a>
+    <a href="./paycheck.html">This Paycheck</a>
+    <a href="./daily.html" class="active">Daily Check</a>
+  </nav>
+  <button id="userChip" class="userchip" title="Switch person" hidden>
+    <span class="avatar" id="userAvatar"></span>
+    <span id="userName"></span>
+    <span class="switch">switch</span>
+  </button>
+  <div class="grow"></div>
+</header>
+
+<main>
+  <div class="card">
+    <h1 id="cardTitle">Daily Check</h1>
+    <div class="as-of" id="asOf">—</div>
+
+    <div class="rowline">
+      <span class="k">What the ledger says you should have</span>
+      <span class="v" id="projected">—</span>
+    </div>
+    <div class="rowline">
+      <span class="k">What your bank actually shows</span>
+      <input class="actual" id="actual" type="number" step="0.01" placeholder="0.00">
+    </div>
+    <div class="rowline">
+      <span class="k">Difference</span>
+      <span class="v" id="diff">—</span>
+    </div>
+
+    <div class="diff-note" id="note">Enter your current bank balance to reconcile.</div>
+    <div class="actions">
+      <button id="correctBtn" class="btn" disabled>Correct</button>
+      <span class="grow"></span>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal" id="who" hidden>
+  <div class="modal-card">
+    <h2>Who are you?</h2>
+    <div class="who-options" id="whoOptions"></div>
+  </div>
+</div>
+
+<script type="module" src="./daily.js"></script>
+</body>
+</html>

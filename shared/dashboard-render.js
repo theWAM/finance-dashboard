@@ -115,7 +115,7 @@ export function renderDashboard(root, { accounts = [], transactions = [], planTa
       ${tile("Debt paid (YTD)", fmt(ytd.debtPaid))}
     </div>
     ${driftSection("Debts", drift.filter((d) => d.kind === "debt_payoff"), people, !!onEditPlan)}
-    ${driftSection("Savings goals", drift.filter((d) => d.kind === "savings_goal"), people, !!onEditPlan)}
+    ${driftSection("Savings goals", drift.filter((d) => d.kind === "savings_goal").sort((a, b) => (a.sortOrder ?? 1e9) - (b.sortOrder ?? 1e9)), people, !!onEditPlan)}
     ${driftSection("Investments", drift.filter((d) => d.kind === "investment_cadence"), people, !!onEditPlan)}
     <h2>Monthly spending (excl. credit-card &amp; transfers)</h2>
     <div class="chart-card"><svg id="dashSpend" width="100%" height="210" role="img" aria-label="Monthly spending"></svg></div>`;

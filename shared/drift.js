@@ -117,7 +117,7 @@ function computeSavings(planTargets, liveRows, asOf) {
       const rollNote = carryIn > 0 ? ` (incl. $${carryIn} rolled over)` : "";
       result.set(g.pt.id, {
         id: g.pt.id, kind: "savings_goal", name: g.pt.name, owner: g.pt.owner, owners: g.d.owners,
-        planValue: g.target, actualValue: funded,
+        sortOrder: g.d.sort_order, planValue: g.target, actualValue: funded,
         detail: `${Math.round(pct * 100)}% funded by plan${rollNote} · $${g.toDate} saved so far (by ${g.d.end_date})`,
         progress: g.target ? Math.min(1, funded / g.target) : 0, status,
       });

@@ -16,6 +16,21 @@ const SECTIONS = [
 
 const state = { people: [], currentUser: localStorage.getItem("currentUser") || null, targets: [], removed: new Set(), dirty: false, sources: [] };
 let tempId = 0;
+let dragTarget = null; // savings goal being dragged to reorder
+
+const savingsSorted = () =>
+  state.targets.filter((t) => t.kind === "savings_goal").sort((a, b) => (a.data.sort_order ?? 1e9) - (b.data.sort_order ?? 1e9));
+
+// Drop `fromT` immediately before `toT` in the savings order, then renumber.
+function reorderSavings(fromT, toT) {
+  if (fromT === toT) return;
+  const list = savingsSorted();
+  list.splice(list.indexOf(fromT), 1);
+  list.splice(list.indexOf(toT), 0, fromT);
+  list.forEach((t, i) => { if (t.data.sort_order !== i) { t.data.sort_order = i; t._dirty = true; } });
+  state.dirty = true;
+  render();
+}
 
 async function api(path, opts) {
   const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...opts, body: opts?.body ? JSON.stringify(opts.body) : undefined });
@@ -57,7 +72,7 @@ function render() {
   dl.innerHTML = state.sources.map((s) => `<option value="${String(s).replace(/"/g, "&quot;")}"></option>`).join("");
   for (const sec of SECTIONS) {
     const section = document.createElement("section");
-    const rows = state.targets.filter((t) => t.kind === sec.kind);
+    const rows = sec.kind === "savings_goal" ? savingsSorted() : state.targets.filter((t) => t.kind === sec.kind);
     section.innerHTML = `<h2>${sec.title}</h2>`;
     const table = document.createElement("table");
     const head = ["Name", "Owner", ...sec.fields.map((f) => f[1]), ""];
@@ -85,6 +100,19 @@ function rowEl(t, sec) {
   if (t._new) tr.className = "new-row"; else if (t._dirty) tr.className = "edited";
 
   const nameTd = document.createElement("td");
+  // Savings goals can be dragged (by the grip) to reorder them; the order shows
+  // on the dashboard too. The whole row is a drop target.
+  if (sec.kind === "savings_goal") {
+    nameTd.className = "name-cell";
+    const grip = document.createElement("span");
+    grip.className = "drag-grip"; grip.textContent = "⠿"; grip.title = "Drag to reorder"; grip.draggable = true;
+    grip.addEventListener("dragstart", (e) => { dragTarget = t; e.dataTransfer.effectAllowed = "move"; tr.classList.add("dragging"); });
+    grip.addEventListener("dragend", () => { tr.classList.remove("dragging"); document.querySelectorAll(".drag-over").forEach((x) => x.classList.remove("drag-over")); });
+    tr.addEventListener("dragover", (e) => { if (dragTarget && dragTarget !== t) { e.preventDefault(); tr.classList.add("drag-over"); } });
+    tr.addEventListener("dragleave", () => tr.classList.remove("drag-over"));
+    tr.addEventListener("drop", (e) => { e.preventDefault(); tr.classList.remove("drag-over"); const from = dragTarget; dragTarget = null; if (from) reorderSavings(from, t); });
+    nameTd.appendChild(grip);
+  }
   nameTd.appendChild(textInput(t.name, (v) => { t.name = v; markDirty(t); }));
   tr.appendChild(nameTd);
 
@@ -255,7 +283,9 @@ function textInput(value, onChange) {
 }
 
 function addTarget(kind) {
-  state.targets.push({ _tempId: "new-" + (++tempId), owner: state.currentUser || "shared", kind, name: "", data: {}, _new: true, _dirty: true });
+  // New savings goals go to the end of the current order.
+  const data = kind === "savings_goal" ? { sort_order: savingsSorted().length } : {};
+  state.targets.push({ _tempId: "new-" + (++tempId), owner: state.currentUser || "shared", kind, name: "", data, _new: true, _dirty: true });
   state.dirty = true; render();
 }
 

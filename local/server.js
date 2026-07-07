@@ -245,6 +245,13 @@ app.post("/api/publish", (req, res) => {
   const sharedDst = join(ROOT, "docs", "shared");
   mkdirSync(sharedDst, { recursive: true });
   for (const f of readdirSync(join(ROOT, "shared"))) if (f.endsWith(".js")) copyFileSync(join(ROOT, "shared", f), join(sharedDst, f));
+  // Copy profile photos so owner avatars resolve on the published view too.
+  const avatarSrc = join(ROOT, "local", "public", "avatars");
+  const avatarDst = join(ROOT, "docs", "avatars");
+  try {
+    mkdirSync(avatarDst, { recursive: true });
+    for (const f of readdirSync(avatarSrc)) copyFileSync(join(avatarSrc, f), join(avatarDst, f));
+  } catch { /* no avatars dir — fine */ }
 
   setMeta("local_version", version);
   setMeta("last_published_at", new Date().toISOString());

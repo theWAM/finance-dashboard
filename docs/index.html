@@ -20,9 +20,16 @@
 </style>
 </head>
 <body>
-<header>
-  <h1>Finance Dashboard</h1>
-  <div class="meta" id="meta">Read-only published view</div>
+<header style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+  <div>
+    <h1>Finance Dashboard</h1>
+    <div class="meta" id="meta">Read-only published view</div>
+  </div>
+  <label class="meta" style="display:inline-flex;align-items:center;gap:8px;">View
+    <select id="userSel" style="background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;">
+      <option value="">Everyone</option>
+    </select>
+  </label>
 </header>
 <main><div id="dashRoot"><p class="muted">Loading…</p></div></main>
 
@@ -37,11 +44,26 @@
       }
       const when = snap.published_at ? new Date(snap.published_at).toLocaleString() : "—";
       document.getElementById("meta").textContent = `Version ${snap.version} · updated ${when}${snap.published_by ? " by " + snap.published_by : ""}`;
-      renderDashboard(document.getElementById("dashRoot"), {
-        accounts: snap.accounts || [],
-        transactions: snap.transactions || [],
-        planTargets: snap.plan_targets || [],
-      });
+
+      const people = snap.people || [];
+      const sel = document.getElementById("userSel");
+      for (const p of people.filter((x) => !x.deleted_at)) {
+        const o = document.createElement("option"); o.value = p.id; o.textContent = p.name; sel.appendChild(o);
+      }
+      // Remember the viewer's last choice (this is a read-only preference only).
+      sel.value = localStorage.getItem("pubView") || "";
+      const draw = () => {
+        localStorage.setItem("pubView", sel.value);
+        renderDashboard(document.getElementById("dashRoot"), {
+          people,
+          accounts: snap.accounts || [],
+          transactions: snap.transactions || [],
+          planTargets: snap.plan_targets || [],
+          currentUser: sel.value,   // dashboard is user-specific; no onEditPlan → read-only
+        });
+      };
+      sel.addEventListener("change", draw);
+      draw();
     } catch (e) {
       document.getElementById("dashRoot").innerHTML = `<p class="muted">Could not load snapshot: ${e.message}</p>`;
     }

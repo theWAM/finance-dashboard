@@ -50,6 +50,48 @@ export function totals(transactions = []) {
   return { deposits: round2(deposits), withdrawals: round2(withdrawals), net: round2(deposits - withdrawals) };
 }
 
+// Categories that are money moving *within* the household's own pots, not spending.
+const NON_SPEND = new Set(["Savings", "Investments", "Credit Card Payment", "Loan Payment", "Transfer"]);
+
+/**
+ * Roll up income / outflow / where-it-went across a set of transactions,
+ * optionally within [from, to]. "spend" excludes savings, investments, debt
+ * payments and transfers (mirrors the Monthly Spending chart).
+ */
+export function summary(transactions = [], { from, to } = {}) {
+  const rows = live(transactions).filter((t) => (!from || t.txn_date >= from) && (!to || t.txn_date <= to));
+  let income = 0, outflow = 0, saved = 0, invested = 0, debtPaid = 0, spend = 0;
+  for (const t of rows) {
+    const dep = Number(t.deposit) || 0, wd = Number(t.withdrawal) || 0;
+    income += dep; outflow += wd;
+    if (wd > 0) {
+      const c = t.description;
+      if (c === "Savings") saved += wd;
+      else if (c === "Investments") invested += wd;
+      else if (c === "Credit Card Payment" || c === "Loan Payment") debtPaid += wd;
+      else if (!NON_SPEND.has(c)) spend += wd;
+    }
+  }
+  return {
+    income: round2(income), outflow: round2(outflow), saved: round2(saved),
+    invested: round2(invested), debtPaid: round2(debtPaid), spend: round2(spend),
+    savingsRate: income ? round2((saved / income) * 100) : 0,
+    investRate: income ? round2((invested / income) * 100) : 0,
+  };
+}
+
+/** Monthly spend (excl. savings/investments/debt/transfers): [{ month, amount }] ascending. */
+export function monthlySpend(transactions = []) {
+  const m = new Map();
+  for (const t of live(transactions)) {
+    const wd = Number(t.withdrawal) || 0;
+    if (wd <= 0 || NON_SPEND.has(t.description)) continue;
+    const key = String(t.txn_date).slice(0, 7);
+    m.set(key, round2((m.get(key) || 0) + wd));
+  }
+  return [...m.entries()].sort((a, b) => cmp(a[0], b[0])).map(([month, amount]) => ({ month, amount }));
+}
+
 const sum = (xs) => xs.reduce((a, b) => a + b, 0);
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;

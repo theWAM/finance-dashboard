@@ -26,43 +26,26 @@ function spanMonths(matched, asOf) {
  * @param {{asOf:string}} opts  reference date (YYYY-MM-DD)
  * @returns {Array} one result per target: { kind, name, owner, planLabel, actualLabel, detail, status, progress? }
  */
+const planSourcesOf = (d) => (Array.isArray(d.sources) && d.sources.length ? d.sources : (d.source ? [d.source] : []));
+
 export function computeDrift(transactions, planTargets = [], { asOf }) {
   const liveRows = live(transactions);
   const rows = liveRows.filter((t) => t.txn_date <= asOf);
+  // Savings goals need a cross-goal pass (rollover between goals sharing a
+  // source), so compute them up front and emit from this map in input order.
+  const savings = computeSavings(planTargets, liveRows, asOf);
   const out = [];
   for (const pt of planTargets) {
+    if (pt.kind === "savings_goal") { if (savings.has(pt.id)) out.push(savings.get(pt.id)); continue; }
     const d = pt.data || {};
     // A plan can name several ledger sources (e.g. both people funding one goal
     // under different names); match a transaction if it hits any of them.
-    const planSources = Array.isArray(d.sources) && d.sources.length ? d.sources : (d.source ? [d.source] : []);
-    const srcSet = new Set(planSources);
-    // Debts/investments measure cadence to date, so they only see rows up to
-    // today. A savings goal instead sums everything inside its own window —
-    // including future-dated (projected) contributions — because the ledger is a
-    // forward projection and the goal answers "how much will be saved by the
-    // deadline"; capping at today would zero out goals whose windows are still
-    // ahead. Windows also let several goals share one source (e.g. three trips
-    // funded from "Vacation HYSA") by partitioning its deposits by date.
-    const base = pt.kind === "savings_goal" ? liveRows : rows;
-    let matched = base.filter((t) => srcSet.has(t.source || "") && (Number(t.withdrawal) || 0) > 0);
-    if (pt.kind === "savings_goal") {
-      matched = matched.filter((t) => (!d.start_date || t.txn_date >= d.start_date) &&
-                                      (!d.end_date || t.txn_date <= d.end_date));
-    }
+    // Debts/investments measure cadence to date, so they only see rows ≤ today.
+    const srcSet = new Set(planSourcesOf(d));
+    const matched = rows.filter((t) => srcSet.has(t.source || "") && (Number(t.withdrawal) || 0) > 0);
     const paid = round2(matched.reduce((s, t) => s + (Number(t.withdrawal) || 0), 0));
 
-    if (pt.kind === "savings_goal") {
-      const target = Number(d.target_amount) || 0;
-      // `paid` is the full window (incl. planned/future contributions), so it
-      // answers "will the plan fund this goal by its deadline?". Also surface how
-      // much is actually set aside so far (window contributions up to today).
-      const toDate = round2(matched.filter((t) => t.txn_date <= asOf).reduce((s, t) => s + (Number(t.withdrawal) || 0), 0));
-      const pct = target ? paid / target : (paid > 0 ? 1 : 0);
-      const status = pct >= 0.95 ? "good" : pct >= 0.75 ? "warn" : "bad";
-      out.push({ id: pt.id, kind: pt.kind, name: pt.name, owner: pt.owner, owners: d.owners, planValue: target, actualValue: paid,
-        detail: `${Math.round(pct * 100)}% funded by plan · $${toDate} saved so far (by ${d.end_date})`,
-        progress: target ? Math.min(1, paid / target) : 0, status });
-    } else if (pt.kind === "investment_cadence") {
+    if (pt.kind === "investment_cadence") {
       const months = spanMonths(matched, asOf);
       const actualMonthly = round2(paid / months);
       const targetM = Number(d.monthly_target) || 0;
@@ -94,6 +77,53 @@ export function computeDrift(transactions, planTargets = [], { asOf }) {
     }
   }
   return out;
+}
+
+// Savings goals, with rollover. A goal sums the contributions inside its own
+// [start, deadline] window (incl. future/projected ones — the ledger is a
+// forward projection, so this answers "will the plan fund it by the deadline").
+// Goals that draw from the SAME source pool (e.g. three trips funded from
+// "Vacation HYSA") form a chain ordered by deadline: whatever overfunds an
+// earlier goal rolls forward to the next. Returns Map<planTargetId, result>.
+function computeSavings(planTargets, liveRows, asOf) {
+  const goals = planTargets.filter((p) => p.kind === "savings_goal").map((pt) => {
+    const d = pt.data || {};
+    const srcSet = new Set(planSourcesOf(d));
+    const inWin = liveRows.filter((t) => srcSet.has(t.source || "") && (Number(t.withdrawal) || 0) > 0 &&
+      (!d.start_date || t.txn_date >= d.start_date) && (!d.end_date || t.txn_date <= d.end_date));
+    return {
+      pt, d, target: Number(d.target_amount) || 0,
+      sig: [...srcSet].sort().join("|"),               // goals with the same source set share a pool
+      windowPaid: round2(inWin.reduce((s, t) => s + (Number(t.withdrawal) || 0), 0)),
+      toDate: round2(inWin.filter((t) => t.txn_date <= asOf).reduce((s, t) => s + (Number(t.withdrawal) || 0), 0)),
+    };
+  });
+
+  const groups = new Map();
+  for (const g of goals) { if (!groups.has(g.sig)) groups.set(g.sig, []); groups.get(g.sig).push(g); }
+
+  const result = new Map();
+  for (const [, group] of groups) {
+    group.sort((a, b) => String(a.d.end_date || "").localeCompare(String(b.d.end_date || "")) ||
+                         String(a.d.start_date || "").localeCompare(String(b.d.start_date || "")));
+    const rolls = group.length > 1; // rollover only matters when goals share the pool
+    let carry = 0;
+    for (const g of group) {
+      const carryIn = rolls ? round2(carry) : 0;
+      const funded = round2(g.windowPaid + carryIn);
+      carry = rolls && g.target > 0 && funded > g.target ? round2(funded - g.target) : 0;
+      const pct = g.target ? funded / g.target : (funded > 0 ? 1 : 0);
+      const status = pct >= 0.95 ? "good" : pct >= 0.75 ? "warn" : "bad";
+      const rollNote = carryIn > 0 ? ` (incl. $${carryIn} rolled over)` : "";
+      result.set(g.pt.id, {
+        id: g.pt.id, kind: "savings_goal", name: g.pt.name, owner: g.pt.owner, owners: g.d.owners,
+        planValue: g.target, actualValue: funded,
+        detail: `${Math.round(pct * 100)}% funded by plan${rollNote} · $${g.toDate} saved so far (by ${g.d.end_date})`,
+        progress: g.target ? Math.min(1, funded / g.target) : 0, status,
+      });
+    }
+  }
+  return result;
 }
 
 /** Overall health from a set of drift results. */

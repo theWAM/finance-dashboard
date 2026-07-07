@@ -12,11 +12,13 @@ const $ = (s) => document.querySelector(s);
 const fmt = (n) => (Number(n) || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
-// A paycheck deposit sorts first within its day (money lands before allocations).
+// Same-day order: paycheck > investments > savings > bills > everything else.
 const isPaycheck = (t) => /paycheck/i.test(t.description || "") && (Number(t.deposit) || 0) > 0;
+const DAY_RANK = { Investments: 1, Savings: 2, Bill: 3 };
+const dayRank = (t) => (isPaycheck(t) ? 0 : (DAY_RANK[t.description] ?? 4));
 const byDate = (a, b) =>
   cmp(a.txn_date, b.txn_date) ||
-  (isPaycheck(a) === isPaycheck(b) ? 0 : isPaycheck(a) ? -1 : 1) ||
+  (dayRank(a) - dayRank(b)) ||
   cmp(a.created_at || "", b.created_at || "");
 const params = new URLSearchParams(location.search);
 const TODAY = new Date().toISOString().slice(0, 10);
@@ -26,6 +28,8 @@ const state = {
   currentUser: params.get("user") || localStorage.getItem("currentUser") || null,
   account: null,
   cadence: "biweekly",
+  anchor: null,           // stable payday the pay-window grid is anchored to
+  refDate: null,          // the day whose pay window is currently shown
   window: null,
   txns: [],               // all account transactions as last loaded
   edits: new Map(),       // id -> { field: value }
@@ -85,14 +89,32 @@ async function init() {
   } catch (e) { $("main").innerHTML = `<div class="empty">Failed to load: ${e.message}</div>`; }
 }
 
+// Fetch the ledger and reset staged edits; keeps whatever pay period is in view.
 async function loadWindow() {
   const { transactions } = await api(`/api/transactions?account_id=${encodeURIComponent(state.account.id)}`);
   state.txns = transactions;
-  const anchor = anchorPaycheck(transactions, TODAY);
-  state.window = windowFor(state.cadence, anchor, TODAY);
+  state.anchor = anchorPaycheck(transactions, TODAY); // stable grid anchor
+  if (!state.refDate) state.refDate = TODAY;
   clearPending();
+  showWindow();
+}
+
+// Recompute + render the pay window containing state.refDate (no fetch, no clear).
+function showWindow() {
+  state.window = windowFor(state.cadence, state.anchor, state.refDate);
   render();
 }
+
+const shiftDay = (iso, n) => {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d) + n * 86400000).toISOString().slice(0, 10);
+};
+function gotoPrev() { state.refDate = shiftDay(state.window.start, -1); showWindow(); }
+function gotoNext() { state.refDate = state.window.nextStart; showWindow(); }
+$("#prevWin").addEventListener("click", gotoPrev);
+$("#nextWin").addEventListener("click", gotoNext);
+$("#winRange").addEventListener("click", () => { const el = $("#winDate"); el.value = state.refDate; if (el.showPicker) el.showPicker(); else el.focus(); });
+$("#winDate").addEventListener("change", (e) => { if (e.target.value) { state.refDate = e.target.value; showWindow(); } });
 
 // Anchor = most recent paycheck deposit on/before today; else the latest/only; else today.
 function anchorPaycheck(txns, today) {
@@ -221,7 +243,8 @@ function renderChart(rows) {
 function render() {
   const v = computeView();
   $("#winTitle").textContent = `This Paycheck — ${state.account.name}`;
-  $("#winSub").textContent = `${state.cadence} · ${state.window.start} → ${state.window.end}`;
+  const isCurrent = inWin(TODAY);
+  $("#winRange").innerHTML = `${state.cadence} · ${state.window.start} → ${state.window.end}` + (isCurrent ? ` <span class="today-dot">• current</span>` : "");
   $("#startBal").textContent = fmt(v.startBal);
   $("#incomeTotal").textContent = fmt(v.deposits);
   $("#outTotal").textContent = fmt(v.withdrawals);

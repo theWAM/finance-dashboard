@@ -33,7 +33,13 @@
   main { padding: 20px 24px 80px; max-width: 1100px; }
   .window-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 16px 28px; margin-bottom: 18px; }
   .window-head .title { font-size: 20px; font-weight: 700; }
-  .window-head .sub { color: var(--muted); font-size: 13px; }
+  .window-nav { display: flex; align-items: center; gap: 6px; margin-top: 6px; position: relative; }
+  .navarrow { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; color: var(--text); cursor: pointer; width: 30px; height: 30px; font-size: 17px; line-height: 1; display: grid; place-items: center; }
+  .navarrow:hover { border-color: var(--accent); }
+  .winrange { background: transparent; border: 1px solid transparent; border-radius: 8px; color: var(--muted); font-size: 13px; padding: 6px 10px; cursor: pointer; white-space: nowrap; }
+  .winrange:hover { border-color: var(--line); color: var(--text); }
+  .winrange .today-dot { color: var(--pos); margin-left: 6px; }
+  .winabsdate { position: absolute; left: 40px; bottom: 0; width: 1px; height: 1px; opacity: 0; border: none; padding: 0; }
   .stat { display: flex; flex-direction: column; gap: 2px; }
   .stat .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
   .stat .value { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 17px; }
@@ -119,7 +125,12 @@
   <div class="window-head">
     <div>
       <div class="title" id="winTitle">This Paycheck</div>
-      <div class="sub" id="winSub">—</div>
+      <div class="window-nav">
+        <button id="prevWin" class="navarrow" title="Previous pay period">‹</button>
+        <button id="winRange" class="winrange" title="Pick a date to jump to its pay period">—</button>
+        <button id="nextWin" class="navarrow" title="Next pay period">›</button>
+        <input type="date" id="winDate" class="winabsdate" aria-hidden="true" tabindex="-1">
+      </div>
     </div>
     <div class="stat"><span class="label">Starting balance</span><span class="value" id="startBal">—</span></div>
     <div class="stat"><span class="label">Paycheck</span><span class="value pos" id="incomeTotal">—</span></div>

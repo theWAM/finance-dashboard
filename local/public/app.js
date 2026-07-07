@@ -11,12 +11,14 @@ const $ = (sel) => document.querySelector(sel);
 const fmt = (n) => (Number(n) || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
-// Ledger ordering: by date, then a paycheck deposit sorts first within its day
-// (so the money lands before that day's allocations), then created_at.
+// Ledger ordering: by date, then same-day priority — paycheck > investments >
+// savings > bills > everything else — then created_at.
 const isPaycheck = (t) => /paycheck/i.test(t.description || "") && (Number(t.deposit) || 0) > 0;
+const DAY_RANK = { Investments: 1, Savings: 2, Bill: 3 };
+const dayRank = (t) => (isPaycheck(t) ? 0 : (DAY_RANK[t.description] ?? 4));
 const byDate = (a, b) =>
   cmp(a.txn_date, b.txn_date) ||
-  (isPaycheck(a) === isPaycheck(b) ? 0 : isPaycheck(a) ? -1 : 1) ||
+  (dayRank(a) - dayRank(b)) ||
   cmp(a.created_at || "", b.created_at || "");
 
 const params = new URLSearchParams(location.search);

@@ -6,7 +6,14 @@ const $ = (sel) => document.querySelector(sel);
 const fmt = (n) => (Number(n) || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
 
 // Optional ?account=<id> deep-links to a specific account (else the busiest).
-const state = { accountId: new URLSearchParams(location.search).get("account"), accounts: [] };
+const params = new URLSearchParams(location.search);
+const state = {
+  accountId: params.get("account"),
+  accounts: [],
+  people: [],
+  // ?user=<id> deep-links as a person; otherwise the last stored choice.
+  currentUser: params.get("user") || localStorage.getItem("currentUser") || null,
+};
 
 async function api(path, opts) {
   const res = await fetch(path, {
@@ -30,24 +37,76 @@ function toast(msg) {
   toastTimer = setTimeout(() => el.classList.remove("show"), 1400);
 }
 
+// --- current user (no auth; personalizes the view) -------------------------
+
+async function loadPeople() {
+  const { people } = await api("/api/people");
+  state.people = people;
+}
+
+const initials = (name) => (name || "?").trim().slice(0, 1).toUpperCase();
+const currentPerson = () => state.people.find((p) => p.id === state.currentUser) || null;
+
+function renderUserChip() {
+  const chip = $("#userChip");
+  const person = currentPerson();
+  // A single-person household needs no chip (nobody to switch to).
+  if (!person || state.people.length <= 1) { chip.hidden = true; return; }
+  $("#userAvatar").textContent = initials(person.name);
+  $("#userName").textContent = person.name;
+  chip.hidden = false;
+}
+
+function showWho() {
+  const box = $("#whoOptions");
+  box.innerHTML = "";
+  for (const p of state.people) {
+    const btn = document.createElement("button");
+    btn.className = "who-option";
+    btn.innerHTML = `<span class="avatar">${initials(p.name)}</span><span class="name">${p.name}</span>`;
+    btn.onclick = () => selectUser(p.id);
+    box.appendChild(btn);
+  }
+  $("#who").hidden = false;
+}
+
+async function selectUser(id) {
+  state.currentUser = id;
+  localStorage.setItem("currentUser", id);
+  $("#who").hidden = true;
+  renderUserChip();
+  state.accountId = null; // re-default to the newly selected person's account
+  await loadAccounts();
+  await loadLedger();
+}
+
 // --- load & render ---------------------------------------------------------
 
 async function loadAccounts() {
   const { accounts } = await api("/api/accounts");
-  state.accounts = accounts;
+  // Personal scope: show the current person's accounts plus shared ones.
+  const visible = state.currentUser
+    ? accounts.filter((a) => a.owner === state.currentUser || a.owner === "shared")
+    : accounts;
+  state.accounts = visible;
+
   const sel = $("#account");
   sel.innerHTML = "";
-  for (const a of accounts) {
+  for (const a of visible) {
     const opt = document.createElement("option");
     opt.value = a.id;
     opt.textContent = `${a.name} — ${fmt(a.balance)}`;
     sel.appendChild(opt);
   }
-  if (!state.accountId || !accounts.some((a) => a.id === state.accountId)) {
-    // Default to the account with the most activity (Phase 2 replaces this with
-    // the current-user selection). Falls back to the first account.
-    const busiest = [...accounts].sort((a, b) => (b.txn_count || 0) - (a.txn_count || 0))[0];
-    state.accountId = busiest?.id ?? null;
+  if (!state.accountId || !visible.some((a) => a.id === state.accountId)) {
+    // Prefer the current person's checking account, then their busiest account,
+    // then the busiest visible account overall.
+    const mine = visible.filter((a) => a.owner === state.currentUser);
+    const pref =
+      mine.find((a) => a.type === "checking") ||
+      [...mine].sort((a, b) => (b.txn_count || 0) - (a.txn_count || 0))[0] ||
+      [...visible].sort((a, b) => (b.txn_count || 0) - (a.txn_count || 0))[0];
+    state.accountId = pref?.id ?? null;
   }
   sel.value = state.accountId ?? "";
 }
@@ -204,8 +263,21 @@ $("#account").addEventListener("change", (e) => {
   loadLedger();
 });
 
+$("#userChip").addEventListener("click", showWho);
+
 (async function init() {
   try {
+    await loadPeople();
+    if (state.people.length <= 1) {
+      // Single-person (or empty) household: auto-select and skip the popup.
+      state.currentUser = state.people[0]?.id ?? null;
+      if (state.currentUser) localStorage.setItem("currentUser", state.currentUser);
+    } else if (!state.people.some((p) => p.id === state.currentUser)) {
+      showWho(); // multi-person with no valid stored choice → ask who they are
+    } else {
+      localStorage.setItem("currentUser", state.currentUser); // persist a valid choice
+    }
+    renderUserChip();
     await loadAccounts();
     await loadLedger();
   } catch (e) {

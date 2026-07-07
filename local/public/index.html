@@ -68,6 +68,41 @@
   .btn:hover { filter: brightness(1.08); }
   .btn.ghost { background: var(--accent-weak); color: var(--text); }
 
+  .userchip {
+    display: inline-flex; align-items: center; gap: 8px; background: var(--panel-2);
+    border: 1px solid var(--line); border-radius: 999px; padding: 5px 6px 5px 12px; cursor: pointer;
+  }
+  .userchip:hover { border-color: var(--accent); }
+  .userchip .avatar {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--accent);
+    color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 700;
+  }
+  .userchip .switch { color: var(--muted); font-size: 11px; }
+
+  .modal {
+    position: fixed; inset: 0; background: rgba(6,8,12,.72); backdrop-filter: blur(3px);
+    display: grid; place-items: center; z-index: 20;
+  }
+  .modal[hidden] { display: none; }
+  .modal-card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+    padding: 28px; width: min(440px, 92vw); box-shadow: 0 24px 60px rgba(0,0,0,.5);
+  }
+  .modal-card h2 { margin: 0 0 6px; font-size: 20px; }
+  .modal-card p { margin: 0 0 20px; color: var(--muted); font-size: 13px; }
+  .who-options { display: grid; gap: 10px; }
+  .who-option {
+    display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 14px; cursor: pointer; color: var(--text); font: inherit;
+  }
+  .who-option:hover { border-color: var(--accent); background: var(--accent-weak); }
+  .who-option .avatar {
+    width: 34px; height: 34px; border-radius: 50%; background: var(--accent);
+    color: #fff; display: grid; place-items: center; font-weight: 700;
+  }
+  .who-option .name { font-weight: 600; }
+
   .flag { color: var(--neg); font-size: 11px; margin-left: 6px; }
   .toast {
     position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
@@ -82,6 +117,11 @@
 <header>
   <h1>Ledger</h1>
   <select id="account" title="Account"></select>
+  <button id="userChip" class="userchip" title="Switch person" hidden>
+    <span class="avatar" id="userAvatar"></span>
+    <span id="userName"></span>
+    <span class="switch">switch</span>
+  </button>
   <div class="grow"></div>
   <div class="stat"><span class="label">Deposits</span><span class="value pos" id="totIn">—</span></div>
   <div class="stat"><span class="label">Withdrawals</span><span class="value neg" id="totOut">—</span></div>
@@ -115,6 +155,14 @@
 </datalist>
 
 <div class="toast" id="toast"></div>
+
+<div class="modal" id="who" hidden>
+  <div class="modal-card">
+    <h2>Who are you?</h2>
+    <p>Pick who's using the dashboard. This personalizes your view — it isn't a login.</p>
+    <div class="who-options" id="whoOptions"></div>
+  </div>
+</div>
 
 <script type="module" src="./app.js"></script>
 </body>

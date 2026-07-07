@@ -89,12 +89,7 @@ function rowEl(t, sec) {
   tr.appendChild(nameTd);
 
   const ownerTd = document.createElement("td");
-  const sel = document.createElement("select");
-  for (const o of [...state.people.map((p) => p.id), "shared"]) {
-    const opt = document.createElement("option"); opt.value = o; opt.textContent = o; if (t.owner === o) opt.selected = true; sel.appendChild(opt);
-  }
-  sel.onchange = () => { t.owner = sel.value; markDirty(t); };
-  ownerTd.appendChild(sel);
+  ownerTd.appendChild(ownerPicker(t));
   tr.appendChild(ownerTd);
 
   for (const [key, , type] of sec.fields) {
@@ -177,6 +172,36 @@ function renderOtHead(head, list) {
 // APR is stored as a fraction (0.2624) but shown as a percent (26.24).
 const pctToInput = (v) => (v == null || v === "" ? "" : Math.round((v <= 1 ? v * 100 : v) * 100) / 100);
 const inputToPct = (v) => (v === "" ? 0 : Number(v) / 100);
+
+// Owner picker: click each person's avatar to include/exclude them from the
+// plan. Stored as data.owners (array of person ids). Also keep the legacy single
+// `owner` column in sync (all people ⇒ "shared", one ⇒ that id) for compat.
+const deriveOwner = (owners) =>
+  (owners.length === 0 || owners.length >= state.people.length) ? "shared" : (owners.length === 1 ? owners[0] : "shared");
+
+function ownerPicker(t) {
+  if (!Array.isArray(t.data.owners)) {
+    t.data.owners = t.owner === "shared" ? state.people.map((p) => p.id) : (t.owner ? [t.owner] : state.people.map((p) => p.id));
+  }
+  const wrap = document.createElement("div");
+  wrap.className = "owner-pick";
+  for (const p of state.people) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "owner-av" + (t.data.owners.includes(p.id) ? " on" : "");
+    btn.title = p.name;
+    btn.innerHTML = p.avatar ? `<img src="${p.avatar}" alt="${p.name}">` : `<span class="oi">${initials(p.name)}</span>`;
+    btn.onclick = () => {
+      const i = t.data.owners.indexOf(p.id);
+      if (i >= 0) t.data.owners.splice(i, 1); else t.data.owners.push(p.id);
+      t.owner = deriveOwner(t.data.owners);
+      btn.classList.toggle("on");
+      markDirty(t);
+    };
+    wrap.appendChild(btn);
+  }
+  return wrap;
+}
 
 // Multi-select of ledger sources: a tag list plus a typeahead input backed by
 // the shared #allSources datalist. Stored as data.sources (array). Supports

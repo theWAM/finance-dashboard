@@ -53,7 +53,7 @@ export function computeDrift(transactions, planTargets = [], { asOf }) {
       const requiredByNow = round2(target * (elapsed / totalMonths));
       const pace = requiredByNow > 0 ? paid / requiredByNow : (paid >= target ? 1 : 0);
       const status = paid >= target ? "good" : pace >= 0.95 ? "good" : pace >= 0.75 ? "warn" : "bad";
-      out.push({ id: pt.id, kind: pt.kind, name: pt.name, owner: pt.owner, planValue: target, actualValue: paid,
+      out.push({ id: pt.id, kind: pt.kind, name: pt.name, owner: pt.owner, owners: d.owners, planValue: target, actualValue: paid,
         detail: `${Math.round((paid / (target || 1)) * 100)}% of goal · on-pace ${Math.round(pace * 100)}% (by ${d.end_date})`,
         progress: target ? Math.min(1, paid / target) : 0, status });
     } else if (pt.kind === "investment_cadence") {
@@ -62,7 +62,7 @@ export function computeDrift(transactions, planTargets = [], { asOf }) {
       const targetM = Number(d.monthly_target) || 0;
       const ratio = targetM ? actualMonthly / targetM : 1;
       const status = ratio >= 0.95 ? "good" : ratio >= 0.75 ? "warn" : "bad";
-      out.push({ id: pt.id, kind: pt.kind, name: pt.name, owner: pt.owner, planValue: targetM, actualValue: actualMonthly,
+      out.push({ id: pt.id, kind: pt.kind, name: pt.name, owner: pt.owner, owners: d.owners, planValue: targetM, actualValue: actualMonthly,
         detail: `$${actualMonthly}/mo actual vs $${targetM}/mo target`, status });
     } else if (pt.kind === "debt_payoff") {
       const months = spanMonths(matched, asOf);
@@ -82,7 +82,7 @@ export function computeDrift(transactions, planTargets = [], { asOf }) {
         else status = actualMonthly >= planM * 0.75 ? "warn" : "bad";
       }
       const bonusNote = futureBonus > 0 ? ` (incl. $${futureBonus} one-time)` : "";
-      out.push({ id: pt.id, kind: pt.kind, name: pt.name, owner: pt.owner, planValue: planM, actualValue: actualMonthly,
+      out.push({ id: pt.id, kind: pt.kind, name: pt.name, owner: pt.owner, owners: d.owners, planValue: planM, actualValue: actualMonthly,
         detail: projected ? `$${actualMonthly}/mo → payoff ~${projected}${bonusNote} (target ${targetMonth || "—"})` : "no payments yet",
         status });
     }

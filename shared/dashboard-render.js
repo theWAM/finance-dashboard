@@ -77,7 +77,10 @@ export function renderDashboard(root, { accounts = [], transactions = [], planTa
   const myAccounts = accounts.filter((a) => mine(a.owner));
   const myAccountIds = new Set(myAccounts.map((a) => a.id));
   const myTxns = currentUser ? transactions.filter((t) => myAccountIds.has(t.account_id)) : transactions;
-  const myPlan = planTargets.filter((pt) => mine(pt.owner));
+  // A plan can name several owners (data.owners); it's in scope when it includes
+  // the current person (or names everyone / no one).
+  const minePlan = (pt) => { const ow = resolveOwners(pt.data && pt.data.owners, pt.owner, people); return !currentUser || ow.length === 0 || ow.includes(currentUser); };
+  const myPlan = planTargets.filter(minePlan);
 
   // As-of-today checking balance = opening + net of that account's txns ≤ today.
   const checkingToday = myAccounts.filter((a) => a.type === "checking").reduce((sum, a) => {
@@ -133,13 +136,19 @@ function avatarHTML(person) {
   if (person?.avatar) return `<img class="pav" src="${avatarPath(person.avatar)}" alt="${name}" title="${name}">`;
   return `<span class="pav pav-i" title="${name}">${name.slice(0, 1).toUpperCase()}</span>`;
 }
-function ownerAvatars(owner, people) {
-  if (owner === "shared") {
-    const others = people.filter((p) => p.id !== "shared");
-    return `<span class="av-stack" title="Shared">${others.map(avatarHTML).join("")}</span>`;
-  }
-  const p = people.find((x) => x.id === owner);
-  return `<span class="av-stack">${avatarHTML(p || { name: owner })}</span>`;
+// Resolve a plan's owners to a list of person ids. Prefer the multi-owner array
+// (data.owners); fall back to the legacy single owner string ("shared" = all).
+function resolveOwners(ownersArray, ownerStr, people) {
+  const ids = new Set(people.map((p) => p.id));
+  if (Array.isArray(ownersArray) && ownersArray.length) return ownersArray.filter((id) => ids.has(id));
+  if (ownerStr === "shared") return people.map((p) => p.id);
+  if (ownerStr && ids.has(ownerStr)) return [ownerStr];
+  return [];
+}
+function ownerAvatars(ownerIds, people) {
+  const list = ownerIds.length ? ownerIds : people.map((p) => p.id); // none named ⇒ everyone
+  const title = list.map((id) => (people.find((p) => p.id === id) || {}).name || id).join(", ");
+  return `<span class="av-stack" title="${esc(title)}">${list.map((id) => avatarHTML(people.find((p) => p.id === id) || { name: id })).join("")}</span>`;
 }
 
 // --- drift rows ------------------------------------------------------------
@@ -155,7 +164,7 @@ function driftSection(title, rows, people, editable) {
       : `plan ${num}`;
     return `<div class="drift-row">
       <div class="st" style="background:${s.color}" title="${s.label}">${s.icon}</div>
-      <div><span class="d-name">${esc(r.name)} ${ownerAvatars(r.owner, people)}</span><div class="d-detail">${esc(r.detail)}</div></div>
+      <div><span class="d-name">${esc(r.name)} ${ownerAvatars(resolveOwners(r.owners, r.owner, people), people)}</span><div class="d-detail">${esc(r.detail)}</div></div>
       <div class="d-detail">${planTag}</div>
       <div class="d-vals">${fmt(r.actualValue)}${perMo ? "/mo" : ""}</div>
     </div>`;

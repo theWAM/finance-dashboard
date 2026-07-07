@@ -19,6 +19,13 @@
   .nav a.active { color: var(--text); background: var(--accent-weak); }
   main { padding: 22px 24px 80px; }
   .muted { color: var(--muted); }
+  .uswitch { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+  .uswitch .lbl { color: var(--muted); font-size: 12px; margin-right: 2px; }
+  .uswitch button { display: inline-flex; align-items: center; gap: 6px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); border-radius: 999px; padding: 4px 12px 4px 5px; cursor: pointer; font: inherit; font-size: 13px; }
+  .uswitch button.everyone { padding: 5px 12px; }
+  .uswitch button.on { border-color: var(--accent); color: var(--text); background: var(--accent-weak); }
+  .uswitch .av { width: 22px; height: 22px; border-radius: 50%; overflow: hidden; background: var(--accent); display: grid; place-items: center; color: #fff; font-size: 10px; font-weight: 700; }
+  .uswitch .av img { width: 100%; height: 100%; object-fit: cover; }
 </style>
 </head>
 <body>
@@ -29,6 +36,7 @@
     <a href="./plan.html">Plan</a>
     <a href="./dashboard.html" class="active">Dashboard</a>
   </nav>
+  <div class="uswitch" id="userSwitch"></div>
 </header>
 <main><div id="dashRoot"><p class="muted">Loading…</p></div></main>
 <script type="module" src="./dashboard.js"></script>

@@ -9,7 +9,8 @@
   },
   "scripts": {
     "start": "node local/server.js",
-    "dev": "node --watch local/server.js"
+    "dev": "node --watch local/server.js",
+    "backup": "node local/backup-db.js"
   },
   "dependencies": {
     "express": "^4.21.2"

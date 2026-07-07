@@ -173,6 +173,26 @@
   }
   .toast.show { opacity: 1; }
   .empty { color: var(--muted); padding: 40px; text-align: center; }
+
+  .daily-check {
+    position: fixed; bottom: 20px; right: 20px; z-index: 12; width: 300px;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 16px; box-shadow: 0 16px 40px rgba(0,0,0,.5);
+  }
+  .daily-check[hidden] { display: none; }
+  .dc-close { position: absolute; top: 8px; right: 10px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; }
+  .dc-close:hover { color: var(--text); }
+  .dc-label { color: var(--muted); font-size: 12px; }
+  .dc-amount { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; margin: 2px 0 10px; }
+  .dc-ask { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .dc-ask span { flex: 1; }
+  .dc-btn { width: 32px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-2); cursor: pointer; font-size: 14px; }
+  .dc-btn.ok { color: var(--pos); } .dc-btn.ok:hover { border-color: var(--pos); }
+  .dc-btn.no { color: var(--neg); } .dc-btn.no:hover { border-color: var(--neg); }
+  .dc-correct label { display: block; color: var(--muted); font-size: 12px; }
+  .dc-correct input { width: 100%; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; color: var(--text); font-size: 15px; text-align: right; margin-top: 4px; }
+  .dc-diff { font-size: 12px; color: var(--muted); margin: 8px 0; min-height: 16px; }
+  .dc-correct .btn { width: 100%; }
 </style>
 </head>
 <body>
@@ -180,7 +200,6 @@
   <nav class="nav">
     <a href="./" class="active">Ledger</a>
     <a href="./paycheck.html">This Paycheck</a>
-    <a href="./daily.html">Daily Check</a>
   </nav>
   <select id="account" title="Account"></select>
   <button id="userChip" class="userchip" title="Switch person" hidden>
@@ -268,6 +287,24 @@
 </datalist>
 
 <div class="toast" id="toast"></div>
+
+<div id="dailyCheck" class="daily-check" hidden>
+  <button class="dc-close" id="dcClose" title="Dismiss">×</button>
+  <div class="dc-label">You should have in the bank today</div>
+  <div class="dc-amount" id="dcAmount">—</div>
+  <div class="dc-ask" id="dcAsk">
+    <span>Does your bank match?</span>
+    <button id="dcYes" class="dc-btn ok" title="Matches">✓</button>
+    <button id="dcNo" class="dc-btn no" title="Doesn't match">✗</button>
+  </div>
+  <div class="dc-correct" id="dcCorrect" hidden>
+    <label>Your actual balance
+      <input type="number" id="dcActual" step="0.01" placeholder="0.00">
+    </label>
+    <div class="dc-diff" id="dcDiff"></div>
+    <button id="dcApply" class="btn" disabled>Correct</button>
+  </div>
+</div>
 
 <div class="modal" id="who" hidden>
   <div class="modal-card">

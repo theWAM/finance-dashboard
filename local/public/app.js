@@ -21,6 +21,7 @@ const byDate = (a, b) =>
   (dayRank(a) - dayRank(b)) ||
   cmp(a.created_at || "", b.created_at || "");
 
+const TODAY = new Date().toISOString().slice(0, 10);
 const params = new URLSearchParams(location.search);
 const state = {
   accountId: params.get("account"),
@@ -155,7 +156,7 @@ function clearPending() {
 }
 
 async function loadLedger() {
-  if (!state.accountId) { state.rows = []; state.account = null; clearPending(); resetFilter(); buildFilters(); render(); return; }
+  if (!state.accountId) { state.rows = []; state.account = null; clearPending(); resetFilter(); buildFilters(); render(); $("#dailyCheck").hidden = true; return; }
   const { account, transactions } = await api(`/api/transactions?account_id=${encodeURIComponent(state.accountId)}`);
   state.account = account;
   state.rows = transactions;
@@ -163,6 +164,7 @@ async function loadLedger() {
   resetFilter();          // a fresh account starts unfiltered
   buildFilters();         // rebuild category/source checkboxes for this account
   render();
+  showDailyCheck();       // "you should have $X in the bank today" prompt
 }
 
 // --- filtering (date window → category → source) ---------------------------
@@ -303,6 +305,43 @@ function closeAllPanels() {
   document.querySelectorAll(".ms-panel").forEach((p) => (p.hidden = true));
 }
 
+// --- Daily check popup (projected-vs-actual balance for today) --------------
+
+let dcProjected = 0;
+function showDailyCheck() {
+  dcProjected = computeView().todayBal;
+  $("#dcAmount").textContent = fmt(dcProjected);
+  $("#dcAsk").hidden = false;
+  $("#dcCorrect").hidden = true;
+  $("#dcActual").value = "";
+  $("#dcDiff").textContent = "";
+  $("#dcApply").disabled = true;
+  $("#dailyCheck").hidden = false;
+}
+$("#dcClose").addEventListener("click", () => { $("#dailyCheck").hidden = true; });
+$("#dcYes").addEventListener("click", () => { $("#dailyCheck").hidden = true; });
+$("#dcNo").addEventListener("click", () => { $("#dcAsk").hidden = true; $("#dcCorrect").hidden = false; $("#dcActual").focus(); });
+$("#dcActual").addEventListener("input", (e) => {
+  const has = e.target.value !== "" && !Number.isNaN(Number(e.target.value));
+  const diff = has ? round2(Number(e.target.value) - dcProjected) : 0;
+  $("#dcApply").disabled = !has || Math.abs(diff) < 0.01;
+  $("#dcDiff").textContent = !has ? ""
+    : Math.abs(diff) < 0.01 ? "Matches — nothing to correct."
+    : `Bank is ${diff > 0 ? "over" : "short"} by ${fmt(Math.abs(diff))} — Correct adds an adjustment dated ${TODAY}.`;
+});
+$("#dcApply").addEventListener("click", () => {
+  const diff = round2(Number($("#dcActual").value) - dcProjected);
+  if (Math.abs(diff) < 0.01) return;
+  state.news.push({
+    _tempId: "new-" + (++tempCounter), created_at: new Date().toISOString(), txn_date: TODAY,
+    description: "Adjustment", source: "Daily check correction",
+    deposit: diff > 0 ? diff : 0, withdrawal: diff < 0 ? -diff : 0,
+  });
+  $("#dailyCheck").hidden = true;
+  render();
+  toast("Adjustment added — review and Save");
+});
+
 // --- bulk selection / edit / delete ----------------------------------------
 
 function updateSelectionUI() {
@@ -374,14 +413,15 @@ function computeView() {
     .filter((r) => !r._deleted)
     .sort(byDate);
   let bal = Number(state.account?.opening_balance) || 0;
-  let deposits = 0, withdrawals = 0;
+  let deposits = 0, withdrawals = 0, todayBal = bal;
   const balById = new Map();
   for (const t of live) {
     const d = Number(t.deposit) || 0, w = Number(t.withdrawal) || 0;
     deposits += d; withdrawals += w; bal = round2(bal + d - w);
     balById.set(t._id, bal);
+    if (t.txn_date <= TODAY) todayBal = bal; // running balance as of today
   }
-  return { rows, balById, totals: { deposits: round2(deposits), withdrawals: round2(withdrawals) }, endBal: round2(bal) };
+  return { rows, balById, totals: { deposits: round2(deposits), withdrawals: round2(withdrawals) }, endBal: round2(bal), todayBal };
 }
 
 function render() {

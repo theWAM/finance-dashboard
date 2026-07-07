@@ -50,8 +50,10 @@ _All decisions are now settled — nothing blocks the build._
 ```
 finance-dashboard/
 ├── local/            # Node + Express authoring server (runs on localhost; NOT published)
-│   ├── server.js     # Express app: serves editor + JSON API
-│   ├── db.js         # SQLite connection + schema (transactions, plan_targets, sync_meta)
+│   ├── server.js     # Express app: serves the editor + JSON CRUD API
+│   ├── db.js         # SQLite connection + schema (people, accounts, transactions, plan_targets, sync_meta)
+│   ├── import-csv.js # one-time importer: exported sheet CSV → an account's ledger (reconstructs balance)
+│   ├── public/       # the editable ledger grid UI (static: index.html + app.js)
 │   └── dashboard.db  # local SQLite DB — gitignored, private to each machine
 ├── shared/           # Pure logic shared by local app and published view
 │   ├── merge.js      # per-record last-writer-wins merge (+ tombstones)
@@ -208,7 +210,7 @@ The ultimate goal is a system reusable for **1, 2, or N people**. No pivot now, 
 _Phases build on the two-part, two-person model: Node + SQLite local apps ↔ shared `snapshot.json` ↔ static published view. Re-sequenced after the people/accounts pivot — foundation (ledger + owner/accounts + user selection) comes before the interactive tabs._
 
 - [x] **Phase 0 — Scaffolding & sync design** ✅ _(done)_ — repo layout, Node + built-in `node:sqlite`, schema with sync metadata (`id`/`created_at`/`updated_at`/`deleted_at`; snapshot `version`/`published_at`/`published_by`), `snapshot.json` contract, GitHub remote + Pages live at https://thewam.github.io/finance-dashboard/.
-- [ ] **Phase 1 — Data model + editable ledger:** add `people`/`accounts`/`owner` and per-account running balance; transaction model with sync metadata; spreadsheet-style editable grid persisted to SQLite; one-time CSV import seeding `Sheet1.csv` as Woody's checking account.
+- [x] **Phase 1 — Data model + editable ledger** ✅ _(done)_ — added `people`/`accounts` tables + `owner`/`account_id` on transactions (idempotent migrations); per-account running balance in `shared/metrics.js`; full CRUD API + spreadsheet-style editable grid (`local/public/`) with per-account balance/totals and soft-delete; `local/import-csv.js` seeds a checking account from the exported sheet and **reconstructs the running balance exactly**, splicing in explicit "Adjustment" rows wherever the sheet's balance jumped without a transaction (Woody's checking: 606 CSV rows + 1 adjustment, opening $4.50, balance $537.19 ✓). Snapshot contract extended to carry `people`/`accounts`.
 - [ ] **Phase 2 — Current-user selection:** entry popup (Woody / Rajna, no auth, localStorage); personal-scope filtering (`owner`) wired through the app + published view.
 - [ ] **Phase 3 — This Paycheck (2-week planner)** 🔑 — per-person paycheck-cycle view with editable allocations, running projected balance, **negative-balance flag + warn-before-save**; saved allocations write projected transactions into the ledger.
 - [ ] **Phase 4 — Daily Check (reconciliation):** per-checking-account projected balance as of today vs. entered actual; "Correct" writes adjusting transactions into the ledger.

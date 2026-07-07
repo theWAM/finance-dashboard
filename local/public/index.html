@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Finance Dashboard — Ledger</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel-2: #1e222b; --line: #2a2f3a;
+    --text: #e7e9ee; --muted: #9aa3b2; --accent: #4f8cff; --accent-weak: #24304b;
+    --pos: #46c08a; --neg: #ef6b7b; --danger: #b3303f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    margin: 0; background: var(--bg); color: var(--text); font-size: 14px;
+  }
+  header {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+    padding: 16px 24px; border-bottom: 1px solid var(--line); background: var(--panel);
+    position: sticky; top: 0; z-index: 5;
+  }
+  h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  .grow { flex: 1; }
+  select, input, button { font: inherit; color: inherit; }
+  select {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 7px 10px; color: var(--text);
+  }
+  .stat { display: flex; flex-direction: column; gap: 2px; }
+  .stat .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  .stat .value { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 15px; }
+  .value.pos { color: var(--pos); } .value.neg { color: var(--neg); }
+
+  main { padding: 16px 24px 80px; }
+  table { border-collapse: collapse; width: 100%; }
+  thead th {
+    position: sticky; top: 65px; background: var(--bg); text-align: left;
+    color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase;
+    letter-spacing: .04em; padding: 8px 10px; border-bottom: 1px solid var(--line);
+    z-index: 4;
+  }
+  tbody td { padding: 2px 4px; border-bottom: 1px solid var(--line); }
+  tbody tr:hover { background: var(--panel); }
+  td input {
+    width: 100%; background: transparent; border: 1px solid transparent;
+    border-radius: 6px; padding: 6px 8px; color: var(--text);
+  }
+  td input:hover { border-color: var(--line); }
+  td input:focus { outline: none; border-color: var(--accent); background: var(--panel-2); }
+  td.num input { text-align: right; font-variant-numeric: tabular-nums; }
+  td.bal { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); padding-right: 12px; white-space: nowrap; }
+  td.bal.neg { color: var(--neg); }
+  .col-date { width: 140px; } .col-dep, .col-wd, .col-bal { width: 120px; }
+  .row-actions { width: 40px; text-align: center; }
+  .del {
+    background: transparent; border: none; color: var(--muted); cursor: pointer;
+    border-radius: 6px; padding: 4px 8px; font-size: 15px;
+  }
+  .del:hover { color: var(--neg); background: var(--panel-2); }
+
+  tr.add td { padding-top: 10px; }
+  tr.add input { border-color: var(--line); background: var(--panel-2); }
+  .btn {
+    background: var(--accent); border: none; color: white; border-radius: 8px;
+    padding: 7px 14px; cursor: pointer; font-weight: 600;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn.ghost { background: var(--accent-weak); color: var(--text); }
+
+  .flag { color: var(--neg); font-size: 11px; margin-left: 6px; }
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 16px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10;
+  }
+  .toast.show { opacity: 1; }
+  .empty { color: var(--muted); padding: 40px; text-align: center; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Ledger</h1>
+  <select id="account" title="Account"></select>
+  <div class="grow"></div>
+  <div class="stat"><span class="label">Deposits</span><span class="value pos" id="totIn">—</span></div>
+  <div class="stat"><span class="label">Withdrawals</span><span class="value neg" id="totOut">—</span></div>
+  <div class="stat"><span class="label">Balance</span><span class="value" id="balance">—</span></div>
+</header>
+
+<main>
+  <table>
+    <thead>
+      <tr>
+        <th class="col-date">Date</th>
+        <th>Category</th>
+        <th>Source / Recipient</th>
+        <th class="col-dep" style="text-align:right">Deposit +</th>
+        <th class="col-wd" style="text-align:right">Withdrawal −</th>
+        <th class="col-bal" style="text-align:right">Balance</th>
+        <th class="row-actions"></th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+    <tfoot id="addFoot"></tfoot>
+  </table>
+  <div id="empty" class="empty" hidden>No transactions yet. Add one below.</div>
+</main>
+
+<datalist id="categories">
+  <option>Paycheck</option><option>Bonus</option><option>Bill</option>
+  <option>Savings</option><option>Investments</option><option>Loan Payment</option>
+  <option>Credit Card Payment</option><option>Tax Refund</option><option>Zelle</option>
+  <option>Transfer</option><option>Misc</option><option>Fun</option><option>Expense</option>
+</datalist>
+
+<div class="toast" id="toast"></div>
+
+<script type="module" src="./app.js"></script>
+</body>
+</html>

@@ -23,6 +23,25 @@ export function withRunningBalance(transactions = [], openingBalance = 0) {
   });
 }
 
+/**
+ * Compute the running balance for a single account: filter the ledger to that
+ * account, then run the balance from the account's opening_balance. Returns the
+ * account's live transactions (oldest → newest) each with a `running_balance`.
+ * @param {Array<object>} transactions  full ledger (any accounts)
+ * @param {{id:string, opening_balance?:number}} account
+ */
+export function accountLedger(transactions = [], account) {
+  if (!account) return [];
+  const rows = transactions.filter((t) => t.account_id === account.id);
+  return withRunningBalance(rows, Number(account.opening_balance) || 0);
+}
+
+/** Current (latest) running balance for an account, given the full ledger. */
+export function accountBalance(transactions = [], account) {
+  const led = accountLedger(transactions, account);
+  return led.length ? led[led.length - 1].running_balance : round2(Number(account?.opening_balance) || 0);
+}
+
 /** Total in / out / net across the given transactions. */
 export function totals(transactions = []) {
   const rows = live(transactions);

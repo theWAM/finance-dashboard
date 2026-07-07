@@ -111,6 +111,7 @@ ensureColumn("transactions", "owner", "owner TEXT NOT NULL DEFAULT 'shared'");
 ensureColumn("plan_targets", "owner", "owner TEXT NOT NULL DEFAULT 'shared'");
 ensureColumn("people", "avatar", "avatar TEXT NOT NULL DEFAULT ''"); // URL/path to a profile image
 ensureColumn("people", "sort_order", "sort_order INTEGER NOT NULL DEFAULT 0"); // display order in pickers
+ensureColumn("people", "pay_cadence", "pay_cadence TEXT NOT NULL DEFAULT 'biweekly'"); // weekly|biweekly|semimonthly|monthly
 
 const now = new Date().toISOString();
 
@@ -146,6 +147,10 @@ setAvatar.run("/avatars/rajna.jpg", "rajna");
 const setOrder = db.prepare("UPDATE people SET sort_order = ? WHERE id = ? AND sort_order = 0");
 setOrder.run(1, "woody");
 setOrder.run(2, "rajna");
+
+// Default pay cadence per person (Rajna is paid monthly; Woody biweekly is the
+// column default). Only applied while still at the default, so a later change sticks.
+db.prepare("UPDATE people SET pay_cadence = 'monthly' WHERE id = 'rajna' AND pay_cadence = 'biweekly'").run();
 
 // One checking account per person to start (the CSV ledger is Woody's account).
 // A joint account later is just another row with owner = 'shared'.

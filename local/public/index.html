@@ -22,6 +22,10 @@
   }
   h1 { font-size: 16px; margin: 0; font-weight: 600; }
   .grow { flex: 1; }
+  .nav { display: flex; gap: 4px; }
+  .nav a { color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+  .nav a:hover { color: var(--text); background: var(--panel-2); }
+  .nav a.active { color: var(--text); background: var(--accent-weak); }
   select, input, button { font: inherit; color: inherit; }
   select {
     background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
@@ -159,7 +163,10 @@
 </head>
 <body>
 <header>
-  <h1>Ledger</h1>
+  <nav class="nav">
+    <a href="./" class="active">Ledger</a>
+    <a href="./paycheck.html">This Paycheck</a>
+  </nav>
   <select id="account" title="Account"></select>
   <button id="userChip" class="userchip" title="Switch person" hidden>
     <span class="avatar" id="userAvatar"></span>

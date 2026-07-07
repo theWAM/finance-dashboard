@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Finance Dashboard — This Paycheck</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel-2: #1e222b; --line: #2a2f3a;
+    --text: #e7e9ee; --muted: #9aa3b2; --accent: #4f8cff; --accent-weak: #24304b;
+    --pos: #46c08a; --neg: #ef6b7b; --warn: #e0a336;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); font-size: 14px; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 16px 24px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; }
+  .nav { display: flex; gap: 4px; }
+  .nav a { color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+  .nav a:hover { color: var(--text); background: var(--panel-2); }
+  .nav a.active { color: var(--text); background: var(--accent-weak); }
+  .grow { flex: 1; }
+  button { font: inherit; color: inherit; }
+  .btn { background: var(--accent); border: none; color: #fff; border-radius: 8px; padding: 7px 14px; cursor: pointer; font-weight: 600; }
+  .btn:hover { filter: brightness(1.08); }
+  .btn.ghost { background: var(--accent-weak); color: var(--text); }
+  .btn[disabled] { opacity: .4; cursor: default; }
+
+  .userchip { display: inline-flex; align-items: center; gap: 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 5px 6px 5px 12px; cursor: pointer; }
+  .userchip:hover { border-color: var(--accent); }
+  .userchip .avatar { width: 24px; height: 24px; border-radius: 50%; overflow: hidden; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+  .userchip .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .userchip .switch { color: var(--muted); font-size: 11px; }
+
+  main { padding: 20px 24px 80px; max-width: 1100px; }
+  .window-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 16px 28px; margin-bottom: 18px; }
+  .window-head .title { font-size: 20px; font-weight: 700; }
+  .window-head .sub { color: var(--muted); font-size: 13px; }
+  .stat { display: flex; flex-direction: column; gap: 2px; }
+  .stat .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  .stat .value { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 17px; }
+  .value.neg { color: var(--neg); } .value.pos { color: var(--pos); }
+
+  .banner { border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; }
+  .banner.warn { background: rgba(224,163,54,.14); border: 1px solid rgba(224,163,54,.4); color: var(--warn); }
+  .banner.ok { background: rgba(70,192,138,.12); border: 1px solid rgba(70,192,138,.35); color: var(--pos); }
+
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+
+  table { border-collapse: collapse; width: 100%; }
+  thead th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  tbody td { padding: 2px 4px; border-bottom: 1px solid var(--line); }
+  td input { width: 100%; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 7px 8px; color: var(--text); }
+  td input:hover { border-color: var(--line); }
+  td input:focus { outline: none; border-color: var(--accent); background: var(--panel-2); }
+  td.num input { text-align: right; font-variant-numeric: tabular-nums; }
+  td.in input { color: var(--pos); }
+  td.proj { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); padding-right: 12px; white-space: nowrap; }
+  td.proj.neg { color: var(--neg); font-weight: 600; }
+  tr.neg-row { background: rgba(239,107,123,.09); }
+  .col-amt { width: 130px; } .col-proj { width: 140px; }
+  .row-actions { width: 40px; text-align: center; }
+  .del { background: transparent; border: none; color: var(--muted); cursor: pointer; border-radius: 6px; padding: 4px 8px; font-size: 15px; }
+  .del:hover { color: var(--neg); background: var(--panel-2); }
+  tr.add input { border-color: var(--line); background: var(--panel-2); }
+
+  .flow-toggle { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; color: var(--text); cursor: pointer; width: 100%; }
+
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
+  .toast.show { opacity: 1; }
+  .empty { color: var(--muted); padding: 30px 4px; }
+
+  .modal { position: fixed; inset: 0; background: rgba(6,8,12,.72); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 20; }
+  .modal[hidden] { display: none; }
+  .modal-card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 28px; width: min(560px, 92vw); box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+  .modal-card h2 { margin: 0 0 18px; font-size: 20px; text-align: center; }
+  .who-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 16px; }
+  .who-card { display: flex; flex-direction: column; align-items: center; gap: 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 16px; padding: 20px 14px; cursor: pointer; color: var(--text); }
+  .who-card:hover { border-color: var(--accent); background: var(--accent-weak); }
+  .who-photo { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; background: var(--accent); }
+  .who-photo.initials { display: grid; place-items: center; color: #fff; font-size: 44px; font-weight: 700; }
+  .who-card .name { font-weight: 600; }
+</style>
+</head>
+<body>
+<header>
+  <nav class="nav">
+    <a href="./">Ledger</a>
+    <a href="./paycheck.html" class="active">This Paycheck</a>
+  </nav>
+  <button id="userChip" class="userchip" title="Switch person" hidden>
+    <span class="avatar" id="userAvatar"></span>
+    <span id="userName"></span>
+    <span class="switch">switch</span>
+  </button>
+  <div class="grow"></div>
+</header>
+
+<main>
+  <div class="window-head">
+    <div>
+      <div class="title" id="winTitle">This Paycheck</div>
+      <div class="sub" id="winSub">—</div>
+    </div>
+    <div class="stat"><span class="label">Starting balance</span><span class="value" id="startBal">—</span></div>
+    <div class="stat"><span class="label">Paycheck</span><span class="value pos" id="incomeTotal">—</span></div>
+    <div class="stat"><span class="label">Allocated</span><span class="value" id="outTotal">—</span></div>
+    <div class="stat"><span class="label">Left / ending</span><span class="value" id="endBal">—</span></div>
+  </div>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <div class="toolbar">
+    <button id="fillBtn" class="btn ghost">Fill from last paycheck</button>
+    <div class="grow"></div>
+    <button id="saveTplBtn" class="btn ghost" disabled>Save template</button>
+    <button id="applyBtn" class="btn">Apply to ledger</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Source / Recipient</th>
+        <th style="width:120px">Direction</th>
+        <th class="col-amt" style="text-align:right">Amount</th>
+        <th class="col-proj" style="text-align:right">Projected balance</th>
+        <th class="row-actions"></th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+    <tfoot id="addFoot"></tfoot>
+  </table>
+  <div id="empty" class="empty" hidden>No allocations yet. Add one below, or “Fill from last paycheck”.</div>
+</main>
+
+<datalist id="categories">
+  <option>Paycheck</option><option>Bonus</option><option>Bill</option>
+  <option>Savings</option><option>Investments</option><option>Loan Payment</option>
+  <option>Credit Card Payment</option><option>Tax Refund</option><option>Zelle</option>
+  <option>Transfer</option><option>Misc</option><option>Fun</option><option>Expense</option>
+</datalist>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal" id="who" hidden>
+  <div class="modal-card">
+    <h2>Who are you?</h2>
+    <div class="who-options" id="whoOptions"></div>
+  </div>
+</div>
+
+<script type="module" src="./paycheck.js"></script>
+</body>
+</html>

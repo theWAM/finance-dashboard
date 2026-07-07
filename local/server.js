@@ -144,6 +144,50 @@ app.delete("/api/transactions/:id", (req, res) => {
 
 const getTxn = (id) => db.prepare("SELECT * FROM transactions WHERE id = ?").get(id);
 
+// --- API: plan targets (incl. recurring_allocation templates) --------------
+
+const getPlan = (id) => db.prepare("SELECT * FROM plan_targets WHERE id = ?").get(id);
+const safeParse = (s) => { try { return JSON.parse(s || "{}"); } catch { return {}; } };
+const parsePlanTarget = (r) => ({ ...r, data: safeParse(r.data) });
+
+// GET /api/plan-targets?owner=...&kind=...
+app.get("/api/plan-targets", (req, res) => {
+  const { owner, kind } = req.query;
+  let rows = db.prepare("SELECT * FROM plan_targets WHERE deleted_at IS NULL").all();
+  if (owner) rows = rows.filter((r) => r.owner === owner);
+  if (kind) rows = rows.filter((r) => r.kind === kind);
+  res.json({ plan_targets: rows.map(parsePlanTarget) });
+});
+
+app.post("/api/plan-targets", (req, res) => {
+  const b = req.body ?? {};
+  if (!b.kind) return res.status(400).json({ error: "kind is required" });
+  const ts = now();
+  const id = b.id || randomUUID();
+  db.prepare(`INSERT INTO plan_targets (id, owner, kind, name, data, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?)`)
+    .run(id, b.owner || "shared", b.kind, b.name ?? "", JSON.stringify(b.data ?? {}), ts, ts);
+  res.status(201).json({ plan_target: parsePlanTarget(getPlan(id)) });
+});
+
+app.patch("/api/plan-targets/:id", (req, res) => {
+  const pt = getPlan(req.params.id);
+  if (!pt || pt.deleted_at) return res.status(404).json({ error: "plan target not found" });
+  const fields = pick(req.body, ["owner", "kind", "name", "data"]);
+  if ("data" in fields) fields.data = JSON.stringify(fields.data ?? {});
+  if (Object.keys(fields).length === 0) return res.json({ plan_target: parsePlanTarget(pt) });
+  applyUpdate("plan_targets", req.params.id, fields);
+  res.json({ plan_target: parsePlanTarget(getPlan(req.params.id)) });
+});
+
+app.delete("/api/plan-targets/:id", (req, res) => {
+  const pt = getPlan(req.params.id);
+  if (!pt || pt.deleted_at) return res.status(404).json({ error: "plan target not found" });
+  const ts = now();
+  db.prepare("UPDATE plan_targets SET deleted_at = ?, updated_at = ? WHERE id = ?").run(ts, ts, req.params.id);
+  res.json({ ok: true });
+});
+
 // --- shared write helpers --------------------------------------------------
 
 function pick(obj, keys) {
@@ -163,6 +207,8 @@ function applyUpdate(table, id, fields) {
 // --- Editor UI -------------------------------------------------------------
 
 app.use(express.static(join(__dirname, "public")));
+// Serve the shared/ modules (e.g. paycycle.js) so the browser can import them.
+app.use("/shared", express.static(join(__dirname, "..", "shared")));
 
 app.listen(PORT, () => {
   console.log(`Finance Dashboard (local) running at http://localhost:${PORT}`);

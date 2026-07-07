@@ -1,3 +1,5 @@
+import { windowFor, previousWindowFor } from "/shared/paycycle.js";
+
 // Ledger grid: a spreadsheet-style editor over the local CRUD API.
 //
 // Edits are STAGED in memory, never written on keystroke. Cell edits, added
@@ -168,12 +170,20 @@ function matchesFilter(r) {
   return true;
 }
 
-// Default view: transactions from 1 month before to 1 month after today.
+// Default view: one paycheck ago → the next paycheck, using the current person's
+// cadence anchored to their most recent paycheck. Falls back to today if unknown.
 function defaultDateWindow() {
-  const iso = (d) => d.toISOString().slice(0, 10);
-  const from = new Date(); from.setMonth(from.getMonth() - 1);
-  const to = new Date(); to.setMonth(to.getMonth() + 1);
-  return { from: iso(from), to: iso(to) };
+  const today = new Date().toISOString().slice(0, 10);
+  const person = state.people.find((p) => p.id === state.currentUser);
+  const cadence = person?.pay_cadence || "biweekly";
+  const pays = state.rows
+    .filter((t) => /paycheck/i.test(t.description || "") && Number(t.deposit) > 0)
+    .map((t) => t.txn_date).sort();
+  let anchor = today;
+  if (pays.length) { const past = pays.filter((d) => d <= today); anchor = past.length ? past[past.length - 1] : pays[pays.length - 1]; }
+  const cur = windowFor(cadence, anchor, today);
+  const prev = previousWindowFor(cadence, anchor, today);
+  return { from: prev.start, to: cur.nextStart }; // prev payday → next payday
 }
 
 function resetFilter() {

@@ -49,14 +49,14 @@
 
   .modal { position: fixed; inset: 0; background: rgba(6,8,12,.72); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 20; }
   .modal[hidden] { display: none; }
-  .modal-card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 28px; width: min(560px, 92vw); }
-  .modal-card h2 { margin: 0 0 18px; font-size: 20px; text-align: center; }
-  .who-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 16px; }
-  .who-card { display: flex; flex-direction: column; align-items: center; gap: 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 16px; padding: 20px 14px; cursor: pointer; color: var(--text); }
-  .who-card:hover { border-color: var(--accent); background: var(--accent-weak); }
-  .who-photo { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; background: var(--accent); }
-  .who-photo.initials { display: grid; place-items: center; color: #fff; font-size: 44px; font-weight: 700; }
-  .who-card .name { font-weight: 600; }
+  .modal-card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 32px; width: min(1120px, 96vw); box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+  .modal-card h2 { margin: 0 0 6px; font-size: 24px; text-align: center; }
+  .who-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 28px; }
+  .who-card { display: flex; flex-direction: column; align-items: center; gap: 22px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 24px; padding: 36px 28px; cursor: pointer; color: var(--text); transition: transform .08s ease, border-color .08s ease, background .08s ease; }
+  .who-card:hover { border-color: var(--accent); background: var(--accent-weak); transform: translateY(-2px); }
+  .who-photo { width: 448px; height: 448px; border-radius: 50%; object-fit: cover; background: var(--accent); box-shadow: 0 12px 36px rgba(0,0,0,.4); }
+  .who-photo.initials { display: grid; place-items: center; color: #fff; font-size: 160px; font-weight: 700; }
+  .who-card .name { font-weight: 600; font-size: 30px; }
 </style>
 </head>
 <body>

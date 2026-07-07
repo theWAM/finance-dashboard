@@ -131,6 +131,15 @@
   .filters .btn { padding: 6px 12px; }
   .filter-count { color: var(--muted); font-size: 12px; }
 
+  .bulkbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; padding: 10px 14px; background: var(--accent-weak); border: 1px solid var(--accent); border-radius: 10px; }
+  .bulkbar[hidden] { display: none; }
+  .bulkbar select, .bulkbar input { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; color: var(--text); font: inherit; }
+  .bulkbar input[type="text"] { min-width: 160px; }
+  .bulk-count { font-weight: 600; }
+  .col-check { width: 34px; text-align: center; }
+  td.col-check { text-align: center; }
+  .col-check input { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+
   .ms { position: relative; }
   .ms-btn {
     background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
@@ -208,9 +217,28 @@
     <button id="fClear" class="btn ghost" hidden>Clear</button>
     <span id="fCount" class="filter-count"></span>
   </div>
+
+  <div id="bulkBar" class="bulkbar" hidden>
+    <span class="bulk-count" id="bulkCount">0 selected</span>
+    <select id="bulkField">
+      <option value="">Set a field…</option>
+      <option value="txn_date">Date</option>
+      <option value="description">Category</option>
+      <option value="source">Source / Recipient</option>
+      <option value="deposit">Deposit</option>
+      <option value="withdrawal">Withdrawal</option>
+    </select>
+    <span id="bulkValueWrap"></span>
+    <button id="bulkApply" class="btn" disabled>Apply to selected</button>
+    <div class="grow"></div>
+    <button id="bulkDelete" class="btn ghost">Delete selected</button>
+    <button id="bulkClearSel" class="btn ghost">Clear selection</button>
+  </div>
+
   <table>
     <thead>
       <tr>
+        <th class="col-check"><input type="checkbox" id="selectAll" title="Select all shown"></th>
         <th class="col-date">Date</th>
         <th>Category</th>
         <th>Source / Recipient</th>

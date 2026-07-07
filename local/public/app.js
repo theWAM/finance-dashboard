@@ -25,6 +25,8 @@ const state = {
   dels: new Set(),        // ids staged for deletion
   news: [],               // staged new rows ({ _tempId, created_at, ...fields })
   filter: { from: "", to: "", categories: new Set(), sources: new Set() }, // date window → category set → source set
+  selected: new Set(),    // _ids selected for bulk edit/delete
+  _shown: [],             // rows currently displayed (for select-all)
 };
 
 async function api(path, opts) {
@@ -139,6 +141,7 @@ function clearPending() {
   state.edits.clear();
   state.dels.clear();
   state.news = [];
+  state.selected.clear();
   addDraft = freshDraft();
 }
 
@@ -291,6 +294,59 @@ function closeAllPanels() {
   document.querySelectorAll(".ms-panel").forEach((p) => (p.hidden = true));
 }
 
+// --- bulk selection / edit / delete ----------------------------------------
+
+function updateSelectionUI() {
+  // Drop any selections that are no longer visible (e.g. after filtering).
+  const shownIds = new Set(state._shown.map((r) => r._id));
+  for (const id of [...state.selected]) if (!shownIds.has(id)) state.selected.delete(id);
+
+  const n = state.selected.size;
+  $("#bulkBar").hidden = n === 0;
+  $("#bulkCount").textContent = `${n} selected`;
+  const sa = $("#selectAll");
+  sa.checked = n > 0 && n === state._shown.length;
+  sa.indeterminate = n > 0 && n < state._shown.length;
+  document.querySelectorAll('#rows tr[data-id]').forEach((tr) => {
+    const cb = tr.querySelector('input[type="checkbox"]');
+    if (cb) cb.checked = state.selected.has(tr.dataset.id);
+  });
+}
+
+// Stage the same field=value across every selected row (edits, or new-row fields).
+function bulkSetField(field, value) {
+  for (const id of state.selected) {
+    const nw = state.news.find((x) => x._tempId === id);
+    if (nw) nw[field] = value;
+    else { const e = state.edits.get(id) || {}; e[field] = value; state.edits.set(id, e); }
+  }
+  render();
+}
+
+function bulkDelete() {
+  for (const id of state.selected) {
+    if (String(id).startsWith("new-")) state.news = state.news.filter((x) => x._tempId !== id);
+    else { state.dels.add(id); state.edits.delete(id); }
+  }
+  state.selected.clear();
+  render();
+}
+
+// Show the value input appropriate to the chosen bulk field.
+function renderBulkValue() {
+  const field = $("#bulkField").value;
+  const wrap = $("#bulkValueWrap");
+  wrap.innerHTML = "";
+  $("#bulkApply").disabled = !field;
+  if (!field) return;
+  const inp = document.createElement("input");
+  inp.id = "bulkValue";
+  if (field === "txn_date") inp.type = "date";
+  else if (field === "deposit" || field === "withdrawal") { inp.type = "number"; inp.step = "0.01"; inp.min = "0"; inp.placeholder = "0.00"; }
+  else { inp.type = "text"; if (field === "description") inp.setAttribute("list", "categories"); inp.placeholder = field === "description" ? "Category" : "Source / Recipient"; }
+  wrap.appendChild(inp);
+}
+
 // Merge staged changes over the loaded rows, then recompute the running balance
 // (oldest → newest) so the preview reflects unsaved edits. Deleted rows are kept
 // for display (struck-through) but excluded from the balance.
@@ -347,6 +403,8 @@ function render() {
 
   $("#fClear").hidden = !active;
   $("#fCount").textContent = active ? `showing ${shown.length} of ${rows.length}` : "";
+  state._shown = shown;
+  updateSelectionUI();
   renderControls();
 }
 
@@ -356,6 +414,18 @@ function rowEl(row, bal) {
   if (row._deleted) tr.className = "to-delete";
   else if (row._new) tr.className = "new-row";
   else if (row._edited) tr.className = "edited";
+
+  const checkTd = document.createElement("td");
+  checkTd.className = "col-check";
+  const chk = document.createElement("input");
+  chk.type = "checkbox";
+  chk.checked = state.selected.has(row._id);
+  chk.addEventListener("change", () => {
+    if (chk.checked) state.selected.add(row._id); else state.selected.delete(row._id);
+    updateSelectionUI();
+  });
+  checkTd.appendChild(chk);
+  tr.appendChild(checkTd);
 
   const dis = !!row._deleted;
   tr.appendChild(cell("date", row.txn_date, "txn_date", "col-date", null, "", dis));
@@ -437,6 +507,7 @@ function renderAddRow() {
   foot.innerHTML = "";
   const tr = document.createElement("tr");
   tr.className = "add";
+  tr.appendChild(document.createElement("td")); // checkbox column spacer
   const mk = (type, key, cls = "", list = null, placeholder = "") => {
     const td = document.createElement("td");
     if (cls) td.className = cls;
@@ -550,6 +621,28 @@ $("#fClear").addEventListener("click", () => {
   buildFilters(); render();
 });
 document.addEventListener("click", () => closeAllPanels()); // click-away closes dropdowns
+
+$("#selectAll").addEventListener("change", (e) => {
+  if (e.target.checked) for (const r of state._shown) state.selected.add(r._id);
+  else state.selected.clear();
+  updateSelectionUI();
+});
+$("#bulkField").addEventListener("change", renderBulkValue);
+$("#bulkApply").addEventListener("click", () => {
+  const field = $("#bulkField").value;
+  const valEl = $("#bulkValue");
+  if (!field || !valEl) return;
+  const n = state.selected.size;
+  bulkSetField(field, valEl.value);
+  toast(`Updated ${n} row${n === 1 ? "" : "s"} — review and Save`);
+});
+$("#bulkDelete").addEventListener("click", () => {
+  const n = state.selected.size;
+  if (!n) return;
+  bulkDelete();
+  toast(`Marked ${n} row${n === 1 ? "" : "s"} for deletion — Save to apply`);
+});
+$("#bulkClearSel").addEventListener("click", () => { state.selected.clear(); updateSelectionUI(); });
 window.addEventListener("beforeunload", (e) => { if (hasPending()) { e.preventDefault(); e.returnValue = ""; } });
 
 (async function init() {

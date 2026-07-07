@@ -44,6 +44,15 @@
   .add-row { margin-top: 8px; }
   .add-row .btn { padding: 5px 12px; font-size: 13px; }
 
+  /* one-time (bonus) payments under a debt */
+  tr.ot-row td { border-bottom: 1px solid var(--line); padding: 0 4px 10px; }
+  .ot-wrap { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 2px 0 6px; }
+  .ot-head { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; margin-bottom: 8px; }
+  .muted { color: var(--muted); }
+  .ot-line { display: grid; grid-template-columns: 150px 120px 1fr 32px; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .ot-line input { width: 100%; }
+  .ot-add { padding: 4px 10px; font-size: 12px; margin-top: 2px; }
+
   .userchip { display: inline-flex; align-items: center; gap: 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 5px 6px 5px 12px; cursor: pointer; }
   .userchip .avatar { width: 24px; height: 24px; border-radius: 50%; overflow: hidden; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
   .userchip .avatar img { width: 100%; height: 100%; object-fit: cover; }

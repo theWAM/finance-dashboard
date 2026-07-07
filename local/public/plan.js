@@ -56,7 +56,11 @@ function render() {
     const head = ["Name", "Owner", ...sec.fields.map((f) => f[1]), ""];
     table.innerHTML = `<thead><tr>${head.map((h) => `<th>${h}</th>`).join("")}</tr></thead>`;
     const tbody = document.createElement("tbody");
-    for (const t of rows) tbody.appendChild(rowEl(t, sec));
+    for (const t of rows) {
+      tbody.appendChild(rowEl(t, sec));
+      // Debts get a second row holding a running list of one-time (bonus) payments.
+      if (sec.kind === "debt_payoff") tbody.appendChild(oneTimeRowEl(t, head.length));
+    }
     table.appendChild(tbody);
     section.appendChild(table);
     const add = document.createElement("div");
@@ -107,6 +111,59 @@ function rowEl(t, sec) {
   del.onclick = () => { if (t.id) state.removed.add(t.id); state.targets = state.targets.filter((x) => x !== t); state.dirty = true; render(); };
   act.appendChild(del); tr.appendChild(act);
   return tr;
+}
+
+// A full-width row beneath a debt listing its one-time payments — bonuses or
+// windfalls made outside the usual monthly cadence. Stored on
+// data.one_time_payments = [{ date, amount, note }] and factored into the
+// payoff projection (future ones shrink the remaining balance).
+function oneTimeRowEl(t, colspan) {
+  if (!Array.isArray(t.data.one_time_payments)) t.data.one_time_payments = [];
+  const list = t.data.one_time_payments;
+  const tr = document.createElement("tr");
+  tr.className = "ot-row";
+  const td = document.createElement("td");
+  td.colSpan = colspan;
+
+  const wrap = document.createElement("div");
+  wrap.className = "ot-wrap";
+  const total = list.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  const head = document.createElement("div");
+  head.className = "ot-head";
+  head.innerHTML = `<span>One-time payments <span class="muted">(bonuses, windfalls — outside the monthly plan)</span></span>${list.length ? `<span class="muted">${list.length} · ${fmt(total)} total</span>` : ""}`;
+  wrap.appendChild(head);
+
+  list.forEach((p, i) => {
+    const line = document.createElement("div");
+    line.className = "ot-line";
+    const date = document.createElement("input");
+    date.type = "date"; date.value = p.date || "";
+    date.onchange = () => { p.date = date.value; markDirty(t); };
+    const amt = document.createElement("input");
+    amt.type = "number"; amt.step = "0.01"; amt.placeholder = "amount"; amt.className = "num"; amt.value = p.amount ?? "";
+    amt.onchange = () => { p.amount = Number(amt.value) || 0; markDirty(t); renderOtHead(head, list); };
+    const note = document.createElement("input");
+    note.type = "text"; note.placeholder = "note (e.g. work bonus)"; note.value = p.note || "";
+    note.onchange = () => { p.note = note.value; markDirty(t); };
+    const del = document.createElement("button");
+    del.className = "del"; del.textContent = "×"; del.title = "Remove";
+    del.onclick = () => { list.splice(i, 1); markDirty(t); render(); };
+    line.append(date, amt, note, del);
+    wrap.appendChild(line);
+  });
+
+  const add = document.createElement("button");
+  add.className = "btn ghost ot-add";
+  add.textContent = "+ Add one-time payment";
+  add.onclick = () => { list.push({ date: new Date().toISOString().slice(0, 10), amount: 0, note: "" }); markDirty(t); render(); };
+  wrap.appendChild(add);
+
+  td.appendChild(wrap); tr.appendChild(td);
+  return tr;
+}
+function renderOtHead(head, list) {
+  const total = list.reduce((s, p) => s + (Number(p.amount) || 0), 0);
+  head.innerHTML = `<span>One-time payments <span class="muted">(bonuses, windfalls — outside the monthly plan)</span></span>${list.length ? `<span class="muted">${list.length} · ${fmt(total)} total</span>` : ""}`;
 }
 
 // APR is stored as a fraction (0.2624) but shown as a percent (26.24).

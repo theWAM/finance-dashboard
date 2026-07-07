@@ -64,17 +64,22 @@ export function computeDrift(transactions, planTargets = [], { asOf }) {
       const months = spanMonths(matched, asOf);
       const actualMonthly = round2(paid / months);
       const planM = Number(d.monthly_payment) || 0;
-      const balance = Number(d.balance) || 0;
+      // Planned one-time payments (bonuses) still ahead of us shrink the balance
+      // we have to chip away at monthly, so the payoff projection pulls in.
+      const bonuses = Array.isArray(d.one_time_payments) ? d.one_time_payments : [];
+      const futureBonus = round2(bonuses.filter((p) => (p.date || "") >= asOf).reduce((s, p) => s + (Number(p.amount) || 0), 0));
+      const balance = Math.max(0, (Number(d.balance) || 0) - futureBonus);
       const projMonths = actualMonthly > 0 ? Math.ceil(balance / actualMonthly) : null;
       const projected = projMonths != null ? addMonths(asOf, projMonths) : null;
       const targetMonth = d.target_date ? String(d.target_date).slice(0, 7) : null;
       let status = "bad";
-      if (actualMonthly > 0) {
-        if (!targetMonth || (projected && projected <= targetMonth)) status = "good";
+      if (actualMonthly > 0 || balance <= 0) {
+        if (balance <= 0 || !targetMonth || (projected && projected <= targetMonth)) status = "good";
         else status = actualMonthly >= planM * 0.75 ? "warn" : "bad";
       }
+      const bonusNote = futureBonus > 0 ? ` (incl. $${futureBonus} one-time)` : "";
       out.push({ id: pt.id, kind: pt.kind, name: pt.name, owner: pt.owner, planValue: planM, actualValue: actualMonthly,
-        detail: projected ? `$${actualMonthly}/mo → payoff ~${projected} (target ${targetMonth || "—"})` : "no payments yet",
+        detail: projected ? `$${actualMonthly}/mo → payoff ~${projected}${bonusNote} (target ${targetMonth || "—"})` : "no payments yet",
         status });
     }
   }

@@ -45,6 +45,21 @@
 
   .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
 
+  .chart-card { background: var(--panel-2); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; }
+  .chart-card[hidden] { display: none; }
+  .chart-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 12px; }
+  .chart-body { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
+  #donut { flex: 0 0 auto; }
+  #donut path { stroke: var(--panel-2); stroke-width: 2; }
+  .slice-label { fill: #fff; font-size: 11px; font-weight: 700; text-anchor: middle; }
+  .donut-total { fill: var(--text); font-size: 22px; font-weight: 700; text-anchor: middle; }
+  .donut-sub { fill: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; text-anchor: middle; }
+  .legend { display: grid; grid-template-columns: auto 1fr auto auto; gap: 7px 14px; align-items: center; font-size: 13px; min-width: 340px; }
+  .legend .sw { width: 12px; height: 12px; border-radius: 3px; }
+  .legend .cat { color: var(--text); }
+  .legend .amt { color: var(--text); font-variant-numeric: tabular-nums; text-align: right; }
+  .legend .pct { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+
   table { border-collapse: collapse; width: 100%; }
   thead th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 8px 10px; border-bottom: 1px solid var(--line); }
   tbody td { padding: 2px 4px; border-bottom: 1px solid var(--line); }
@@ -114,6 +129,14 @@
 
   <div id="banner" class="banner" hidden></div>
 
+  <div id="chart" class="chart-card" hidden>
+    <div class="chart-title">Where this paycheck goes — by category</div>
+    <div class="chart-body">
+      <svg id="donut" viewBox="0 0 220 220" width="220" height="220" role="img" aria-label="Allocation by category"></svg>
+      <div class="legend" id="legend"></div>
+    </div>
+  </div>
+
   <div class="toolbar">
     <span class="grow"></span>
     <span id="dirtyNote" class="dirty-note" hidden>unsaved changes</span>
@@ -143,7 +166,7 @@
   <option>Paycheck</option><option>Bonus</option><option>Bill</option>
   <option>Savings</option><option>Investments</option><option>Loan Payment</option>
   <option>Credit Card Payment</option><option>Tax Refund</option><option>Zelle</option>
-  <option>Transfer</option><option>Misc</option><option>Food</option><option>Fun</option><option>Expense</option>
+  <option>Transfer</option><option>Housing</option><option>Misc</option><option>Food</option><option>Fun</option><option>Expense</option>
 </datalist>
 
 <div class="toast" id="toast"></div>

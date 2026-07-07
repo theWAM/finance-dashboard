@@ -135,6 +135,83 @@ function computeView() {
   return { rows, balById, startBal, endBal: round2(endBal), deposits: round2(deposits), withdrawals: round2(withdrawals), min: round2(min), minRow };
 }
 
+// Categorical colors assigned by category IDENTITY (never by slice size), from the
+// validated dark palette; unmapped categories fold into a single gray "Other".
+const CAT_COLORS = {
+  "Housing": "#3987e5", "Bill": "#199e70", "Savings": "#c98500", "Investments": "#008300",
+  "Credit Card Payment": "#9085e9", "Loan Payment": "#e66767", "Food": "#d55181", "Fun": "#d95926",
+};
+const OTHER_COLOR = "#898781";
+const NS = "http://www.w3.org/2000/svg";
+
+function renderChart(rows) {
+  // Sum outflow (allocations) by category; unmapped → "Other".
+  const sums = new Map();
+  for (const r of rows) {
+    if (r._deleted) continue;
+    const w = Number(r.withdrawal) || 0;
+    if (w <= 0) continue;
+    const key = CAT_COLORS[r.description] ? r.description : "Other";
+    sums.set(key, round2((sums.get(key) || 0) + w));
+  }
+  const total = round2([...sums.values()].reduce((a, b) => a + b, 0));
+  const chart = document.querySelector("#chart");
+  if (total <= 0) { chart.hidden = true; return; }
+  chart.hidden = false;
+
+  const data = [...sums.entries()]
+    .map(([cat, amount]) => ({ cat, amount, color: cat === "Other" ? OTHER_COLOR : CAT_COLORS[cat] }))
+    .sort((a, b) => b.amount - a.amount);
+
+  // --- donut ---
+  const svg = document.querySelector("#donut");
+  svg.innerHTML = "";
+  const cx = 110, cy = 110, rO = 96, rI = 60, pad = data.length > 1 ? 0.03 : 0;
+  const pt = (r, a) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  let start = -Math.PI / 2;
+  for (const d of data) {
+    const frac = d.amount / total;
+    const end = start + frac * 2 * Math.PI;
+    const a0 = start + pad / 2, a1 = Math.max(a0, end - pad / 2);
+    const [x1, y1] = pt(rO, a0), [x2, y2] = pt(rO, a1), [x3, y3] = pt(rI, a1), [x4, y4] = pt(rI, a0);
+    const large = a1 - a0 > Math.PI ? 1 : 0;
+    const path = document.createElementNS(NS, "path");
+    path.setAttribute("d", `M${x1} ${y1} A${rO} ${rO} 0 ${large} 1 ${x2} ${y2} L${x3} ${y3} A${rI} ${rI} 0 ${large} 0 ${x4} ${y4} Z`);
+    path.setAttribute("fill", d.color);
+    const title = document.createElementNS(NS, "title");
+    title.textContent = `${d.cat}: ${fmt(d.amount)} (${Math.round(frac * 100)}%)`;
+    path.appendChild(title);
+    svg.appendChild(path);
+    // Direct % label for slices with enough room (≥ 7%).
+    if (frac >= 0.07) {
+      const [lx, ly] = pt((rO + rI) / 2, (a0 + a1) / 2);
+      const t = document.createElementNS(NS, "text");
+      t.setAttribute("class", "slice-label"); t.setAttribute("x", lx); t.setAttribute("y", ly + 4);
+      t.textContent = `${Math.round(frac * 100)}%`;
+      svg.appendChild(t);
+    }
+    start = end;
+  }
+  const totalText = document.createElementNS(NS, "text");
+  totalText.setAttribute("class", "donut-total"); totalText.setAttribute("x", cx); totalText.setAttribute("y", cy);
+  totalText.textContent = fmt(total);
+  const subText = document.createElementNS(NS, "text");
+  subText.setAttribute("class", "donut-sub"); subText.setAttribute("x", cx); subText.setAttribute("y", cy + 16);
+  subText.textContent = "allocated";
+  svg.append(totalText, subText);
+
+  // --- legend (identity is never color-alone) ---
+  const legend = document.querySelector("#legend");
+  legend.innerHTML = "";
+  for (const d of data) {
+    const sw = document.createElement("span"); sw.className = "sw"; sw.style.background = d.color;
+    const cat = document.createElement("span"); cat.className = "cat"; cat.textContent = d.cat;
+    const amt = document.createElement("span"); amt.className = "amt"; amt.textContent = fmt(d.amount);
+    const pct = document.createElement("span"); pct.className = "pct"; pct.textContent = `${Math.round((d.amount / total) * 100)}%`;
+    legend.append(sw, cat, amt, pct);
+  }
+}
+
 function render() {
   const v = computeView();
   $("#winTitle").textContent = `This Paycheck — ${state.account.name}`;
@@ -154,6 +231,8 @@ function render() {
     banner.className = "banner ok"; banner.hidden = false;
     banner.textContent = `On track — ends the pay period at ${fmt(v.endBal)}.`;
   }
+
+  renderChart(v.rows);
 
   const tbody = $("#rows"); tbody.innerHTML = "";
   $("#empty").hidden = v.rows.length > 0;

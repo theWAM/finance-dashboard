@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "version": 2,
-  "published_at": "2026-07-07T07:40:42.714Z",
+  "version": 3,
+  "published_at": "2026-07-08T01:40:33.827Z",
   "published_by": "woody",
   "people": [
     {
@@ -53,13 +53,13 @@
       "account_id": "woody-checking",
       "owner": "woody",
       "txn_date": "2026-03-03",
-      "description": "Bonus",
-      "source": "Direct Deposit",
+      "description": "Paycheck",
+      "source": "Bonus",
       "deposit": 7913.75,
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-08T01:39:09.656Z",
       "deleted_at": null
     },
     {
@@ -2029,11 +2029,11 @@
       "txn_date": "2026-06-25",
       "description": "Paycheck",
       "source": "Direct Deposit",
-      "deposit": 2437.2,
+      "deposit": 2474.99,
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-07T22:06:07.648Z",
       "deleted_at": null
     },
     {
@@ -2187,8 +2187,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-07T22:06:07.659Z",
+      "deleted_at": "2026-07-07T22:06:07.659Z"
     },
     {
       "id": "118640fc-5dab-4380-97ad-aa136f6c7f18",
@@ -2338,10 +2338,10 @@
       "description": "Investments",
       "source": "Fidelity Individual",
       "deposit": 0,
-      "withdrawal": 5,
+      "withdrawal": 3,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-07T05:18:16.078Z",
+      "updated_at": "2026-07-07T22:08:05.556Z",
       "deleted_at": null
     },
     {
@@ -8762,12 +8762,12 @@
       "owner": "rajna",
       "txn_date": "2026-04-01",
       "description": "Savings",
-      "source": "Emergency HYSA",
+      "source": "Emergency Savings",
       "deposit": 0,
       "withdrawal": 50,
       "note": "",
       "created_at": "2026-07-06T23:47:20.449Z",
-      "updated_at": "2026-07-07T06:41:29.826Z",
+      "updated_at": "2026-07-07T15:15:17.444Z",
       "deleted_at": null
     },
     {
@@ -9322,12 +9322,12 @@
       "owner": "rajna",
       "txn_date": "2026-05-01",
       "description": "Savings",
-      "source": "Emergency HYSA",
+      "source": "Emergency Savings",
       "deposit": 0,
       "withdrawal": 50,
       "note": "",
       "created_at": "2026-07-06T23:47:20.449Z",
-      "updated_at": "2026-07-07T06:41:29.830Z",
+      "updated_at": "2026-07-07T15:15:17.450Z",
       "deleted_at": null
     },
     {
@@ -9896,12 +9896,12 @@
       "owner": "rajna",
       "txn_date": "2026-06-01",
       "description": "Savings",
-      "source": "Emergency HYSA",
+      "source": "Emergency Savings",
       "deposit": 0,
       "withdrawal": 50,
       "note": "",
       "created_at": "2026-07-06T23:47:20.449Z",
-      "updated_at": "2026-07-07T06:41:29.835Z",
+      "updated_at": "2026-07-07T15:15:17.455Z",
       "deleted_at": null
     },
     {
@@ -9966,12 +9966,12 @@
       "owner": "rajna",
       "txn_date": "2026-06-03",
       "description": "Savings",
-      "source": "Emergency HYSA",
+      "source": "Emergency Savings",
       "deposit": 0,
       "withdrawal": 12.35,
       "note": "",
       "created_at": "2026-07-06T23:47:20.449Z",
-      "updated_at": "2026-07-07T06:41:29.839Z",
+      "updated_at": "2026-07-07T15:15:17.459Z",
       "deleted_at": null
     },
     {
@@ -9980,12 +9980,12 @@
       "owner": "rajna",
       "txn_date": "2026-06-03",
       "description": "Savings",
-      "source": "Emergency HYSA",
+      "source": "Emergency Savings",
       "deposit": 0,
       "withdrawal": 54.95,
       "note": "",
       "created_at": "2026-07-06T23:47:20.449Z",
-      "updated_at": "2026-07-07T06:41:29.843Z",
+      "updated_at": "2026-07-07T15:15:17.465Z",
       "deleted_at": null
     },
     {
@@ -10218,12 +10218,12 @@
       "owner": "rajna",
       "txn_date": "2026-08-01",
       "description": "Savings",
-      "source": "Emergency HYSA",
+      "source": "Emergency Savings",
       "deposit": 0,
       "withdrawal": 50,
       "note": "forecast",
       "created_at": "2026-07-07T05:05:05.564Z",
-      "updated_at": "2026-07-07T06:41:29.851Z",
+      "updated_at": "2026-07-07T15:15:17.475Z",
       "deleted_at": null
     },
     {
@@ -10414,12 +10414,12 @@
       "owner": "rajna",
       "txn_date": "2026-09-01",
       "description": "Savings",
-      "source": "Emergency HYSA",
+      "source": "Emergency Savings",
       "deposit": 0,
       "withdrawal": 50,
       "note": "forecast",
       "created_at": "2026-07-07T05:05:05.564Z",
-      "updated_at": "2026-07-07T06:41:29.855Z",
+      "updated_at": "2026-07-07T15:15:17.480Z",
       "deleted_at": null
     },
     {
@@ -10610,12 +10610,12 @@
       "owner": "rajna",
       "txn_date": "2026-10-01",
       "description": "Savings",
-      "source": "Emergency HYSA",
+      "source": "Emergency Savings",
       "deposit": 0,
       "withdrawal": 50,
       "note": "forecast",
       "created_at": "2026-07-07T05:05:05.564Z",
-      "updated_at": "2026-07-07T06:41:29.859Z",
+      "updated_at": "2026-07-07T15:15:17.485Z",
       "deleted_at": null
     },
     {
@@ -10806,12 +10806,12 @@
       "owner": "rajna",
       "txn_date": "2026-11-01",
       "description": "Savings",
-      "source": "Emergency HYSA",
+      "source": "Emergency Savings",
       "deposit": 0,
       "withdrawal": 50,
       "note": "forecast",
       "created_at": "2026-07-07T05:05:05.564Z",
-      "updated_at": "2026-07-07T06:41:29.863Z",
+      "updated_at": "2026-07-07T15:15:17.491Z",
       "deleted_at": null
     },
     {
@@ -11002,12 +11002,12 @@
       "owner": "rajna",
       "txn_date": "2026-12-01",
       "description": "Savings",
-      "source": "Emergency HYSA",
+      "source": "Emergency Savings",
       "deposit": 0,
       "withdrawal": 50,
       "note": "forecast",
       "created_at": "2026-07-07T05:05:05.564Z",
-      "updated_at": "2026-07-07T06:41:29.867Z",
+      "updated_at": "2026-07-07T15:15:17.497Z",
       "deleted_at": null
     },
     {
@@ -12388,12 +12388,12 @@
       "owner": "rajna",
       "txn_date": "2026-03-02",
       "description": "Savings",
-      "source": "Emergency HYSA",
+      "source": "Emergency Savings",
       "deposit": 0,
       "withdrawal": 50,
       "note": "history",
       "created_at": "2026-07-07T06:05:22.416Z",
-      "updated_at": "2026-07-07T06:41:29.814Z",
+      "updated_at": "2026-07-07T15:15:17.430Z",
       "deleted_at": null
     },
     {
@@ -12472,12 +12472,12 @@
       "owner": "rajna",
       "txn_date": "2026-03-05",
       "description": "Savings",
-      "source": "Emergency HYSA",
+      "source": "Emergency Savings",
       "deposit": 0,
       "withdrawal": 100,
       "note": "history",
       "created_at": "2026-07-07T06:05:22.416Z",
-      "updated_at": "2026-07-07T06:41:29.822Z",
+      "updated_at": "2026-07-07T15:15:17.439Z",
       "deleted_at": null
     },
     {
@@ -12892,12 +12892,12 @@
       "owner": "rajna",
       "txn_date": "2026-07-01",
       "description": "Savings",
-      "source": "Emergency HYSA",
+      "source": "Emergency Savings",
       "deposit": 0,
       "withdrawal": 50,
       "note": "history",
       "created_at": "2026-07-07T06:05:22.416Z",
-      "updated_at": "2026-07-07T06:41:29.847Z",
+      "updated_at": "2026-07-07T15:15:17.470Z",
       "deleted_at": null
     },
     {
@@ -13165,6 +13165,594 @@
       "created_at": "2026-07-07T07:32:55.327Z",
       "updated_at": "2026-07-07T07:32:55.327Z",
       "deleted_at": null
+    },
+    {
+      "id": "43c697dc-c90b-4953-94b4-7c1e6b98e8a6",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-03-06",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 7000,
+      "note": "",
+      "created_at": "2026-07-07T15:44:21.003Z",
+      "updated_at": "2026-07-07T15:44:21.003Z",
+      "deleted_at": null
+    },
+    {
+      "id": "881d7434-ecd5-4bbc-badc-347413919851",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-03-06",
+      "description": "Paycheck",
+      "source": "Bonus",
+      "deposit": 8000,
+      "withdrawal": 0,
+      "note": "",
+      "created_at": "2026-07-07T15:44:21.008Z",
+      "updated_at": "2026-07-07T15:44:21.008Z",
+      "deleted_at": null
+    },
+    {
+      "id": "e5a9ed18-8114-4b53-a40a-ac72825b20c3",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-08-05",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:52.894Z",
+      "updated_at": "2026-07-07T15:48:52.894Z",
+      "deleted_at": null
+    },
+    {
+      "id": "e35503f8-6e0d-4962-a6a4-fcde82859aa1",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-08-19",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:52.902Z",
+      "updated_at": "2026-07-07T15:48:52.902Z",
+      "deleted_at": null
+    },
+    {
+      "id": "c3d7fe2f-4642-4088-9ee6-dc09739494eb",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-09-02",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:52.908Z",
+      "updated_at": "2026-07-07T15:48:52.908Z",
+      "deleted_at": null
+    },
+    {
+      "id": "85c91115-a131-4505-97f3-5efc67ded588",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-09-16",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:52.914Z",
+      "updated_at": "2026-07-07T15:48:52.914Z",
+      "deleted_at": null
+    },
+    {
+      "id": "c4041e93-6b4d-4fe5-970e-0a426a01c779",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-09-30",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:52.919Z",
+      "updated_at": "2026-07-07T15:48:52.919Z",
+      "deleted_at": null
+    },
+    {
+      "id": "ad681de0-c1b6-470a-b3b4-6ab245a67789",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-10-14",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:52.925Z",
+      "updated_at": "2026-07-07T15:48:52.925Z",
+      "deleted_at": null
+    },
+    {
+      "id": "414e7d2f-37b7-4343-b36c-4f970af25e89",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-10-28",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:52.930Z",
+      "updated_at": "2026-07-07T15:48:52.930Z",
+      "deleted_at": null
+    },
+    {
+      "id": "45cac76c-b641-4f63-8147-297694ad3f77",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-11-11",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:52.937Z",
+      "updated_at": "2026-07-07T15:48:52.937Z",
+      "deleted_at": null
+    },
+    {
+      "id": "07ae1573-69e7-46b4-a82e-1b8273374561",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-11-25",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:52.943Z",
+      "updated_at": "2026-07-07T15:48:52.943Z",
+      "deleted_at": null
+    },
+    {
+      "id": "1dba8cb8-3aff-44d1-b292-e1a7ef7c826c",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-12-09",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:52.948Z",
+      "updated_at": "2026-07-07T15:48:52.948Z",
+      "deleted_at": null
+    },
+    {
+      "id": "aa8f21b2-9b26-4a10-be82-1ff12d783df0",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-12-23",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:52.954Z",
+      "updated_at": "2026-07-07T15:48:52.954Z",
+      "deleted_at": null
+    },
+    {
+      "id": "8cfbf486-9df2-4094-b502-138f3482cb2c",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-01-06",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:52.960Z",
+      "updated_at": "2026-07-07T15:48:52.960Z",
+      "deleted_at": null
+    },
+    {
+      "id": "add233f5-8da0-4df7-b716-ebb8f3b10e7b",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-01-20",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:52.967Z",
+      "updated_at": "2026-07-07T15:48:52.967Z",
+      "deleted_at": null
+    },
+    {
+      "id": "3064ec12-72a2-4498-8cc1-eab1c959ebf2",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-02-03",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:52.973Z",
+      "updated_at": "2026-07-07T15:48:52.973Z",
+      "deleted_at": null
+    },
+    {
+      "id": "e50e0614-a68f-4d1b-a3b2-86cf008b435a",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-02-17",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:52.979Z",
+      "updated_at": "2026-07-07T15:48:52.979Z",
+      "deleted_at": null
+    },
+    {
+      "id": "836d830e-cda7-425d-8195-261df5a544c5",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-03-02",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:52.985Z",
+      "updated_at": "2026-07-07T15:48:52.985Z",
+      "deleted_at": null
+    },
+    {
+      "id": "37e4e9b1-aebf-4bf5-a246-28a534dbeada",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-03-16",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:52.991Z",
+      "updated_at": "2026-07-07T15:48:52.991Z",
+      "deleted_at": null
+    },
+    {
+      "id": "48e5cfb9-7c1d-48f0-9948-bd16d65e1266",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-03-30",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:52.997Z",
+      "updated_at": "2026-07-07T15:48:52.997Z",
+      "deleted_at": null
+    },
+    {
+      "id": "8d7ee075-31e8-4d81-8db3-95cc0fc2d158",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-04-13",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:53.002Z",
+      "updated_at": "2026-07-07T15:48:53.002Z",
+      "deleted_at": null
+    },
+    {
+      "id": "be1f93c6-c9b7-4dce-aac0-306adb38c27f",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-04-27",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:53.007Z",
+      "updated_at": "2026-07-07T15:48:53.007Z",
+      "deleted_at": null
+    },
+    {
+      "id": "0c2ab1ca-5fa2-4d54-bde8-2d9d2911ab81",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-05-11",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:53.014Z",
+      "updated_at": "2026-07-07T15:48:53.014Z",
+      "deleted_at": null
+    },
+    {
+      "id": "071d3f8a-618d-4abc-9a07-cded9a73713e",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-05-25",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:53.021Z",
+      "updated_at": "2026-07-07T15:48:53.021Z",
+      "deleted_at": null
+    },
+    {
+      "id": "7ebb6d29-19f9-4413-bdda-936e675df0fc",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-06-08",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:53.029Z",
+      "updated_at": "2026-07-07T15:48:53.029Z",
+      "deleted_at": null
+    },
+    {
+      "id": "19ca8fad-2eb9-4edc-b2fc-f61fe2aebaa6",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-06-22",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:53.037Z",
+      "updated_at": "2026-07-07T15:48:53.037Z",
+      "deleted_at": null
+    },
+    {
+      "id": "bbe63137-893e-4e03-9054-f0d92538caf5",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-07-06",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:53.045Z",
+      "updated_at": "2026-07-07T15:48:53.045Z",
+      "deleted_at": null
+    },
+    {
+      "id": "1a23ab58-185b-4d96-bde0-8f9d55fdf6bb",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-07-20",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:53.053Z",
+      "updated_at": "2026-07-07T15:48:53.053Z",
+      "deleted_at": null
+    },
+    {
+      "id": "7bae110d-06ad-437e-b988-5cf925e62cf8",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-08-03",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:53.061Z",
+      "updated_at": "2026-07-07T15:48:53.061Z",
+      "deleted_at": null
+    },
+    {
+      "id": "a789f09d-f76d-4e51-bd8a-10db4184a5a4",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-08-17",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:53.068Z",
+      "updated_at": "2026-07-07T15:48:53.068Z",
+      "deleted_at": null
+    },
+    {
+      "id": "31e3ac26-b308-497f-8e90-7840adb944ea",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-08-31",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:53.074Z",
+      "updated_at": "2026-07-07T15:48:53.074Z",
+      "deleted_at": null
+    },
+    {
+      "id": "11851bda-1d9a-4052-bd66-d82ef3bf4ce4",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-09-14",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:53.081Z",
+      "updated_at": "2026-07-07T15:48:53.081Z",
+      "deleted_at": null
+    },
+    {
+      "id": "da37b21f-8cc8-4810-bf93-13da9849d3f5",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-09-28",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:53.088Z",
+      "updated_at": "2026-07-07T15:48:53.088Z",
+      "deleted_at": null
+    },
+    {
+      "id": "0602576d-ea48-4f64-8bd6-05d24004f597",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-10-12",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:53.094Z",
+      "updated_at": "2026-07-07T15:48:53.094Z",
+      "deleted_at": null
+    },
+    {
+      "id": "db11daa2-2153-4f6b-9aff-bcad7553aebc",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-10-26",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:53.099Z",
+      "updated_at": "2026-07-07T15:48:53.099Z",
+      "deleted_at": null
+    },
+    {
+      "id": "ada0d8c2-308c-47cd-8f9d-20f661ce4a48",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-11-09",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:53.104Z",
+      "updated_at": "2026-07-07T15:48:53.104Z",
+      "deleted_at": null
+    },
+    {
+      "id": "9a7660f5-011b-4b66-ae6d-a11f5d32166f",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-11-23",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:53.110Z",
+      "updated_at": "2026-07-07T15:48:53.110Z",
+      "deleted_at": null
+    },
+    {
+      "id": "cf40a289-21ed-40ef-94cb-c2f134296b5c",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-12-07",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:53.116Z",
+      "updated_at": "2026-07-07T15:48:53.116Z",
+      "deleted_at": null
+    },
+    {
+      "id": "fc3162b9-9287-4b96-83df-cef817578be6",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2028-12-21",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 250,
+      "note": "",
+      "created_at": "2026-07-07T15:48:53.121Z",
+      "updated_at": "2026-07-07T15:48:53.121Z",
+      "deleted_at": null
+    },
+    {
+      "id": "dde6221a-eead-41aa-ba32-c1174420a91c",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2029-03-06",
+      "description": "Savings",
+      "source": "Wedding HYSA",
+      "deposit": 0,
+      "withdrawal": 8000,
+      "note": "",
+      "created_at": "2026-07-07T15:52:56.528Z",
+      "updated_at": "2026-07-07T15:52:56.528Z",
+      "deleted_at": null
+    },
+    {
+      "id": "2d2913b2-b4a2-4983-936c-8baf43d4bda0",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2029-03-06",
+      "description": "Paycheck",
+      "source": "Bonus",
+      "deposit": 8200,
+      "withdrawal": 0,
+      "note": "",
+      "created_at": "2026-07-07T15:52:56.536Z",
+      "updated_at": "2026-07-07T15:52:56.536Z",
+      "deleted_at": null
+    },
+    {
+      "id": "500d04f1-5839-4308-868d-6853b2e133e3",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-07-07",
+      "description": "Adjustment",
+      "source": "Daily check correction",
+      "deposit": 0,
+      "withdrawal": 51.29,
+      "note": "",
+      "created_at": "2026-07-07T22:08:05.548Z",
+      "updated_at": "2026-07-07T22:08:05.548Z",
+      "deleted_at": null
     }
   ],
   "plan_targets": [
@@ -13201,7 +13789,7 @@
     },
     {
       "id": "3f50af5e-0ee7-422a-9f4a-34428015a1e6",
-      "owner": "rajna",
+      "owner": "shared",
       "kind": "debt_payoff",
       "name": "Discover",
       "data": {
@@ -13209,25 +13797,45 @@
         "apr": 0.2299,
         "monthly_payment": 800,
         "target_date": "2027-03-31",
-        "source": "Discover"
+        "sources": [
+          "Discover",
+          "Rajna Discover"
+        ],
+        "one_time_payments": [
+          {
+            "date": "2027-03-03",
+            "amount": 8000,
+            "note": "woody bonus"
+          }
+        ],
+        "owners": [
+          "rajna",
+          "woody"
+        ]
       },
       "created_at": "2026-07-07T07:02:51.950Z",
-      "updated_at": "2026-07-07T07:28:59.071Z",
+      "updated_at": "2026-07-07T14:49:47.971Z",
       "deleted_at": null
     },
     {
       "id": "da43555d-6a16-4eba-9bd6-76800a6b7545",
-      "owner": "shared",
+      "owner": "woody",
       "kind": "savings_goal",
       "name": "Emergency",
       "data": {
-        "target_amount": 10000,
+        "target_amount": 5000,
         "start_date": "2026-01-01",
-        "end_date": "2027-12-31",
-        "source": "Emergency HYSA"
+        "end_date": "2027-07-31",
+        "owners": [
+          "woody"
+        ],
+        "sources": [
+          "Emergency HYSA"
+        ],
+        "sort_order": 0
       },
       "created_at": "2026-07-07T07:02:51.950Z",
-      "updated_at": "2026-07-07T07:28:59.075Z",
+      "updated_at": "2026-07-07T16:02:53.978Z",
       "deleted_at": null
     },
     {
@@ -13239,10 +13847,17 @@
         "target_amount": 600,
         "start_date": "2026-01-01",
         "end_date": "2026-07-11",
-        "source": "Vacation HYSA"
+        "owners": [
+          "woody",
+          "rajna"
+        ],
+        "sources": [
+          "Vacation HYSA"
+        ],
+        "sort_order": 2
       },
       "created_at": "2026-07-07T07:02:51.950Z",
-      "updated_at": "2026-07-07T07:28:59.080Z",
+      "updated_at": "2026-07-07T16:02:53.982Z",
       "deleted_at": null
     },
     {
@@ -13251,13 +13866,20 @@
       "kind": "savings_goal",
       "name": "Apartment",
       "data": {
-        "target_amount": 8000,
+        "target_amount": 4500,
         "start_date": "2026-01-01",
         "end_date": "2027-06-30",
-        "source": "Apartment HYSA"
+        "owners": [
+          "woody",
+          "rajna"
+        ],
+        "sources": [
+          "Apartment HYSA"
+        ],
+        "sort_order": 4
       },
       "created_at": "2026-07-07T07:02:51.950Z",
-      "updated_at": "2026-07-07T07:02:51.950Z",
+      "updated_at": "2026-07-07T16:02:53.985Z",
       "deleted_at": null
     },
     {
@@ -13268,11 +13890,18 @@
       "data": {
         "target_amount": 20000,
         "start_date": "2026-01-01",
-        "end_date": "2028-12-31",
-        "source": "Wedding HYSA"
+        "end_date": "2029-04-01",
+        "owners": [
+          "woody",
+          "rajna"
+        ],
+        "sources": [
+          "Wedding HYSA"
+        ],
+        "sort_order": 7
       },
       "created_at": "2026-07-07T07:02:51.950Z",
-      "updated_at": "2026-07-07T07:28:59.084Z",
+      "updated_at": "2026-07-07T16:02:53.987Z",
       "deleted_at": null
     },
     {
@@ -13308,12 +13937,19 @@
       "name": "North Georgia 2026",
       "data": {
         "target_amount": 400,
-        "start_date": "2026-07-12",
+        "start_date": "2026-07-09",
         "end_date": "2026-07-30",
-        "source": "Vacation HYSA"
+        "owners": [
+          "woody",
+          "rajna"
+        ],
+        "sources": [
+          "Vacation HYSA"
+        ],
+        "sort_order": 3
       },
       "created_at": "2026-07-07T07:28:59.096Z",
-      "updated_at": "2026-07-07T07:28:59.096Z",
+      "updated_at": "2026-07-07T16:02:53.990Z",
       "deleted_at": null
     },
     {
@@ -13325,10 +13961,60 @@
         "target_amount": 2000,
         "start_date": "2026-07-31",
         "end_date": "2027-07-01",
-        "source": "Vacation HYSA"
+        "owners": [
+          "woody",
+          "rajna"
+        ],
+        "sources": [
+          "Vacation HYSA"
+        ],
+        "sort_order": 5
       },
       "created_at": "2026-07-07T07:28:59.102Z",
-      "updated_at": "2026-07-07T07:28:59.102Z",
+      "updated_at": "2026-07-07T16:02:53.994Z",
+      "deleted_at": null
+    },
+    {
+      "id": "881cf4dc-a221-4af5-a324-88ce5418e8e2",
+      "owner": "rajna",
+      "kind": "savings_goal",
+      "name": "Emergency",
+      "data": {
+        "owners": [
+          "rajna"
+        ],
+        "sources": [
+          "Emergency Savings"
+        ],
+        "target_amount": 5000,
+        "start_date": "2026-01-01",
+        "end_date": "2027-07-31",
+        "sort_order": 1
+      },
+      "created_at": "2026-07-07T15:08:21.137Z",
+      "updated_at": "2026-07-07T16:02:53.997Z",
+      "deleted_at": null
+    },
+    {
+      "id": "d4c80f6c-b55b-437b-9291-431f7739d4bb",
+      "owner": "shared",
+      "kind": "savings_goal",
+      "name": "Japan 2028",
+      "data": {
+        "owners": [
+          "woody",
+          "rajna"
+        ],
+        "sources": [
+          "Vacation HYSA"
+        ],
+        "target_amount": 4000,
+        "start_date": "2027-07-02",
+        "end_date": "2028-04-06",
+        "sort_order": 6
+      },
+      "created_at": "2026-07-07T15:57:12.964Z",
+      "updated_at": "2026-07-07T16:02:54.000Z",
       "deleted_at": null
     }
   ]

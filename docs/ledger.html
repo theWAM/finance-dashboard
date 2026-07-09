@@ -80,6 +80,69 @@
   tr.new-row { background: rgba(70,192,138,.10); }
   tr.to-delete { opacity: .45; }
   tr.to-delete input { text-decoration: line-through; }
+
+  /* Low-power mode: text cells that upgrade to an input only while editing. */
+  .btn.ghost.active { border-color: var(--accent); color: var(--accent); }
+  body.lowpower td.tcell { padding: 6px 8px; border: 1px solid transparent; border-radius: 6px; cursor: text; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 340px; }
+  body.lowpower tbody tr:hover td.tcell { border-color: var(--line); }
+  body.lowpower td.tcell.empty { color: var(--muted); }
+  body.lowpower td.tcell.num { text-align: right; font-variant-numeric: tabular-nums; }
+  body.lowpower td.col-dep.tcell { color: var(--pos); }
+  body.lowpower tr.to-delete td.tcell { text-decoration: line-through; cursor: default; }
+  body.lowpower td.tcell input { width: 100%; background: var(--panel-2); border: 1px solid var(--accent); border-radius: 6px; padding: 5px 7px; color: var(--text); font: inherit; }
+  body.lowpower td.tcell.num input { text-align: right; }
+
+  /* Amount = deposit − withdrawal. Hidden on desktop (Deposit/Withdrawal shown
+     instead); revealed only at phone width by the media query below. Green when
+     positive (money in), red when negative (money out). */
+  th.col-amt, td.col-amt { display: none; }
+  td.col-amt input { text-align: right; font-variant-numeric: tabular-nums; }
+  td.col-amt.pos input, body.lowpower td.col-amt.pos { color: var(--pos); }
+  /* Negative amounts keep the default text color (only positives are green). */
+
+  /* Phone: shrink to fit — drop Category, swap Deposit/Withdrawal for Amount. */
+  @media (max-width: 640px) {
+    th.col-cat, td.col-cat,
+    th.col-dep, td.col-dep,
+    th.col-wd,  td.col-wd { display: none !important; }
+    th.col-amt, td.col-amt { display: table-cell; }
+
+    table { width: 100%; table-layout: fixed; }
+    th, td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    tbody td { padding: 2px 3px; }
+    td input { padding: 4px 5px; }
+    .col-check { width: 26px; }
+    .col-date { width: 62px; }
+    .col-amt  { width: 82px; }
+    .col-bal  { width: 82px; }
+    .row-actions { width: 30px; }
+    /* Source / Recipient (the unclassed column) takes the remaining space. */
+
+    /* Abbreviate the date (2-digit year) on phones: swap the full value / native
+       date input for the compact text. The transient edit input (no .date-native
+       class) stays visible so low-power date editing still works. */
+    td.col-date .date-full { display: none; }
+    td.col-date .date-abbr { display: inline; }
+    td.col-date input.date-native { display: none; }
+  }
+  /* Date display: full value on desktop, abbreviated (M/D/YY) only on phones. */
+  .date-abbr { display: none; }
+
+  /* Filter bar: a funnel toggle on the left of the timeframe text. The funnel
+     stays put and gets an "active" look when the full controls are showing.
+     A targeted [hidden] override is required because .filters sets display:flex,
+     which otherwise beats the [hidden] attribute. */
+  /* Slide down/up by animating the grid row from 0fr → 1fr (animates to the
+     content's natural height). The inner clips during the slide; JS flips it to
+     visible once open so the Category/Source dropdowns aren't cut off. */
+  #filterPanel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .25s ease; }
+  #filterPanel.open { grid-template-rows: 1fr; margin-bottom: 14px; }
+  #filterPanel > .filters { overflow: hidden; min-height: 0; margin-bottom: 0; }
+  .filter-head { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .filter-head #filterSummary { color: var(--text); font-weight: 600; }
+  .icon-btn { display: inline-flex; align-items: center; justify-content: center; background: var(--panel-2); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; cursor: pointer; }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .icon-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-weak); }
   .del.restore { color: var(--accent); }
 
   .userchip {
@@ -213,7 +276,8 @@
     <span class="switch">switch</span>
   </button>
   <button id="publishBtn" class="btn ghost" title="Publish a snapshot to the public site">Publish</button>
-  <button id="refreshBtn" class="btn ghost" title="Refresh from the published site">Refresh</button>
+  <button id="refreshBtn" class="btn ghost" title="Sync in the latest published data">Sync</button>
+  <button id="lowPowerBtn" class="btn ghost" aria-pressed="false" title="Lighter rendering for slower machines (per-computer setting)">Low power: off</button>
   <span id="syncStatus" class="filter-count" title=""></span>
   <div class="grow"></div>
   <span id="dirtyNote" class="dirty-note" hidden>unsaved changes</span>
@@ -225,7 +289,14 @@
 </header>
 
 <main>
-  <div class="filters">
+  <div class="filter-head">
+    <button id="filterToggle" class="icon-btn" aria-pressed="false" title="Filters" aria-label="Toggle filters">
+      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M1.5 3h13l-5 6v4l-3 1.5V9z" fill="currentColor"/></svg>
+    </button>
+    <span id="filterSummary">Timeframe</span>
+  </div>
+  <div id="filterPanel">
+   <div class="filters">
     <select id="fPreset" title="Timeframe">
       <option value="custom" hidden>Custom range</option>
       <option value="3paychecks">3 paychecks</option>
@@ -248,6 +319,7 @@
     <div class="ms" id="msSource"></div>
     <button id="fClear" class="btn ghost" hidden>Clear</button>
     <span id="fCount" class="filter-count"></span>
+   </div>
   </div>
 
   <div id="bulkBar" class="bulkbar" hidden>
@@ -272,10 +344,11 @@
       <tr>
         <th class="col-check"><input type="checkbox" id="selectAll" title="Select all shown"></th>
         <th class="col-date">Date</th>
-        <th>Category</th>
+        <th class="col-cat">Category</th>
         <th>Source / Recipient</th>
         <th class="col-dep" style="text-align:right">Deposit +</th>
         <th class="col-wd" style="text-align:right">Withdrawal −</th>
+        <th class="col-amt" style="text-align:right">Amount</th>
         <th class="col-bal" style="text-align:right">Balance</th>
         <th class="row-actions"></th>
       </tr>

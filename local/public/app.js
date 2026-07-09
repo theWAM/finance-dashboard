@@ -8,9 +8,18 @@ import { windowFor, previousWindowFor } from "/shared/paycycle.js";
 // Nothing hits the database until you click Save (Discard drops the changes).
 
 const $ = (sel) => document.querySelector(sel);
-const fmt = (n) => (Number(n) || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
+// Reuse a single currency formatter (constructing one per call is measurably
+// slower across hundreds of cells). Invisible to the user — same output.
+const CURRENCY = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
+const fmt = (n) => CURRENCY.format(Number(n) || 0);
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+// Compact date for the phone layout: "2026-06-25" → "6/25/26". CSS decides when
+// to show this vs. the full value (see .date-abbr / .date-full).
+const fmtDateAbbr = (iso) => {
+  const [y, m, d] = String(iso || "").split("-");
+  return y && m && d ? `${Number(m)}/${Number(d)}/${y.slice(2)}` : String(iso || "");
+};
 // Ledger ordering: by date, then same-day priority — paycheck > investments >
 // savings > bills > everything else — then created_at.
 const isPaycheck = (t) => /paycheck/i.test(t.description || "") && (Number(t.deposit) || 0) > 0;
@@ -37,6 +46,10 @@ const state = {
   filter: { from: "", to: "", categories: new Set(), sources: new Set() }, // date window → category set → source set
   selected: new Set(),    // _ids selected for bulk edit/delete
   _shown: [],             // rows currently displayed (for select-all)
+  // Low-power mode is a per-MACHINE preference (localStorage), so a weaker
+  // computer can opt into the lighter renderer without changing anyone else's
+  // experience. Default off = the original always-editable grid.
+  lowPower: localStorage.getItem("lowPower") === "1",
 };
 
 async function api(path, opts) {
@@ -308,7 +321,14 @@ function closeAllPanels() {
 // --- Daily check popup (projected-vs-actual balance for today) --------------
 
 let dcProjected = 0;
+// Only surface the daily check once per calendar day per account: we stamp the
+// last-shown date in localStorage and skip if it's already today's date.
+const dcSeenKey = (id) => `dailyCheckSeen:${id}`;
 function showDailyCheck() {
+  if (!state.accountId) return;
+  const key = dcSeenKey(state.accountId);
+  if (localStorage.getItem(key) === TODAY) return; // already shown today
+  localStorage.setItem(key, TODAY);
   dcProjected = computeView().todayBal;
   $("#dcAmount").textContent = fmt(dcProjected);
   $("#dcAsk").hidden = false;
@@ -412,20 +432,22 @@ function computeView() {
   const live = rows
     .filter((r) => !r._deleted)
     .sort(byDate);
+  const winTo = state.filter?.to || ""; // end of the selected timeframe ("" = open-ended)
   let bal = Number(state.account?.opening_balance) || 0;
-  let deposits = 0, withdrawals = 0, todayBal = bal;
+  let deposits = 0, withdrawals = 0, todayBal = bal, windowEndBal = bal;
   const balById = new Map();
   for (const t of live) {
     const d = Number(t.deposit) || 0, w = Number(t.withdrawal) || 0;
     deposits += d; withdrawals += w; bal = round2(bal + d - w);
     balById.set(t._id, bal);
-    if (t.txn_date <= TODAY) todayBal = bal; // running balance as of today
+    if (t.txn_date <= TODAY) todayBal = bal;          // running balance as of today
+    if (!winTo || t.txn_date <= winTo) windowEndBal = bal; // running balance as of the window's end
   }
-  return { rows, balById, totals: { deposits: round2(deposits), withdrawals: round2(withdrawals) }, endBal: round2(bal), todayBal };
+  return { rows, balById, totals: { deposits: round2(deposits), withdrawals: round2(withdrawals) }, endBal: round2(bal), todayBal, windowEndBal: round2(windowEndBal) };
 }
 
 function render() {
-  const { rows, balById, totals, endBal } = computeView();
+  const { rows, balById, totals, windowEndBal } = computeView();
   const active = filterActive();
   const shown = active ? rows.filter(matchesFilter) : rows;
 
@@ -434,12 +456,20 @@ function render() {
   $("#empty").hidden = rows.length > 0;
   // Oldest → newest (top to bottom). Each row keeps its TRUE running balance
   // (computed over the whole ledger in computeView), so filtering never distorts it.
+  // Build all rows in a fragment and attach once (one reflow instead of N).
   const display = [...shown].sort(byDate);
-  for (const r of display) tbody.appendChild(rowEl(r, balById.get(r._id)));
+  const build = state.lowPower ? rowElLP : rowEl;
+  const frag = document.createDocumentFragment();
+  for (const r of display) frag.appendChild(build(r, balById.get(r._id)));
+  tbody.appendChild(frag);
   renderAddRow();
 
   // Deposits/Withdrawals reflect the filtered view (e.g. total for a category);
-  // Balance stays the account's true end balance regardless of filter.
+  // Balance is the running balance as of the end of the selected timeframe
+  // (the date window's "to"), so it varies with the timeframe like the totals do.
+  // It follows the date window only — category/source filters don't move it,
+  // since a point-in-time balance always includes every account transaction up
+  // to that date.
   const shownTotals = active
     ? shown.filter((r) => !r._deleted).reduce((t, r) => ({
         deposits: round2(t.deposits + (Number(r.deposit) || 0)),
@@ -449,14 +479,29 @@ function render() {
   $("#totIn").textContent = fmt(shownTotals.deposits);
   $("#totOut").textContent = fmt(shownTotals.withdrawals);
   const balEl = $("#balance");
-  balEl.textContent = fmt(endBal);
-  balEl.classList.toggle("neg", endBal < 0);
+  balEl.textContent = fmt(windowEndBal);
+  balEl.classList.toggle("neg", windowEndBal < 0);
+  balEl.title = state.filter?.to ? `Balance as of ${state.filter.to}` : "Current end balance";
 
   $("#fClear").hidden = !active;
   $("#fCount").textContent = active ? `showing ${shown.length} of ${rows.length}` : "";
   state._shown = shown;
   updateSelectionUI();
   renderControls();
+  updateFilterSummary();
+}
+
+// The collapsed filter chip shows the active timeframe (and any facet filters).
+function updateFilterSummary() {
+  const el = $("#filterSummary");
+  if (!el) return;
+  const sel = $("#fPreset");
+  const label = sel.value === "custom"
+    ? `${state.filter.from || "…"} – ${state.filter.to || "…"}`
+    : (sel.selectedOptions[0]?.textContent || "Timeframe");
+  const facets = state.filter.categories.size + state.filter.sources.size;
+  const phrase = facets ? `${label} · ${facets} filter${facets === 1 ? "" : "s"}` : label;
+  el.textContent = `Displaying ${phrase}`;
 }
 
 function rowEl(row, bal) {
@@ -480,11 +525,12 @@ function rowEl(row, bal) {
   tr.appendChild(checkTd);
 
   const dis = !!row._deleted;
-  tr.appendChild(cell("date", row.txn_date, "txn_date", "col-date", null, "", dis));
-  tr.appendChild(cell("text", row.description, "description", "", "categories", "Category", dis));
+  tr.appendChild(dateCell(row, dis));
+  tr.appendChild(cell("text", row.description, "description", "col-cat", "categories", "Category", dis));
   tr.appendChild(cell("text", row.source, "source", "", null, "Source / Recipient", dis));
   tr.appendChild(cell("number", row.deposit || "", "deposit", "num col-dep", null, "", dis));
   tr.appendChild(cell("number", row.withdrawal || "", "withdrawal", "num col-wd", null, "", dis));
+  tr.appendChild(amountCell(row, dis)); // phone-only column (CSS-gated); editable
 
   const balTd = document.createElement("td");
   balTd.className = "bal" + (bal < 0 ? " neg" : "");
@@ -524,7 +570,7 @@ function cell(type, value, field, cls = "", list = null, placeholder = "", disab
   return td;
 }
 
-function stageEdit(row, field, value) {
+function applyStage(row, field, value) {
   if (row._new) {
     const n = state.news.find((x) => x._tempId === row._id);
     if (n) n[field] = value;
@@ -533,19 +579,216 @@ function stageEdit(row, field, value) {
     e[field] = value;
     state.edits.set(row._id, e);
   }
+}
+
+// Normal-grid date cell: the native <input type=date> for editing (hidden on
+// phones via CSS) plus a compact abbreviated span shown only on phones.
+function dateCell(row, disabled) {
+  const td = document.createElement("td");
+  td.className = "col-date";
+  const inp = document.createElement("input");
+  inp.type = "date";
+  inp.className = "date-native";
+  inp.value = row.txn_date ?? "";
+  inp.dataset.field = "txn_date";
+  if (disabled) inp.disabled = true;
+  const abbr = document.createElement("span");
+  abbr.className = "date-abbr";
+  abbr.textContent = fmtDateAbbr(row.txn_date);
+  td.append(inp, abbr);
+  return td;
+}
+
+// Signed "Amount" cell (deposit − withdrawal) for the normal grid. Hidden on
+// desktop, shown on phones; editing it stages deposit/withdrawal (see stageEdit).
+function amountCell(row, disabled) {
+  const amt = (Number(row.deposit) || 0) - (Number(row.withdrawal) || 0);
+  const td = document.createElement("td");
+  td.className = "num col-amt" + (amt > 0 ? " pos" : amt < 0 ? " neg" : "");
+  const inp = document.createElement("input");
+  inp.type = "number";
+  inp.step = "0.01"; // no min: negative = withdrawal
+  inp.value = amt !== 0 ? amt : "";
+  inp.dataset.field = "amount";
+  if (disabled) inp.disabled = true;
+  td.appendChild(inp);
+  return td;
+}
+
+function stageEdit(row, field, value) {
+  if (field === "amount") {
+    // Phone "Amount" column: one signed field → deposit (≥0) or withdrawal (<0).
+    const a = Number(value) || 0;
+    applyStage(row, "deposit", a > 0 ? a : 0);
+    applyStage(row, "withdrawal", a < 0 ? -a : 0);
+  } else {
+    applyStage(row, field, value);
+  }
   render();
 }
 
-function toggleDelete(row) {
-  if (row._new) {
-    state.news = state.news.filter((x) => x._tempId !== row._id);
-  } else if (state.dels.has(row._id)) {
-    state.dels.delete(row._id);
+function toggleDelete(row) { toggleDeleteById(row._id); }
+
+function toggleDeleteById(id) {
+  if (String(id).startsWith("new-")) {
+    state.news = state.news.filter((x) => x._tempId !== id);
+  } else if (state.dels.has(id)) {
+    state.dels.delete(id);
   } else {
-    state.dels.add(row._id);
-    state.edits.delete(row._id); // pending edits on a to-be-deleted row are moot
+    state.dels.add(id);
+    state.edits.delete(id); // pending edits on a to-be-deleted row are moot
   }
   render();
+}
+
+// --- Low-power renderer: text cells, edit-on-demand ------------------------
+// Same data, totals, flags, and staging as the normal grid — but each cell is
+// plain TEXT that becomes a single <input> only while you're editing it. That
+// removes the thousands of always-live inputs that strain weaker machines.
+// Events are delegated on #rows (see init), so there are no per-row listeners.
+
+// The staged-or-original value of one field (what computeView would show).
+function stagedValue(id, field) {
+  if (String(id).startsWith("new-")) { const n = state.news.find((x) => x._tempId === id); return n ? n[field] : ""; }
+  const e = state.edits.get(id); if (e && field in e) return e[field];
+  const r = state.rows.find((x) => x.id === id); return r ? r[field] : "";
+}
+
+function stageEditRaw(id, field, value) {
+  if (String(id).startsWith("new-")) { const n = state.news.find((x) => x._tempId === id); if (n) n[field] = value; return; }
+  const e = state.edits.get(id) || {}; e[field] = value; state.edits.set(id, e);
+}
+
+function textCell(row, field, type, cls, list, placeholder) {
+  const td = document.createElement("td");
+  td.className = "tcell" + (cls ? " " + cls : "");
+  td.dataset.field = field;
+  td.dataset.type = type;
+  if (list) td.dataset.list = list;
+  const raw = row[field];
+  const text = type === "number" ? (Number(raw) > 0 ? fmt(raw) : "") : (raw ? String(raw) : "");
+  if (text === "") { td.textContent = placeholder || ""; td.classList.add("empty"); }
+  else td.textContent = text;
+  return td;
+}
+
+function rowElLP(row, bal) {
+  const tr = document.createElement("tr");
+  tr.dataset.id = row._id;
+  if (row._deleted) tr.className = "to-delete";
+  else if (row._new) tr.className = "new-row";
+  else if (row._edited) tr.className = "edited";
+  if (state.selected.has(row._id)) tr.classList.add("row-selected");
+
+  const checkTd = document.createElement("td");
+  checkTd.className = "col-check";
+  const chk = document.createElement("input");
+  chk.type = "checkbox";
+  chk.checked = state.selected.has(row._id); // change handled by delegation
+  checkTd.appendChild(chk);
+  tr.appendChild(checkTd);
+
+  // Date cell: full value + abbreviated span (CSS swaps them by screen size);
+  // stays a click-to-edit tcell.
+  const dTd = document.createElement("td");
+  dTd.className = "tcell col-date";
+  dTd.dataset.field = "txn_date";
+  dTd.dataset.type = "date";
+  if (row.txn_date) {
+    const full = document.createElement("span"); full.className = "date-full"; full.textContent = row.txn_date;
+    const abbr = document.createElement("span"); abbr.className = "date-abbr"; abbr.textContent = fmtDateAbbr(row.txn_date);
+    dTd.append(full, abbr);
+  } else { dTd.textContent = "Date"; dTd.classList.add("empty"); }
+  tr.appendChild(dTd);
+  tr.appendChild(textCell(row, "description", "text", "col-cat", "categories", "Category"));
+  tr.appendChild(textCell(row, "source", "text", "", null, "Source / Recipient"));
+  tr.appendChild(textCell(row, "deposit", "number", "num col-dep", null, ""));
+  tr.appendChild(textCell(row, "withdrawal", "number", "num col-wd", null, ""));
+
+  // Phone-only "Amount" text cell (signed); edit-on-demand handles field "amount".
+  const amt = (Number(row.deposit) || 0) - (Number(row.withdrawal) || 0);
+  const amtTd = document.createElement("td");
+  amtTd.className = "tcell num col-amt" + (amt > 0 ? " pos" : amt < 0 ? " neg" : "");
+  amtTd.dataset.field = "amount";
+  amtTd.dataset.type = "number";
+  if (amt === 0) { amtTd.textContent = ""; amtTd.classList.add("empty"); }
+  else amtTd.textContent = fmt(amt);
+  tr.appendChild(amtTd);
+
+  const balTd = document.createElement("td");
+  balTd.className = "bal" + (bal < 0 ? " neg" : "");
+  balTd.textContent = row._deleted ? "—" : fmt(bal);
+  if (!row._deleted && bal < 0) balTd.title = "Balance goes negative here";
+  tr.appendChild(balTd);
+
+  const act = document.createElement("td");
+  act.className = "row-actions";
+  const btn = document.createElement("button");
+  btn.className = "del" + (row._deleted ? " restore" : "");
+  btn.title = row._deleted ? "Restore" : "Delete";
+  btn.textContent = row._deleted ? "↺" : "×"; // click handled by delegation
+  act.appendChild(btn);
+  tr.appendChild(act);
+  return tr;
+}
+
+// Upgrade a text cell to an input; commit on blur / Enter / Tab, cancel on Esc.
+function beginEdit(td) {
+  const existing = td.querySelector("input");
+  if (existing) { existing.focus(); return; }
+  const tr = td.closest("tr");
+  if (!tr || tr.classList.contains("to-delete")) return;
+  const id = tr.dataset.id, field = td.dataset.field, type = td.dataset.type;
+  const inp = document.createElement("input");
+  inp.type = type;
+  // Amount is signed (negative = withdrawal), so it gets no min; others are ≥0.
+  if (type === "number") { inp.step = "0.01"; if (field !== "amount") inp.min = "0"; }
+  if (td.dataset.list) inp.setAttribute("list", td.dataset.list);
+  if (field === "amount") {
+    const a = (Number(stagedValue(id, "deposit")) || 0) - (Number(stagedValue(id, "withdrawal")) || 0);
+    inp.value = a !== 0 ? a : "";
+  } else {
+    const v = stagedValue(id, field);
+    inp.value = type === "number" ? (Number(v) > 0 ? v : "") : (v ?? "");
+  }
+  td.textContent = "";
+  td.classList.remove("empty");
+  td.appendChild(inp);
+  inp.focus();
+  if (inp.select) inp.select();
+
+  let done = false;
+  inp.addEventListener("blur", () => { if (!done) { done = true; commitEdit(id, field, inp.value, null); } });
+  inp.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); inp.blur(); }
+    else if (e.key === "Escape") { done = true; render(); }
+    else if (e.key === "Tab") { e.preventDefault(); done = true; commitEdit(id, field, inp.value, e.shiftKey ? "prev" : "next"); }
+  });
+}
+
+function commitEdit(id, field, value, advance) {
+  if (field === "amount") {
+    // Signed amount → deposit (≥0) / withdrawal (<0); only stage if it changed.
+    const a = Number(value) || 0;
+    const cur = (Number(stagedValue(id, "deposit")) || 0) - (Number(stagedValue(id, "withdrawal")) || 0);
+    if (a !== cur) { stageEditRaw(id, "deposit", a > 0 ? a : 0); stageEditRaw(id, "withdrawal", a < 0 ? -a : 0); }
+  } else if (String(value) !== String(stagedValue(id, field) ?? "")) {
+    stageEditRaw(id, field, value);
+  }
+  render(); // cheap in text mode; keeps balances/totals/filter/order correct
+  if (advance) advanceEdit(id, field, advance);
+}
+
+// After a re-render, open the next/previous editable cell for keyboard flow.
+function advanceEdit(id, field, dir) {
+  // Skip columns hidden by CSS (Amount on desktop; Category/Deposit/Withdrawal on
+  // phone) so Tab never lands on an invisible cell. offsetParent is null when hidden.
+  const cells = [...document.querySelectorAll('#rows tr:not(.to-delete) td.tcell')]
+    .filter((c) => c.offsetParent !== null);
+  const idx = cells.findIndex((c) => c.closest("tr").dataset.id === id && c.dataset.field === field);
+  if (idx === -1) return;
+  const next = cells[idx + (dir === "prev" ? -1 : 1)];
+  if (next) beginEdit(next);
 }
 
 // --- add row ---------------------------------------------------------------
@@ -572,11 +815,27 @@ function renderAddRow() {
     td.appendChild(inp); return td;
   };
   tr.appendChild(mk("date", "txn_date", "col-date"));
-  tr.appendChild(mk("text", "description", "", "categories", "Category"));
+  tr.appendChild(mk("text", "description", "col-cat", "categories", "Category"));
   tr.appendChild(mk("text", "source", "", null, "Source / Recipient"));
   tr.appendChild(mk("number", "deposit", "num col-dep", null, "0.00"));
   tr.appendChild(mk("number", "withdrawal", "num col-wd", null, "0.00"));
-  tr.appendChild(document.createElement("td"));
+
+  // Phone-only Amount input: a single signed field feeding deposit/withdrawal.
+  const amtTd = document.createElement("td");
+  amtTd.className = "num col-amt";
+  const amtInp = document.createElement("input");
+  amtInp.type = "number"; amtInp.step = "0.01"; amtInp.placeholder = "0.00";
+  amtInp.value = (Number(addDraft.deposit) || 0) - (Number(addDraft.withdrawal) || 0) || "";
+  amtInp.addEventListener("input", () => {
+    const a = Number(amtInp.value) || 0;
+    addDraft.deposit = a > 0 ? a : "";
+    addDraft.withdrawal = a < 0 ? -a : "";
+  });
+  amtInp.addEventListener("keydown", (e) => { if (e.key === "Enter") stageAdd(); });
+  amtTd.appendChild(amtInp);
+  tr.appendChild(amtTd);
+
+  tr.appendChild(document.createElement("td")); // balance column spacer
 
   const act = document.createElement("td");
   act.className = "row-actions";
@@ -634,6 +893,7 @@ async function applyPending() {
     }
     await loadAccounts();
     await loadLedger(); // clears pending + re-renders from the server
+    loadSyncStatus();   // saved edits are now unpublished → reveal Publish
     toast(`Saved ${n} change${n === 1 ? "" : "s"}`);
   } catch (err) {
     toast("Error saving: " + err.message);
@@ -663,6 +923,34 @@ $("#userChip").addEventListener("click", showWho);
 $("#saveBtn").addEventListener("click", applyPending);
 $("#discardBtn").addEventListener("click", discardPending);
 
+// Low-power mode: one set of delegated listeners on the ledger body instead of
+// per-row/-cell listeners. Guarded so the normal grid is completely unaffected.
+$("#rows").addEventListener("click", (e) => {
+  if (!state.lowPower) return;
+  const del = e.target.closest("button.del");
+  if (del) { toggleDeleteById(del.closest("tr").dataset.id); return; }
+  const td = e.target.closest("td.tcell");
+  if (td && document.contains(td)) beginEdit(td);
+});
+$("#rows").addEventListener("change", (e) => {
+  if (!state.lowPower) return;
+  const cb = e.target.closest('input[type="checkbox"]');
+  const id = cb && cb.closest("tr")?.dataset.id;
+  if (!id) return;
+  if (cb.checked) state.selected.add(id); else state.selected.delete(id);
+  updateSelectionUI();
+});
+
+function setLowPower(on, rerender = true) {
+  state.lowPower = on;
+  localStorage.setItem("lowPower", on ? "1" : "0");
+  document.body.classList.toggle("lowpower", on);
+  const btn = $("#lowPowerBtn");
+  if (btn) { btn.classList.toggle("active", on); btn.setAttribute("aria-pressed", String(on)); btn.textContent = `Low power: ${on ? "on" : "off"}`; }
+  if (rerender) render();
+}
+$("#lowPowerBtn").addEventListener("click", () => setLowPower(!state.lowPower));
+
 $("#fPreset").addEventListener("change", (e) => applyPreset(e.target.value));
 $("#fFrom").addEventListener("change", (e) => { state.filter.from = e.target.value; $("#fPreset").value = "custom"; render(); });
 $("#fTo").addEventListener("change", (e) => { state.filter.to = e.target.value; $("#fPreset").value = "custom"; render(); });
@@ -673,6 +961,29 @@ $("#fClear").addEventListener("click", () => {
   buildFilters(); render();
 });
 document.addEventListener("click", () => closeAllPanels()); // click-away closes dropdowns
+
+// Filter bar: a funnel toggle beside the timeframe text. The funnel stays put
+// and shows an "active" state while the full controls are open.
+function setFiltersOpen(open) {
+  const p = $("#filterPanel");
+  const inner = p.querySelector(".filters");
+  const t = $("#filterToggle");
+  t.classList.toggle("active", open);
+  t.setAttribute("aria-pressed", String(open));
+  if (open) {
+    p.classList.add("open");
+    // Reveal overflow only after the slide finishes, so dropdowns aren't clipped.
+    p.addEventListener("transitionend", (e) => {
+      if (e.propertyName === "grid-template-rows" && p.classList.contains("open")) inner.style.overflow = "visible";
+    }, { once: true });
+  } else {
+    inner.style.overflow = "hidden"; // clip again before sliding up
+    p.classList.remove("open");
+  }
+  localStorage.setItem("filtersOpen", open ? "1" : "0");
+}
+$("#filterToggle").addEventListener("click", () => setFiltersOpen(!$("#filterPanel").classList.contains("open")));
+setFiltersOpen(localStorage.getItem("filtersOpen") === "1"); // default collapsed
 
 $("#selectAll").addEventListener("change", (e) => {
   if (e.target.checked) for (const r of state._shown) state.selected.add(r._id);
@@ -709,6 +1020,11 @@ async function loadSyncStatus() {
     const effective = Math.max(Number(s.local_version) || 0, Number(s.last_pulled_version) || 0);
     $("#syncStatus").textContent = `v${effective}`;
     $("#syncStatus").title = `Data version ${effective}\nPublished from here: v${s.local_version} (${pub}${s.published_by ? " by " + s.published_by : ""})\nLast refreshed: ${pulled} (v${s.last_pulled_version})`;
+    // Only show Publish when there's something to push, Sync when there's something to pull.
+    // Hide only when the server explicitly says false, so an older server (or a
+    // missing field) leaves the buttons visible rather than hiding them.
+    $("#publishBtn").hidden = s.has_unpublished === false;
+    $("#refreshBtn").hidden = s.has_unpulled === false;
   } catch { /* ignore */ }
 }
 $("#publishBtn").addEventListener("click", async () => {
@@ -724,17 +1040,18 @@ $("#publishBtn").addEventListener("click", async () => {
   $("#publishBtn").disabled = false;
 });
 $("#refreshBtn").addEventListener("click", async () => {
-  if (hasPending() && !confirm("Refresh merges the latest published data. Discard unsaved changes?")) return;
+  if (hasPending() && !confirm("Sync merges the latest published data. Discard unsaved changes?")) return;
   try {
     const r = await api("/api/refresh", { method: "POST", body: {} });
-    toast(`Refreshed from v${r.version || 0}`);
+    toast(`Synced from v${r.version || 0}`);
     await loadAccounts(); await loadLedger(); loadSyncStatus();
-  } catch (e) { toast("Refresh failed: " + e.message); }
+  } catch (e) { toast("Sync failed: " + e.message); }
 });
 window.addEventListener("beforeunload", (e) => { if (hasPending()) { e.preventDefault(); e.returnValue = ""; } });
 
 (async function init() {
   try {
+    setLowPower(state.lowPower, false); // sync body class + button before first render
     await loadPeople();
     if (state.people.length <= 1) {
       // Single-person (or empty) household: auto-select and skip the popup.

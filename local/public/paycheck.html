@@ -40,6 +40,15 @@
   .winrange:hover { border-color: var(--line); color: var(--text); }
   .winrange .today-dot { color: var(--pos); margin-left: 6px; }
   .winabsdate { position: absolute; left: 40px; bottom: 0; width: 1px; height: 1px; opacity: 0; border: none; padding: 0; }
+  /* "Back to current paycheck" button — a dot that turns green when you're
+     already on the current pay period. */
+  .navcurrent { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; width: 30px; height: 30px; display: grid; place-items: center; }
+  .navcurrent:hover { border-color: var(--accent); }
+  .navcurrent .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: block; }
+  .navcurrent:hover .dot { background: var(--accent); }
+  .navcurrent.on-current { border-color: var(--pos); }
+  .navcurrent.on-current .dot { background: var(--pos); }
+  .window-nav-bottom { margin-top: 20px; }
   .stat { display: flex; flex-direction: column; gap: 2px; }
   .stat .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
   .stat .value { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 17px; }
@@ -134,10 +143,11 @@
     <div>
       <div class="title" id="winTitle">This Paycheck</div>
       <div class="window-nav">
-        <button id="prevWin" class="navarrow" title="Previous pay period">‹</button>
-        <button id="winRange" class="winrange" title="Pick a date to jump to its pay period">—</button>
-        <button id="nextWin" class="navarrow" title="Next pay period">›</button>
-        <input type="date" id="winDate" class="winabsdate" aria-hidden="true" tabindex="-1">
+        <button class="navcurrent" title="Back to current paycheck" aria-label="Back to current paycheck"><span class="dot"></span></button>
+        <button class="navarrow navprev" title="Previous pay period">‹</button>
+        <button class="winrange" title="Pick a date to jump to its pay period">—</button>
+        <button class="navarrow navnext" title="Next pay period">›</button>
+        <input type="date" class="winabsdate windate" aria-hidden="true" tabindex="-1">
       </div>
     </div>
     <div class="stat"><span class="label">Starting balance</span><span class="value" id="startBal">—</span></div>
@@ -179,6 +189,14 @@
     <tfoot id="addFoot"></tfoot>
   </table>
   <div id="empty" class="empty" hidden>No entries scheduled in this pay window. Add one below.</div>
+
+  <div class="window-nav window-nav-bottom">
+    <button class="navcurrent" title="Back to current paycheck" aria-label="Back to current paycheck"><span class="dot"></span></button>
+    <button class="navarrow navprev" title="Previous pay period">‹</button>
+    <button class="winrange" title="Pick a date to jump to its pay period">—</button>
+    <button class="navarrow navnext" title="Next pay period">›</button>
+    <input type="date" class="winabsdate windate" aria-hidden="true" tabindex="-1">
+  </div>
 </main>
 
 <datalist id="categories">

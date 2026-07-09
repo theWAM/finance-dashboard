@@ -22,6 +22,19 @@ const PORT = process.env.PORT || 3000;
 const app = express();
 app.use(express.json());
 
+// Track unpublished local edits: any successful data mutation (not publish /
+// refresh) marks the DB "dirty"; publish clears it. Drives hiding the Publish
+// button when there's nothing new to push. Registered before the routes so its
+// res.on("finish") hook is in the chain.
+app.use((req, res, next) => {
+  const mutating = req.method === "POST" || req.method === "PATCH" || req.method === "DELETE" || req.method === "PUT";
+  const isData = mutating && !req.path.startsWith("/api/publish") && !req.path.startsWith("/api/refresh");
+  if (isData) res.on("finish", () => {
+    if (res.statusCode < 400) db.prepare("INSERT OR REPLACE INTO sync_meta (key, value) VALUES ('dirty', '1')").run();
+  });
+  next();
+});
+
 const now = () => new Date().toISOString();
 
 // --- Read helpers ----------------------------------------------------------
@@ -216,12 +229,22 @@ const setMeta = (k, v) => db.prepare("INSERT OR REPLACE INTO sync_meta (key, val
 const allRaw = (table) => db.prepare(`SELECT * FROM ${table}`).all(); // incl. tombstones
 
 app.get("/api/sync-status", (_req, res) => {
+  const local_version = Number(meta("local_version") || 0);
+  const last_pulled_version = Number(meta("last_pulled_version") || 0);
+  let snapshot_version = 0;
+  try { snapshot_version = Number(JSON.parse(readFileSync(join(ROOT, "docs", "data", "snapshot.json"), "utf8")).version) || 0; } catch { /* no snapshot yet */ }
+  const hasData = !!(db.prepare("SELECT 1 FROM transactions LIMIT 1").get() || db.prepare("SELECT 1 FROM plan_targets LIMIT 1").get());
   res.json({
-    local_version: Number(meta("local_version") || 0),
+    local_version,
     last_published_at: meta("last_published_at") || null,
     published_by: meta("published_by") || null,
-    last_pulled_version: Number(meta("last_pulled_version") || 0),
+    last_pulled_version,
     last_pulled_at: meta("last_pulled_at") || null,
+    snapshot_version,
+    // Publish is useful only with local edits since the last publish (or never
+    // published yet but there's data). Refresh only if the snapshot is ahead.
+    has_unpublished: meta("dirty") === "1" || (local_version === 0 && hasData),
+    has_unpulled: snapshot_version > Math.max(local_version, last_pulled_version),
   });
 });
 
@@ -268,6 +291,7 @@ app.post("/api/publish", (req, res) => {
   setMeta("local_version", version);
   setMeta("last_published_at", new Date().toISOString());
   setMeta("published_by", publishedBy);
+  setMeta("dirty", "0"); // everything local is now published
 
   let pushed = false, gitOut = "";
   if (doPush) {

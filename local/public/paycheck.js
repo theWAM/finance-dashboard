@@ -111,10 +111,17 @@ const shiftDay = (iso, n) => {
 };
 function gotoPrev() { state.refDate = shiftDay(state.window.start, -1); showWindow(); }
 function gotoNext() { state.refDate = state.window.nextStart; showWindow(); }
-$("#prevWin").addEventListener("click", gotoPrev);
-$("#nextWin").addEventListener("click", gotoNext);
-$("#winRange").addEventListener("click", () => { const el = $("#winDate"); el.value = state.refDate; if (el.showPicker) el.showPicker(); else el.focus(); });
-$("#winDate").addEventListener("change", (e) => { if (e.target.value) { state.refDate = e.target.value; showWindow(); } });
+function gotoCurrent() { state.refDate = TODAY; showWindow(); } // back to the current pay period
+// Nav appears at top and bottom: wire every instance by class.
+const $all = (sel) => document.querySelectorAll(sel);
+$all(".navprev").forEach((b) => b.addEventListener("click", gotoPrev));
+$all(".navnext").forEach((b) => b.addEventListener("click", gotoNext));
+$all(".navcurrent").forEach((b) => b.addEventListener("click", gotoCurrent));
+$all(".winrange").forEach((b) => b.addEventListener("click", (e) => {
+  const el = e.currentTarget.closest(".window-nav").querySelector(".windate");
+  el.value = state.refDate; if (el.showPicker) el.showPicker(); else el.focus();
+}));
+$all(".windate").forEach((el) => el.addEventListener("change", (e) => { if (e.target.value) { state.refDate = e.target.value; showWindow(); } }));
 
 // Anchor = most recent paycheck deposit on/before today; else the latest/only; else today.
 function anchorPaycheck(txns, today) {
@@ -244,7 +251,9 @@ function render() {
   const v = computeView();
   $("#winTitle").textContent = `This Paycheck — ${state.account.name}`;
   const isCurrent = inWin(TODAY);
-  $("#winRange").innerHTML = `${state.cadence} · ${state.window.start} → ${state.window.end}` + (isCurrent ? ` <span class="today-dot">• current</span>` : "");
+  const rangeHTML = `${state.cadence} · ${state.window.start} → ${state.window.end}` + (isCurrent ? ` <span class="today-dot">• current</span>` : "");
+  document.querySelectorAll(".winrange").forEach((el) => (el.innerHTML = rangeHTML));
+  document.querySelectorAll(".navcurrent").forEach((el) => el.classList.toggle("on-current", isCurrent));
   $("#startBal").textContent = fmt(v.startBal);
   $("#incomeTotal").textContent = fmt(v.deposits);
   $("#outTotal").textContent = fmt(v.withdrawals);

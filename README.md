@@ -97,7 +97,7 @@ view; there's no login. Then explore the tabs across the top:
 
 Each person runs this app on their own computer. When you press **Publish** (on the
 Ledger), your data is saved to a shared online snapshot; the other person presses
-**Refresh** to pull it in. ⚠️ The published page is **public**, so only publish if
+**Sync** to pull it in. ⚠️ The published page is **public**, so only publish if
 you're comfortable with that (see the trade-off note in [ROADMAP.md](ROADMAP.md)).
 
 ### Backing up your data

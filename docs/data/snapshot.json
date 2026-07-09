@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "version": 3,
-  "published_at": "2026-07-08T01:40:33.827Z",
+  "version": 4,
+  "published_at": "2026-07-09T13:05:31.160Z",
   "published_by": "woody",
   "people": [
     {
@@ -2351,11 +2351,11 @@
       "txn_date": "2026-07-09",
       "description": "Paycheck",
       "source": "Direct Deposit",
-      "deposit": 2487.2,
+      "deposit": 2474.99,
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T12:41:10.963Z",
       "deleted_at": null
     },
     {
@@ -2380,10 +2380,10 @@
       "description": "Investments",
       "source": "Fidelity Individual",
       "deposit": 0,
-      "withdrawal": 3.5,
+      "withdrawal": 10,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T12:21:17.486Z",
       "deleted_at": null
     },
     {
@@ -2394,10 +2394,10 @@
       "description": "Savings",
       "source": "Emergency HYSA",
       "deposit": 0,
-      "withdrawal": 250,
+      "withdrawal": 304,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T12:21:17.531Z",
       "deleted_at": null
     },
     {
@@ -2422,10 +2422,10 @@
       "description": "Credit Card Payment",
       "source": "Apple Card",
       "deposit": 0,
-      "withdrawal": 369,
+      "withdrawal": 258,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T12:41:10.967Z",
       "deleted_at": null
     },
     {
@@ -2436,10 +2436,10 @@
       "description": "Credit Card Payment",
       "source": "Rajna Discover",
       "deposit": 0,
-      "withdrawal": 100,
+      "withdrawal": 78,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T12:46:11.012Z",
       "deleted_at": null
     },
     {
@@ -2453,7 +2453,7 @@
       "withdrawal": 67,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T12:46:34.759Z",
       "deleted_at": null
     },
     {
@@ -2492,10 +2492,10 @@
       "description": "Credit Card Payment",
       "source": "Capital One",
       "deposit": 0,
-      "withdrawal": 443,
+      "withdrawal": 451.47,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T12:21:17.458Z",
       "deleted_at": null
     },
     {
@@ -2544,14 +2544,14 @@
       "id": "b6a37e0f-f278-49d2-8e5f-40e06654ad70",
       "account_id": "woody-checking",
       "owner": "woody",
-      "txn_date": "2026-07-19",
+      "txn_date": "2026-07-23",
       "description": "Loan Payment",
       "source": "Rajna Affirm",
       "deposit": 0,
-      "withdrawal": 200,
+      "withdrawal": 212.5,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T12:21:17.478Z",
       "deleted_at": null
     },
     {
@@ -2562,10 +2562,10 @@
       "description": "Bill",
       "source": "Progressive Car Insurance",
       "deposit": 0,
-      "withdrawal": 198.54,
+      "withdrawal": 198.5,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T12:21:17.529Z",
       "deleted_at": null
     },
     {
@@ -2604,10 +2604,10 @@
       "description": "Investments",
       "source": "Fidelity Individual",
       "deposit": 0,
-      "withdrawal": 41,
+      "withdrawal": 5,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T12:21:17.498Z",
       "deleted_at": null
     },
     {
@@ -2618,10 +2618,10 @@
       "description": "Savings",
       "source": "Emergency HYSA",
       "deposit": 0,
-      "withdrawal": 50,
+      "withdrawal": 90,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T12:21:17.502Z",
       "deleted_at": null
     },
     {
@@ -2660,10 +2660,10 @@
       "description": "Credit Card Payment",
       "source": "Apple Card",
       "deposit": 0,
-      "withdrawal": 1400,
+      "withdrawal": 1247,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T12:24:14.178Z",
       "deleted_at": null
     },
     {
@@ -2796,14 +2796,14 @@
       "id": "37e925f4-5340-4f36-9247-0047eb7fed23",
       "account_id": "woody-checking",
       "owner": "woody",
-      "txn_date": "2026-07-31",
+      "txn_date": "2026-08-06",
       "description": "Loan Payment",
       "source": "Rajna Affirm",
       "deposit": 0,
       "withdrawal": 200,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T12:21:17.490Z",
       "deleted_at": null
     },
     {
@@ -2814,10 +2814,10 @@
       "description": "Credit Card Payment",
       "source": "Apple Card",
       "deposit": 0,
-      "withdrawal": 200,
+      "withdrawal": 400,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T12:21:17.509Z",
       "deleted_at": null
     },
     {
@@ -2884,10 +2884,10 @@
       "description": "Investments",
       "source": "Fidelity Individual",
       "deposit": 0,
-      "withdrawal": 50,
+      "withdrawal": 5,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T12:21:17.517Z",
       "deleted_at": null
     },
     {
@@ -2898,10 +2898,10 @@
       "description": "Savings",
       "source": "Emergency HYSA",
       "deposit": 0,
-      "withdrawal": 50,
+      "withdrawal": 96,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T12:24:42.909Z",
       "deleted_at": null
     },
     {
@@ -3076,14 +3076,14 @@
       "id": "7eb3bde1-4e68-440a-abdc-5a87af519406",
       "account_id": "woody-checking",
       "owner": "woody",
-      "txn_date": "2026-08-18",
+      "txn_date": "2026-08-20",
       "description": "Loan Payment",
       "source": "Rajna Affirm",
       "deposit": 0,
       "withdrawal": 200,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T12:21:17.512Z",
       "deleted_at": null
     },
     {
@@ -3122,10 +3122,10 @@
       "description": "Investments",
       "source": "Fidelity Individual",
       "deposit": 0,
-      "withdrawal": 40,
+      "withdrawal": 5,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T12:21:17.526Z",
       "deleted_at": null
     },
     {
@@ -3136,10 +3136,10 @@
       "description": "Savings",
       "source": "Emergency HYSA",
       "deposit": 0,
-      "withdrawal": 100,
+      "withdrawal": 140,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T12:21:17.528Z",
       "deleted_at": null
     },
     {
@@ -3192,10 +3192,10 @@
       "description": "Credit Card Payment",
       "source": "Apple Card",
       "deposit": 0,
-      "withdrawal": 1310,
+      "withdrawal": 1110,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T12:21:17.524Z",
       "deleted_at": null
     },
     {
@@ -13752,6 +13752,34 @@
       "note": "",
       "created_at": "2026-07-07T22:08:05.548Z",
       "updated_at": "2026-07-07T22:08:05.548Z",
+      "deleted_at": null
+    },
+    {
+      "id": "7a1048d2-d19b-400d-ac9d-89ab594d29e4",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-07-09",
+      "description": "Bill",
+      "source": "Car Registration",
+      "deposit": 0,
+      "withdrawal": 241.69,
+      "note": "",
+      "created_at": "2026-07-09T12:41:10.955Z",
+      "updated_at": "2026-07-09T12:41:10.955Z",
+      "deleted_at": null
+    },
+    {
+      "id": "21fe760c-f416-448d-bfa0-09b68d2b83b9",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-07-09",
+      "description": "Bill",
+      "source": "Google Storage",
+      "deposit": 0,
+      "withdrawal": 9.99,
+      "note": "",
+      "created_at": "2026-07-09T12:46:11.004Z",
+      "updated_at": "2026-07-09T12:46:11.004Z",
       "deleted_at": null
     }
   ],

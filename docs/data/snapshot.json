@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "version": 4,
-  "published_at": "2026-07-09T13:05:31.160Z",
+  "version": 5,
+  "published_at": "2026-07-09T20:13:53.428Z",
   "published_by": "woody",
   "people": [
     {
@@ -124,12 +124,12 @@
       "owner": "woody",
       "txn_date": "2026-03-03",
       "description": "Credit Card Payment",
-      "source": "Discover Card (Rajna)",
+      "source": "Rajna Discover",
       "deposit": 0,
       "withdrawal": 1000,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T19:55:12.773Z",
       "deleted_at": null
     },
     {
@@ -2575,11 +2575,11 @@
       "txn_date": "2026-07-23",
       "description": "Paycheck",
       "source": "Direct Deposit",
-      "deposit": 2487.2,
+      "deposit": 2474.99,
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T19:56:42.746Z",
       "deleted_at": null
     },
     {
@@ -2660,10 +2660,10 @@
       "description": "Credit Card Payment",
       "source": "Apple Card",
       "deposit": 0,
-      "withdrawal": 1247,
+      "withdrawal": 1234,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-09T12:24:14.178Z",
+      "updated_at": "2026-07-09T19:58:39.556Z",
       "deleted_at": null
     },
     {
@@ -2855,11 +2855,11 @@
       "txn_date": "2026-08-06",
       "description": "Paycheck",
       "source": "Direct Deposit",
-      "deposit": 2487.2,
+      "deposit": 2474.99,
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T19:56:42.749Z",
       "deleted_at": null
     },
     {
@@ -2898,10 +2898,10 @@
       "description": "Savings",
       "source": "Emergency HYSA",
       "deposit": 0,
-      "withdrawal": 96,
+      "withdrawal": 95,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-09T12:24:42.909Z",
+      "updated_at": "2026-07-09T19:59:57.486Z",
       "deleted_at": null
     },
     {
@@ -2954,10 +2954,10 @@
       "description": "Credit Card Payment",
       "source": "Apple Card",
       "deposit": 0,
-      "withdrawal": 730,
+      "withdrawal": 719,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T19:59:57.490Z",
       "deleted_at": null
     },
     {
@@ -3097,8 +3097,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T19:56:42.751Z",
+      "deleted_at": "2026-07-09T19:56:42.751Z"
     },
     {
       "id": "854db5f4-ea87-4f6d-99a0-eae43ded9198",
@@ -3192,10 +3192,10 @@
       "description": "Credit Card Payment",
       "source": "Apple Card",
       "deposit": 0,
-      "withdrawal": 1110,
+      "withdrawal": 1100,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-09T12:21:17.524Z",
+      "updated_at": "2026-07-09T20:00:37.069Z",
       "deleted_at": null
     },
     {
@@ -3279,8 +3279,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T20:00:37.072Z",
+      "deleted_at": "2026-07-09T20:00:37.072Z"
     },
     {
       "id": "0c7c24a6-e432-47ca-b70e-cfb77e1cab70",
@@ -3321,8 +3321,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T19:56:42.753Z",
+      "deleted_at": "2026-07-09T19:56:42.753Z"
     },
     {
       "id": "9fd75f1d-5175-47a1-9775-169d338d87f4",
@@ -3346,10 +3346,10 @@
       "description": "Investments",
       "source": "Fidelity Individual",
       "deposit": 0,
-      "withdrawal": 25,
+      "withdrawal": 8,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T20:01:07.896Z",
       "deleted_at": null
     },
     {
@@ -3587,8 +3587,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T19:56:42.755Z",
+      "deleted_at": "2026-07-09T19:56:42.755Z"
     },
     {
       "id": "6c44940d-fed3-4df6-8a44-cae2b0f2e85a",
@@ -3612,10 +3612,10 @@
       "description": "Investments",
       "source": "Fidelity Individual",
       "deposit": 0,
-      "withdrawal": 20,
+      "withdrawal": 5,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T20:01:45.952Z",
       "deleted_at": null
     },
     {
@@ -3654,10 +3654,10 @@
       "description": "Savings",
       "source": "Vacation HYSA",
       "deposit": 0,
-      "withdrawal": 50,
+      "withdrawal": 40,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T20:02:35.562Z",
       "deleted_at": null
     },
     {
@@ -3738,10 +3738,10 @@
       "description": "Bill",
       "source": "Progressive Car Insurance",
       "deposit": 0,
-      "withdrawal": 187.83,
+      "withdrawal": 198.5,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-07-09T20:02:35.559Z",
       "deleted_at": null
     },
     {
@@ -3825,8 +3825,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T19:56:42.757Z",
+      "deleted_at": "2026-07-09T19:56:42.757Z"
     },
     {
       "id": "b6fe0d2e-7ab5-4433-9f23-e1fb80ffebfd",
@@ -4063,8 +4063,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T19:56:42.758Z",
+      "deleted_at": "2026-07-09T19:56:42.758Z"
     },
     {
       "id": "6579e2aa-8ecf-4b76-bf9f-05ff2bf34bed",
@@ -4273,8 +4273,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T19:56:42.759Z",
+      "deleted_at": "2026-07-09T19:56:42.759Z"
     },
     {
       "id": "3c32d432-a118-4403-86a2-7b09ee75a8e0",
@@ -4511,8 +4511,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T19:56:42.761Z",
+      "deleted_at": "2026-07-09T19:56:42.761Z"
     },
     {
       "id": "198f6fa3-b4fb-4ab0-862f-118ec90fb498",
@@ -4721,8 +4721,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T19:56:42.762Z",
+      "deleted_at": "2026-07-09T19:56:42.762Z"
     },
     {
       "id": "4e248c3f-46eb-4868-8749-e1277ca07c29",
@@ -4945,8 +4945,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T19:56:42.763Z",
+      "deleted_at": "2026-07-09T19:56:42.763Z"
     },
     {
       "id": "27defd42-5f43-436a-8566-c822759d2cac",
@@ -5183,8 +5183,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T19:56:42.765Z",
+      "deleted_at": "2026-07-09T19:56:42.765Z"
     },
     {
       "id": "72e84e37-4962-42b0-b5db-5eeb176d3435",
@@ -5393,8 +5393,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T19:56:42.766Z",
+      "deleted_at": "2026-07-09T19:56:42.766Z"
     },
     {
       "id": "d91e1897-a50e-4b96-add4-926060f7604a",
@@ -6275,8 +6275,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T20:05:16.940Z",
+      "deleted_at": "2026-07-09T20:05:16.940Z"
     },
     {
       "id": "5d01560d-240a-4076-ae77-4ba0c87e0c31",
@@ -6303,8 +6303,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T20:05:16.941Z",
+      "deleted_at": "2026-07-09T20:05:16.941Z"
     },
     {
       "id": "f94cf53f-8bda-4604-abe4-11ae25454b87",
@@ -6359,8 +6359,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T20:05:16.943Z",
+      "deleted_at": "2026-07-09T20:05:16.943Z"
     },
     {
       "id": "c9e05004-84ff-4be2-a61d-a17c34ca72f7",
@@ -6527,8 +6527,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T20:05:49.804Z",
+      "deleted_at": "2026-07-09T20:05:49.804Z"
     },
     {
       "id": "8d9df2ad-4005-4a2d-9eae-d34e60be5bb2",
@@ -6541,8 +6541,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T20:05:49.806Z",
+      "deleted_at": "2026-07-09T20:05:49.806Z"
     },
     {
       "id": "52ca27f2-59fa-4e0c-97e1-4b5a0e1ba849",
@@ -6555,8 +6555,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T20:05:49.802Z",
+      "deleted_at": "2026-07-09T20:05:49.802Z"
     },
     {
       "id": "7f2b3e79-dc0b-499f-806a-1d41dee423b8",
@@ -6583,8 +6583,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T20:05:49.799Z",
+      "deleted_at": "2026-07-09T20:05:49.799Z"
     },
     {
       "id": "72c2596f-3e15-41dc-8592-a306d7f69ece",
@@ -6765,8 +6765,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T20:06:06.553Z",
+      "deleted_at": "2026-07-09T20:06:06.553Z"
     },
     {
       "id": "2d46ac29-4d24-4fdb-a069-482ee7b58a14",
@@ -6807,8 +6807,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T20:06:06.555Z",
+      "deleted_at": "2026-07-09T20:06:06.555Z"
     },
     {
       "id": "63d0c11d-b21f-4409-b246-9ded09e3da56",
@@ -6835,8 +6835,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-07-09T20:06:06.557Z",
+      "deleted_at": "2026-07-09T20:06:06.557Z"
     },
     {
       "id": "cc14b121-1395-4941-88e6-3148f0d8d317",
@@ -10118,14 +10118,14 @@
       "id": "0d215554-b2d3-403d-b67f-3e6429b9b799",
       "account_id": "rajna-checking",
       "owner": "rajna",
-      "txn_date": "2026-07-20",
+      "txn_date": "2026-07-09",
       "description": "Credit Card Payment",
       "source": "Woody Discover",
-      "deposit": 100,
+      "deposit": 78,
       "withdrawal": 0,
       "note": "forecast",
       "created_at": "2026-07-07T05:05:05.564Z",
-      "updated_at": "2026-07-07T05:43:59.813Z",
+      "updated_at": "2026-07-09T13:11:23.327Z",
       "deleted_at": null
     },
     {
@@ -13780,6 +13780,160 @@
       "note": "",
       "created_at": "2026-07-09T12:46:11.004Z",
       "updated_at": "2026-07-09T12:46:11.004Z",
+      "deleted_at": null
+    },
+    {
+      "id": "0e19e8e1-d0f1-4cfa-aa44-3afce93cb12b",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-08-20",
+      "description": "Paycheck",
+      "source": "Direct Deposit",
+      "deposit": 2474.99,
+      "withdrawal": 0,
+      "note": "",
+      "created_at": "2026-07-09T19:58:11.783Z",
+      "updated_at": "2026-07-09T19:58:11.783Z",
+      "deleted_at": null
+    },
+    {
+      "id": "350199c0-81f3-44c1-a99d-fbcfd9d0aad1",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-09-03",
+      "description": "Paycheck",
+      "source": "Direct Deposit",
+      "deposit": 2474.99,
+      "withdrawal": 0,
+      "note": "",
+      "created_at": "2026-07-09T19:58:11.786Z",
+      "updated_at": "2026-07-09T19:58:11.786Z",
+      "deleted_at": null
+    },
+    {
+      "id": "f82d4e43-0959-466f-a314-cd014a821ab9",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-09-17",
+      "description": "Paycheck",
+      "source": "Direct Deposit",
+      "deposit": 2474.99,
+      "withdrawal": 0,
+      "note": "",
+      "created_at": "2026-07-09T19:58:11.788Z",
+      "updated_at": "2026-07-09T19:58:11.788Z",
+      "deleted_at": null
+    },
+    {
+      "id": "c7b6200a-937e-4171-ab0e-190434759939",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-10-01",
+      "description": "Paycheck",
+      "source": "Direct Deposit",
+      "deposit": 2474.99,
+      "withdrawal": 0,
+      "note": "",
+      "created_at": "2026-07-09T19:58:11.791Z",
+      "updated_at": "2026-07-09T19:58:11.791Z",
+      "deleted_at": null
+    },
+    {
+      "id": "a0570e5b-297d-454b-a27a-3a74b8163b86",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-10-15",
+      "description": "Paycheck",
+      "source": "Direct Deposit",
+      "deposit": 2474.99,
+      "withdrawal": 0,
+      "note": "",
+      "created_at": "2026-07-09T19:58:11.793Z",
+      "updated_at": "2026-07-09T19:58:11.793Z",
+      "deleted_at": null
+    },
+    {
+      "id": "a82ac6dd-ae7b-4f74-85fa-19dc4b1cc821",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-10-29",
+      "description": "Paycheck",
+      "source": "Direct Deposit",
+      "deposit": 2474.99,
+      "withdrawal": 0,
+      "note": "",
+      "created_at": "2026-07-09T19:58:11.795Z",
+      "updated_at": "2026-07-09T19:58:11.795Z",
+      "deleted_at": null
+    },
+    {
+      "id": "90f235d4-22a1-4e19-9d20-c95feaa08b3e",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-11-12",
+      "description": "Paycheck",
+      "source": "Direct Deposit",
+      "deposit": 2474.99,
+      "withdrawal": 0,
+      "note": "",
+      "created_at": "2026-07-09T19:58:11.796Z",
+      "updated_at": "2026-07-09T19:58:11.796Z",
+      "deleted_at": null
+    },
+    {
+      "id": "603ee593-f1b0-4b63-9c62-21e5cf637bb0",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-11-26",
+      "description": "Paycheck",
+      "source": "Direct Deposit",
+      "deposit": 2474.99,
+      "withdrawal": 0,
+      "note": "",
+      "created_at": "2026-07-09T19:58:11.798Z",
+      "updated_at": "2026-07-09T19:58:11.798Z",
+      "deleted_at": null
+    },
+    {
+      "id": "c1dbff2d-aa0d-4af3-ae4d-b675d52e0aa5",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-12-10",
+      "description": "Paycheck",
+      "source": "Direct Deposit",
+      "deposit": 2474.99,
+      "withdrawal": 0,
+      "note": "",
+      "created_at": "2026-07-09T19:58:11.800Z",
+      "updated_at": "2026-07-09T19:58:11.800Z",
+      "deleted_at": null
+    },
+    {
+      "id": "e3a80104-e3d7-43b5-b9ed-57e6bad75bc0",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-12-24",
+      "description": "Paycheck",
+      "source": "Direct Deposit",
+      "deposit": 2474.99,
+      "withdrawal": 0,
+      "note": "",
+      "created_at": "2026-07-09T19:58:11.802Z",
+      "updated_at": "2026-07-09T19:58:11.802Z",
+      "deleted_at": null
+    },
+    {
+      "id": "8b667e22-0faa-4fdb-acad-1fc618e2f188",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-01-07",
+      "description": "Paycheck",
+      "source": "Direct Deposit",
+      "deposit": 2474.99,
+      "withdrawal": 0,
+      "note": "",
+      "created_at": "2026-07-09T20:05:16.935Z",
+      "updated_at": "2026-07-09T20:05:16.935Z",
       "deleted_at": null
     }
   ],

@@ -139,7 +139,7 @@ function decorate() {
     #ro-banner { position: sticky; top: 0; z-index: 30; background: var(--accent-weak, #24304b); color: var(--text, #e7e9ee);
       border-bottom: 1px solid var(--line, #2a2f3a); padding: 8px 16px; font-size: 13px; text-align: center; }
     #ro-banner b { color: var(--warn, #e0a336); }
-    #saveBtn, #discardBtn, #publishBtn, #refreshBtn, #dirtyNote { display: none !important; }`;
+    #saveBtn, #discardBtn, #publishBtn, #refreshBtn, #dirtyNote, #lowPowerBtn { display: none !important; }`;
   document.head.appendChild(style);
 
   const bar = document.createElement("div");

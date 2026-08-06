@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "version": 7,
-  "published_at": "2026-07-16T15:59:22.601Z",
+  "version": 8,
+  "published_at": "2026-08-06T16:38:02.698Z",
   "published_by": "woody",
   "people": [
     {
@@ -2800,10 +2800,10 @@
       "description": "Loan Payment",
       "source": "Rajna Affirm",
       "deposit": 0,
-      "withdrawal": 200,
+      "withdrawal": 355,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-09T12:21:17.490Z",
+      "updated_at": "2026-08-06T16:25:41.076Z",
       "deleted_at": null
     },
     {
@@ -2817,8 +2817,8 @@
       "withdrawal": 400,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-09T12:21:17.509Z",
-      "deleted_at": null
+      "updated_at": "2026-08-06T16:20:30.103Z",
+      "deleted_at": "2026-08-06T16:20:30.103Z"
     },
     {
       "id": "d2d93152-9fc1-470a-bb42-0b5429bf895a",
@@ -2898,10 +2898,10 @@
       "description": "Savings",
       "source": "Emergency HYSA",
       "deposit": 0,
-      "withdrawal": 95,
+      "withdrawal": 100,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-09T19:59:57.486Z",
+      "updated_at": "2026-08-04T12:42:18.240Z",
       "deleted_at": null
     },
     {
@@ -2954,10 +2954,10 @@
       "description": "Credit Card Payment",
       "source": "Apple Card",
       "deposit": 0,
-      "withdrawal": 719,
+      "withdrawal": 1443.82,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-09T19:59:57.490Z",
+      "updated_at": "2026-08-06T16:37:30.334Z",
       "deleted_at": null
     },
     {
@@ -2968,10 +2968,10 @@
       "description": "Credit Card Payment",
       "source": "Rajna Discover",
       "deposit": 0,
-      "withdrawal": 200,
+      "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-08-06T16:27:34.248Z",
       "deleted_at": null
     },
     {
@@ -2982,10 +2982,10 @@
       "description": "Credit Card Payment",
       "source": "Citi Card",
       "deposit": 0,
-      "withdrawal": 70,
+      "withdrawal": 66,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-08-06T16:19:33.820Z",
       "deleted_at": null
     },
     {
@@ -3013,8 +3013,8 @@
       "withdrawal": 0,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
-      "deleted_at": null
+      "updated_at": "2026-08-04T12:40:47.412Z",
+      "deleted_at": "2026-08-04T12:40:47.412Z"
     },
     {
       "id": "7fe710f8-4fe6-48c2-b7fa-ad9ecbbd6bdb",
@@ -3024,10 +3024,10 @@
       "description": "Credit Card Payment",
       "source": "Capital One",
       "deposit": 0,
-      "withdrawal": 340,
+      "withdrawal": 467.6,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-08-06T16:27:21.196Z",
       "deleted_at": null
     },
     {
@@ -3080,10 +3080,10 @@
       "description": "Loan Payment",
       "source": "Rajna Affirm",
       "deposit": 0,
-      "withdrawal": 200,
+      "withdrawal": 162.5,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-09T12:21:17.512Z",
+      "updated_at": "2026-08-04T12:41:11.546Z",
       "deleted_at": null
     },
     {
@@ -13972,10 +13972,66 @@
       "description": "Credit Card Payment",
       "source": "Apple Card",
       "deposit": 0,
-      "withdrawal": 340,
+      "withdrawal": 888.12,
       "note": "",
       "created_at": "2026-07-16T15:58:58.587Z",
-      "updated_at": "2026-07-16T15:58:58.587Z",
+      "updated_at": "2026-07-16T16:26:59.071Z",
+      "deleted_at": null
+    },
+    {
+      "id": "5e6ffc29-ec17-441f-8eea-2278157687ea",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-07-16",
+      "description": "Credit Card Payment",
+      "source": "Capital One",
+      "deposit": 0,
+      "withdrawal": 73.53,
+      "note": "",
+      "created_at": "2026-07-16T16:08:29.295Z",
+      "updated_at": "2026-07-16T16:08:29.295Z",
+      "deleted_at": null
+    },
+    {
+      "id": "6958e643-be3b-4d83-842f-ca61e51f07d6",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-07-15",
+      "description": "Transfer",
+      "source": "Vacation HYSA",
+      "deposit": 622.12,
+      "withdrawal": 0,
+      "note": "",
+      "created_at": "2026-07-16T16:26:59.061Z",
+      "updated_at": "2026-07-16T16:26:59.061Z",
+      "deleted_at": null
+    },
+    {
+      "id": "2d007708-49b0-4d1c-96a7-012d50ecd7bb",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-08-05",
+      "description": "Credit Card Payment",
+      "source": "Rajna Capital One",
+      "deposit": 100,
+      "withdrawal": 0,
+      "note": "",
+      "created_at": "2026-08-06T16:21:49.852Z",
+      "updated_at": "2026-08-06T16:21:49.852Z",
+      "deleted_at": null
+    },
+    {
+      "id": "8c586cf8-c864-4eaa-a112-8c8227f69931",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-08-05",
+      "description": "Credit Card Payment",
+      "source": "Vacation Apple Card",
+      "deposit": 324.57,
+      "withdrawal": 0,
+      "note": "",
+      "created_at": "2026-08-06T16:35:45.334Z",
+      "updated_at": "2026-08-06T16:35:45.334Z",
       "deleted_at": null
     }
   ],

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "version": 14,
-  "published_at": "2026-09-28T15:48:30.757Z",
+  "version": 15,
+  "published_at": "2026-09-30T17:40:13.499Z",
   "published_by": "woody",
   "people": [
     {
@@ -3864,10 +3864,10 @@
       "description": "Savings",
       "source": "Emergency HYSA",
       "deposit": 0,
-      "withdrawal": 300,
+      "withdrawal": 283,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-09-28T01:31:13.294Z",
+      "updated_at": "2026-09-30T16:47:29.551Z",
       "deleted_at": null
     },
     {
@@ -3906,10 +3906,10 @@
       "description": "Savings",
       "source": "Wedding HYSA",
       "deposit": 0,
-      "withdrawal": 180,
+      "withdrawal": 130,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-09-23T18:42:13.104Z",
+      "updated_at": "2026-09-30T16:47:29.563Z",
       "deleted_at": null
     },
     {
@@ -16006,6 +16006,48 @@
       "note": "",
       "created_at": "2026-09-28T01:12:18.968Z",
       "updated_at": "2026-09-28T01:12:18.968Z",
+      "deleted_at": null
+    },
+    {
+      "id": "c4943759-3a51-499c-99f4-246441d7cda7",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-09-29",
+      "description": "Charity",
+      "source": "Cashapp",
+      "deposit": 0,
+      "withdrawal": 10,
+      "note": "",
+      "created_at": "2026-09-30T16:41:17.595Z",
+      "updated_at": "2026-09-30T16:41:17.595Z",
+      "deleted_at": null
+    },
+    {
+      "id": "31c75dd7-9745-41f6-b651-3782fc5c7207",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-09-27",
+      "description": "Bill",
+      "source": "Rajna Zelle",
+      "deposit": 0,
+      "withdrawal": 7,
+      "note": "",
+      "created_at": "2026-09-30T16:41:17.612Z",
+      "updated_at": "2026-09-30T16:41:17.612Z",
+      "deleted_at": null
+    },
+    {
+      "id": "77066285-92af-4648-a12c-0694b2721a24",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-09-30",
+      "description": "Adjustment",
+      "source": "Balance correction",
+      "deposit": 0,
+      "withdrawal": 50,
+      "note": "",
+      "created_at": "2026-09-30T16:41:45.311Z",
+      "updated_at": "2026-09-30T16:41:45.311Z",
       "deleted_at": null
     }
   ],

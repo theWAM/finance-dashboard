@@ -66,6 +66,8 @@
 
   tr.add td { padding-top: 10px; }
   tr.add input { border-color: var(--line); background: var(--panel-2); }
+  /* Balance-check trigger: sized to sit in the add row without crowding it. */
+  .bal-check { padding: 5px 10px; font-size: 12px; white-space: nowrap; }
   .btn {
     background: var(--accent); border: none; color: white; border-radius: 8px;
     padding: 7px 14px; cursor: pointer; font-weight: 600;
@@ -273,7 +275,6 @@
   </button>
   <button id="publishBtn" class="btn ghost" title="Publish a snapshot to the public site">Publish</button>
   <button id="refreshBtn" class="btn ghost" title="Sync in the latest published data">Sync</button>
-  <button id="balanceCheckBtn" class="btn ghost" title="Compare today's projected balance to your bank and add a correction">Balance check</button>
   <button id="lowPowerBtn" class="btn ghost" aria-pressed="false" title="Lighter rendering for slower machines (per-computer setting)">Low power: off</button>
   <span id="syncStatus" class="filter-count" title=""></span>
   <div class="grow"></div>

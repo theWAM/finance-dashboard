@@ -337,9 +337,7 @@ function openBalanceCheck() {
   $("#dcActual").focus();
 }
 const closeBalanceCheck = () => { $("#dailyCheck").hidden = true; };
-$("#balanceCheckBtn").addEventListener("click", () => {
-  if ($("#dailyCheck").hidden) openBalanceCheck(); else closeBalanceCheck();
-});
+const toggleBalanceCheck = () => { if ($("#dailyCheck").hidden) openBalanceCheck(); else closeBalanceCheck(); };
 $("#dcClose").addEventListener("click", closeBalanceCheck);
 $("#dcActual").addEventListener("input", (e) => {
   const has = e.target.value !== "" && !Number.isNaN(Number(e.target.value));
@@ -835,7 +833,17 @@ function renderAddRow() {
   amtTd.appendChild(amtInp);
   tr.appendChild(amtTd);
 
-  tr.appendChild(document.createElement("td")); // balance column spacer
+  // Balance column: the balance-check trigger, in line with the add form.
+  const balTd = document.createElement("td");
+  balTd.className = "col-bal"; // .num only right-aligns inputs; this cell holds a button
+  const chk = document.createElement("button");
+  chk.type = "button";
+  chk.className = "btn ghost bal-check";
+  chk.textContent = "Check";
+  chk.title = "Compare today's projected balance to your bank and add a correction";
+  chk.onclick = toggleBalanceCheck;
+  balTd.appendChild(chk);
+  tr.appendChild(balTd);
 
   const act = document.createElement("td");
   act.className = "row-actions";

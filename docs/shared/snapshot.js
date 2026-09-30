@@ -21,11 +21,13 @@
 export const SCHEMA_VERSION = 1;
 
 /** Build a snapshot object ready to be written to data/snapshot.json. */
-export function buildSnapshot({ version, publishedBy, people = [], accounts = [], transactions = [], planTargets = [] }) {
+export function buildSnapshot({ version, publishedBy, publishedAt, people = [], accounts = [], transactions = [], planTargets = [] }) {
   return {
     schema_version: SCHEMA_VERSION,
     version,
-    published_at: new Date().toISOString(),
+    // Caller may pass the stamp so the snapshot, the commit message, and the
+    // local sync metadata all report the same moment.
+    published_at: publishedAt ?? new Date().toISOString(),
     published_by: publishedBy ?? "",
     people,
     accounts,

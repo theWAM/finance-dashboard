@@ -111,7 +111,10 @@ function handle(route, method, body) {
   }
 
   // ---- sync (no-ops on the static site) ----
-  if (path === "/api/sync-status") return json({ local_version: db.version, last_published_at: db.published_at, published_by: db.published_by, last_pulled_version: db.version, last_pulled_at: db.published_at });
+  // has_unpublished/has_unpulled are false so the Publish and Sync buttons stay
+  // hidden here: nothing on the static site can push or pull, and a Publish
+  // click would otherwise report a (meaningless) push failure.
+  if (path === "/api/sync-status") return json({ local_version: db.version, last_published_at: db.published_at, published_by: db.published_by, last_pulled_version: db.version, last_pulled_at: db.published_at, has_unpublished: false, has_unpulled: false, site_stale: false });
   if (path === "/api/publish" || path === "/api/refresh") return json({ ok: true, version: db.version, pushed: false, readonly: true });
   if (path === "/api/health") return json({ ok: true, meta: {} });
 

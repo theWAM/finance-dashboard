@@ -1,4 +1,5 @@
 import { windowFor, previousWindowFor } from "./shared/paycycle.js";
+import { formatStamp, lastUpdated } from "./shared/stamp.js";
 
 // Ledger grid: a spreadsheet-style editor over the local CRUD API.
 //
@@ -177,7 +178,6 @@ async function loadLedger() {
   resetFilter();          // a fresh account starts unfiltered
   buildFilters();         // rebuild category/source checkboxes for this account
   render();
-  showDailyCheck();       // "you should have $X in the bank today" prompt
 }
 
 // --- filtering (date window → category → source) ---------------------------
@@ -318,46 +318,46 @@ function closeAllPanels() {
   document.querySelectorAll(".ms-panel").forEach((p) => (p.hidden = true));
 }
 
-// --- Daily check popup (projected-vs-actual balance for today) --------------
+// --- Balance correction (projected-vs-actual balance for today) ------------
 
 let dcProjected = 0;
-// Only surface the daily check once per calendar day per account: we stamp the
-// last-shown date in localStorage and skip if it's already today's date.
-const dcSeenKey = (id) => `dailyCheckSeen:${id}`;
-function showDailyCheck() {
-  if (!state.accountId) return;
-  const key = dcSeenKey(state.accountId);
-  if (localStorage.getItem(key) === TODAY) return; // already shown today
-  localStorage.setItem(key, TODAY);
+// Opened from the "Balance check" button in the header. This used to pop up on
+// its own, once per account per calendar day, and it stamped localStorage the
+// moment it opened -- so merely seeing it, dismissing it, reloading, or
+// switching accounts burned the only chance to use it until the next day. It is
+// on-demand now: no gating, no auto-open, available whenever the bank disagrees.
+function openBalanceCheck() {
+  if (!state.accountId) { toast("Pick an account first"); return; }
   dcProjected = computeView().todayBal;
   $("#dcAmount").textContent = fmt(dcProjected);
-  $("#dcAsk").hidden = false;
-  $("#dcCorrect").hidden = true;
   $("#dcActual").value = "";
   $("#dcDiff").textContent = "";
   $("#dcApply").disabled = true;
   $("#dailyCheck").hidden = false;
+  $("#dcActual").focus();
 }
-$("#dcClose").addEventListener("click", () => { $("#dailyCheck").hidden = true; });
-$("#dcYes").addEventListener("click", () => { $("#dailyCheck").hidden = true; });
-$("#dcNo").addEventListener("click", () => { $("#dcAsk").hidden = true; $("#dcCorrect").hidden = false; $("#dcActual").focus(); });
+const closeBalanceCheck = () => { $("#dailyCheck").hidden = true; };
+$("#balanceCheckBtn").addEventListener("click", () => {
+  if ($("#dailyCheck").hidden) openBalanceCheck(); else closeBalanceCheck();
+});
+$("#dcClose").addEventListener("click", closeBalanceCheck);
 $("#dcActual").addEventListener("input", (e) => {
   const has = e.target.value !== "" && !Number.isNaN(Number(e.target.value));
   const diff = has ? round2(Number(e.target.value) - dcProjected) : 0;
   $("#dcApply").disabled = !has || Math.abs(diff) < 0.01;
   $("#dcDiff").textContent = !has ? ""
     : Math.abs(diff) < 0.01 ? "Matches — nothing to correct."
-    : `Bank is ${diff > 0 ? "over" : "short"} by ${fmt(Math.abs(diff))} — Correct adds an adjustment dated ${TODAY}.`;
+    : `Bank is ${diff > 0 ? "over" : "short"} by ${fmt(Math.abs(diff))} — Add correction stages an adjustment dated ${TODAY}.`;
 });
 $("#dcApply").addEventListener("click", () => {
   const diff = round2(Number($("#dcActual").value) - dcProjected);
   if (Math.abs(diff) < 0.01) return;
   state.news.push({
     _tempId: "new-" + (++tempCounter), created_at: new Date().toISOString(), txn_date: TODAY,
-    description: "Adjustment", source: "Daily check correction",
+    description: "Adjustment", source: "Balance correction",
     deposit: diff > 0 ? diff : 0, withdrawal: diff < 0 ? -diff : 0,
   });
-  $("#dailyCheck").hidden = true;
+  closeBalanceCheck();
   render();
   toast("Adjustment added — review and Save");
 });
@@ -1012,18 +1012,24 @@ $("#bulkClearSel").addEventListener("click", () => { state.selected.clear(); upd
 async function loadSyncStatus() {
   try {
     const s = await api("/api/sync-status");
-    const pub = s.last_published_at ? new Date(s.last_published_at).toLocaleString() : "never";
-    const pulled = s.last_pulled_at ? new Date(s.last_pulled_at).toLocaleString() : "never";
-    // Show the version of the data this machine is actually holding — the higher
-    // of what it last published and what it last pulled. (Showing only
-    // local_version made a machine that has only ever *refreshed* read "v0".)
-    const effective = Math.max(Number(s.local_version) || 0, Number(s.last_pulled_version) || 0);
-    $("#syncStatus").textContent = `v${effective}`;
-    $("#syncStatus").title = `Data version ${effective}\nPublished from here: v${s.local_version} (${pub}${s.published_by ? " by " + s.published_by : ""})\nLast refreshed: ${pulled} (v${s.last_pulled_version})`;
+    // When, not which version: the most recent moment this machine's data
+    // changed hands — published out or pulled in. (Both stamps are ISO UTC, so
+    // a lexical sort is a chronological one.)
+    const newest = [s.last_published_at, s.last_pulled_at].filter(Boolean).sort().pop() || null;
+    const el = $("#syncStatus");
+    el.textContent = lastUpdated(newest) + (s.site_stale ? " · site behind" : "");
+    el.classList.toggle("stale", !!s.site_stale);
+    el.title = [
+      `Published from here: ${formatStamp(s.last_published_at)}${s.published_by ? " by " + s.published_by : ""}`,
+      `Last refreshed: ${formatStamp(s.last_pulled_at)}`,
+      s.site_note || "",
+    ].filter(Boolean).join("\n");
     // Only show Publish when there's something to push, Sync when there's something to pull.
     // Hide only when the server explicitly says false, so an older server (or a
     // missing field) leaves the buttons visible rather than hiding them.
-    $("#publishBtn").hidden = s.has_unpublished === false;
+    // A stale site also keeps Publish available: the data may match the DB while
+    // the *site* is behind because an earlier push failed.
+    $("#publishBtn").hidden = s.has_unpublished === false && !s.site_stale;
     $("#refreshBtn").hidden = s.has_unpulled === false;
   } catch { /* ignore */ }
 }
@@ -1033,8 +1039,20 @@ $("#publishBtn").addEventListener("click", async () => {
   $("#publishBtn").disabled = true;
   try {
     const r = await api("/api/publish", { method: "POST", body: { publishedBy: state.currentUser } });
-    toast(r.pushed ? `Published v${r.version} to the site` : `Snapshot v${r.version} written (push failed — see console)`);
-    if (!r.pushed && r.gitOut) console.warn("git:", r.gitOut);
+    if (r.pushed) {
+      toast(`Published to the site — ${r.stamp}`);
+    } else if (r.readonly) {
+      toast("This is the read-only published view — nothing to publish from here");
+    } else {
+      // A failed push means everyone else is still looking at the old numbers.
+      // That is far too important to leave as a console warning.
+      toast("Publish FAILED — the site was NOT updated");
+      alert(
+        "The snapshot was written locally but could not be pushed, so the published site is still showing the old data.\n\n" +
+        (r.gitOut || "unknown git error") +
+        "\n\nFix that, then click Publish again."
+      );
+    }
     loadSyncStatus();
   } catch (e) { toast("Publish failed: " + e.message); }
   $("#publishBtn").disabled = false;

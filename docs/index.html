@@ -44,6 +44,7 @@
 
 <script type="module">
   import { renderDashboard } from "./shared/dashboard-render.js";
+  import { lastUpdated } from "./shared/stamp.js";
   (async function () {
     try {
       const snap = await (await fetch("./data/snapshot.json", { cache: "no-store" })).json();
@@ -51,8 +52,10 @@
         document.getElementById("dashRoot").innerHTML = '<p class="muted">No data published yet.</p>';
         return;
       }
-      const when = snap.published_at ? new Date(snap.published_at).toLocaleString() : "—";
-      document.getElementById("meta").textContent = `Version ${snap.version} · updated ${when}${snap.published_by ? " by " + snap.published_by : ""}`;
+      // The snapshot's `version` counter is still what the two local apps merge
+      // on, but it means nothing to a reader — show them when, not which.
+      document.getElementById("meta").textContent =
+        lastUpdated(snap.published_at) + (snap.published_by ? ` by ${snap.published_by}` : "");
 
       const people = snap.people || [];
       const sel = document.getElementById("userSel");

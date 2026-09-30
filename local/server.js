@@ -10,11 +10,12 @@ import { randomUUID } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { writeFileSync, readFileSync, mkdirSync, readdirSync, copyFileSync } from "node:fs";
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import db from "./db.js";
 import { accountLedger, withRunningBalance, totals } from "../shared/metrics.js";
 import { buildSnapshot, parseSnapshot } from "../shared/snapshot.js";
 import { isNewer } from "../shared/merge.js";
+import { formatStamp } from "../shared/stamp.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
@@ -234,7 +235,19 @@ app.get("/api/sync-status", (_req, res) => {
   let snapshot_version = 0;
   try { snapshot_version = Number(JSON.parse(readFileSync(join(ROOT, "docs", "data", "snapshot.json"), "utf8")).version) || 0; } catch { /* no snapshot yet */ }
   const hasData = !!(db.prepare("SELECT 1 FROM transactions LIMIT 1").get() || db.prepare("SELECT 1 FROM plan_targets LIMIT 1").get());
+  // Is the live site actually serving what's on disk? A publish whose git step
+  // failed leaves docs/ written but uncommitted (or committed but unpushed),
+  // which is exactly how the published view got stuck several versions back.
+  let site_stale = false, site_note = "";
+  try {
+    const g = (...a) => execFileSync("git", a, { cwd: ROOT, encoding: "utf8", stdio: "pipe" }).trim();
+    const uncommitted = g("status", "--porcelain", "--", "docs");
+    const unpushed = Number(g("rev-list", "--count", "@{upstream}..HEAD")) || 0;
+    if (uncommitted) { site_stale = true; site_note = "docs/ has uncommitted changes - Publish to update the site"; }
+    else if (unpushed > 0) { site_stale = true; site_note = `${unpushed} commit(s) not pushed - Publish to update the site`; }
+  } catch { /* no git / no upstream - can't tell, so don't claim staleness */ }
   res.json({
+    site_stale, site_note,
     local_version,
     last_published_at: meta("last_published_at") || null,
     published_by: meta("published_by") || null,
@@ -254,8 +267,12 @@ app.post("/api/publish", (req, res) => {
   const publishedBy = req.body?.publishedBy || "";
   const doPush = req.body?.push !== false;
   const version = Number(meta("local_version") || 0) + 1;
+  // One timestamp for the snapshot, the commit message, and the sync metadata,
+  // so every surface reports the same "last updated" moment.
+  const publishedAt = new Date().toISOString();
+  const commitMsg = `Publish snapshot - ${formatStamp(publishedAt)}`;
   const snapshot = buildSnapshot({
-    version, publishedBy,
+    version, publishedBy, publishedAt,
     people: allRaw("people"),
     accounts: allRaw("accounts"),
     transactions: allRaw("transactions"),
@@ -288,19 +305,41 @@ app.post("/api/publish", (req, res) => {
   writeFileSync(join(ROOT, "docs", "ledger.html"), injectShim(readFileSync(join(pub, "index.html"), "utf8"), "./app.js"));
   writeFileSync(join(ROOT, "docs", "paycheck.html"), injectShim(readFileSync(join(pub, "paycheck.html"), "utf8"), "./paycheck.js"));
 
-  setMeta("local_version", version);
-  setMeta("last_published_at", new Date().toISOString());
-  setMeta("published_by", publishedBy);
-  setMeta("dirty", "0"); // everything local is now published
-
-  let pushed = false, gitOut = "";
+  // Commit + push docs/ so Pages actually serves the new snapshot. Each git
+  // step runs on its own so we can report which one broke. This used to be one
+  // chained `add && commit && push` whose failure was swallowed into a
+  // console.warn while local_version advanced and `dirty` was cleared anyway --
+  // that hid the Publish button, so a failed push froze the site silently (it
+  // sat on v10 while this machine counted itself up to v14).
+  let pushed = false, gitOut = "", gitStep = "";
   if (doPush) {
+    const git = (...args) => execFileSync("git", args, { cwd: ROOT, encoding: "utf8", stdio: "pipe" });
     try {
-      execSync(`git add docs && git commit -m "Publish snapshot v${version}" && git push`, { cwd: ROOT, stdio: "pipe" });
+      gitStep = "add"; git("add", "docs");
+      gitStep = "commit";
+      // Republishing byte-identical data stages nothing: success, not failure.
+      if (git("status", "--porcelain", "--", "docs").trim()) git("commit", "-m", commitMsg);
+      gitStep = "push"; git("push");
       pushed = true;
-    } catch (e) { gitOut = String(e.stderr || e.stdout || e.message).slice(0, 600); }
+    } catch (e) {
+      gitOut = `git ${gitStep} failed - ` + String(e.stderr || e.stdout || e.message).trim().slice(0, 600);
+    }
   }
-  res.json({ ok: true, version, pushed, gitOut, counts: { transactions: snapshot.transactions.length } });
+
+  // Only record a publish once the site really has it. If the push failed the
+  // DB stays dirty at the previous version, so Publish stays visible and the
+  // next click retries instead of the version quietly drifting ahead.
+  if (pushed || !doPush) {
+    setMeta("local_version", version);
+    setMeta("last_published_at", publishedAt);
+    setMeta("published_by", publishedBy);
+    setMeta("dirty", "0"); // everything local is now published
+  }
+  res.json({
+    ok: pushed || !doPush, version, pushed, gitOut,
+    published_at: publishedAt, stamp: formatStamp(publishedAt),
+    counts: { transactions: snapshot.transactions.length },
+  });
 });
 
 // Pull a published snapshot (from `source` URL, else the local committed file)

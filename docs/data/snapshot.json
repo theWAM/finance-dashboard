@@ -1,28 +1,30 @@
 {
   "schema_version": 1,
-  "version": 15,
-  "published_at": "2026-09-30T17:40:13.499Z",
+  "version": 16,
+  "published_at": "2026-10-06T22:37:45.606Z",
   "published_by": "woody",
   "people": [
     {
       "id": "woody",
       "name": "Woody",
       "created_at": "2026-07-06T23:17:37.669Z",
-      "updated_at": "2026-07-06T23:17:37.669Z",
+      "updated_at": "2026-10-06T22:24:13.928Z",
       "deleted_at": null,
       "avatar": "/avatars/woody.jpg",
       "sort_order": 1,
-      "pay_cadence": "biweekly"
+      "pay_cadence": "biweekly",
+      "theme": "dark"
     },
     {
       "id": "rajna",
       "name": "Rajna",
       "created_at": "2026-07-06T23:17:37.669Z",
-      "updated_at": "2026-07-06T23:17:37.669Z",
+      "updated_at": "2026-10-06T22:24:21.281Z",
       "deleted_at": null,
       "avatar": "/avatars/rajna.jpg",
       "sort_order": 2,
-      "pay_cadence": "monthly"
+      "pay_cadence": "monthly",
+      "theme": "peach"
     }
   ],
   "accounts": [
@@ -768,12 +770,12 @@
       "owner": "woody",
       "txn_date": "2026-04-16",
       "description": "Loan Payment",
-      "source": "Iphone Upgrade Program",
+      "source": "iPhone Upgrade Program",
       "deposit": 0,
       "withdrawal": 67,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:18:24.403Z",
       "deleted_at": null
     },
     {
@@ -1454,12 +1456,12 @@
       "owner": "woody",
       "txn_date": "2026-05-16",
       "description": "Loan Payment",
-      "source": "Iphone Upgrade Program",
+      "source": "iPhone Upgrade Program",
       "deposit": 0,
       "withdrawal": 67,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:18:24.424Z",
       "deleted_at": null
     },
     {
@@ -2000,12 +2002,12 @@
       "owner": "woody",
       "txn_date": "2026-06-16",
       "description": "Loan Payment",
-      "source": "Iphone Upgrade Program",
+      "source": "iPhone Upgrade Program",
       "deposit": 0,
       "withdrawal": 67,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:18:24.441Z",
       "deleted_at": null
     },
     {
@@ -2532,12 +2534,12 @@
       "owner": "woody",
       "txn_date": "2026-07-16",
       "description": "Loan Payment",
-      "source": "Iphone Upgrade Program",
+      "source": "iPhone Upgrade Program",
       "deposit": 0,
       "withdrawal": 67,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:18:24.454Z",
       "deleted_at": null
     },
     {
@@ -3064,12 +3066,12 @@
       "owner": "woody",
       "txn_date": "2026-08-16",
       "description": "Loan Payment",
-      "source": "Iphone Upgrade Program",
+      "source": "iPhone Upgrade Program",
       "deposit": 0,
       "withdrawal": 67,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:18:24.467Z",
       "deleted_at": null
     },
     {
@@ -3568,12 +3570,12 @@
       "owner": "woody",
       "txn_date": "2026-09-16",
       "description": "Loan Payment",
-      "source": "Iphone Upgrade Program",
+      "source": "iPhone Upgrade Program",
       "deposit": 0,
       "withdrawal": 66.58,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-09-03T14:35:44.499Z",
+      "updated_at": "2026-10-06T21:18:24.478Z",
       "deleted_at": null
     },
     {
@@ -4088,10 +4090,10 @@
       "description": "Investments",
       "source": "Fidelity Individual",
       "deposit": 0,
-      "withdrawal": 5,
+      "withdrawal": 4,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-08-17T17:02:50.318Z",
+      "updated_at": "2026-10-06T21:39:19.543Z",
       "deleted_at": null
     },
     {
@@ -4105,7 +4107,7 @@
       "withdrawal": 125,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:39:19.556Z",
       "deleted_at": null
     },
     {
@@ -4172,10 +4174,10 @@
       "description": "Credit Card Payment",
       "source": "Apple Card",
       "deposit": 0,
-      "withdrawal": 1000,
+      "withdrawal": 870,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:39:19.527Z",
       "deleted_at": null
     },
     {
@@ -4198,12 +4200,12 @@
       "owner": "woody",
       "txn_date": "2026-10-16",
       "description": "Loan Payment",
-      "source": "Iphone Upgrade Program",
+      "source": "iPhone Upgrade Program",
       "deposit": 0,
-      "withdrawal": 67,
+      "withdrawal": 133,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:36:23.856Z",
       "deleted_at": null
     },
     {
@@ -4214,10 +4216,10 @@
       "description": "Bill",
       "source": "Progressive Car Insurance",
       "deposit": 0,
-      "withdrawal": 187.83,
+      "withdrawal": 198.5,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:40:19.717Z",
       "deleted_at": null
     },
     {
@@ -4564,10 +4566,10 @@
       "description": "Savings",
       "source": "Apartment HYSA",
       "deposit": 0,
-      "withdrawal": 250,
+      "withdrawal": 50,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:24:27.475Z",
       "deleted_at": null
     },
     {
@@ -4592,10 +4594,10 @@
       "description": "Savings",
       "source": "Wedding HYSA",
       "deposit": 0,
-      "withdrawal": 0,
+      "withdrawal": 5,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:24:45.901Z",
       "deleted_at": null
     },
     {
@@ -4620,10 +4622,10 @@
       "description": "Credit Card Payment",
       "source": "Rajna Discover",
       "deposit": 0,
-      "withdrawal": 600,
+      "withdrawal": 200,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:24:27.448Z",
       "deleted_at": null
     },
     {
@@ -4634,10 +4636,10 @@
       "description": "Credit Card Payment",
       "source": "Apple Card",
       "deposit": 0,
-      "withdrawal": 250,
+      "withdrawal": 800,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:24:27.463Z",
       "deleted_at": null
     },
     {
@@ -4672,14 +4674,14 @@
       "id": "44f82d9f-4f96-4e9b-988c-9c5197586ee6",
       "account_id": "woody-checking",
       "owner": "woody",
-      "txn_date": "2026-11-16",
+      "txn_date": "2026-11-23",
       "description": "Loan Payment",
-      "source": "Iphone Upgrade Program",
+      "source": "Apple Upgrade Program",
       "deposit": 0,
-      "withdrawal": 67,
+      "withdrawal": 56.97,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:36:23.866Z",
       "deleted_at": null
     },
     {
@@ -4690,10 +4692,10 @@
       "description": "Bill",
       "source": "Progressive Car Insurance",
       "deposit": 0,
-      "withdrawal": 187.83,
+      "withdrawal": 198.5,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:40:19.616Z",
       "deleted_at": null
     },
     {
@@ -4746,10 +4748,10 @@
       "description": "Investments",
       "source": "Fidelity Individual",
       "deposit": 0,
-      "withdrawal": 5,
+      "withdrawal": 10,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-08-17T17:01:46.605Z",
+      "updated_at": "2026-10-06T21:25:53.296Z",
       "deleted_at": null
     },
     {
@@ -4760,10 +4762,10 @@
       "description": "Savings",
       "source": "Emergency HYSA",
       "deposit": 0,
-      "withdrawal": 300,
+      "withdrawal": 50,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:25:53.263Z",
       "deleted_at": null
     },
     {
@@ -4774,10 +4776,10 @@
       "description": "Savings",
       "source": "Apartment HYSA",
       "deposit": 0,
-      "withdrawal": 300,
+      "withdrawal": 50,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-08-10T21:51:07.228Z",
+      "updated_at": "2026-10-06T21:25:53.247Z",
       "deleted_at": null
     },
     {
@@ -4816,10 +4818,10 @@
       "description": "Credit Card Payment",
       "source": "Rajna Discover",
       "deposit": 0,
-      "withdrawal": 980,
+      "withdrawal": 200,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:25:53.275Z",
       "deleted_at": null
     },
     {
@@ -4830,10 +4832,10 @@
       "description": "Credit Card Payment",
       "source": "Apple Card",
       "deposit": 0,
-      "withdrawal": 250,
+      "withdrawal": 1000,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:25:53.286Z",
       "deleted_at": null
     },
     {
@@ -5134,14 +5136,14 @@
       "id": "67a2c2a8-81ba-446c-83e1-ead54539021b",
       "account_id": "woody-checking",
       "owner": "woody",
-      "txn_date": "2026-12-16",
+      "txn_date": "2026-12-23",
       "description": "Loan Payment",
-      "source": "Iphone Upgrade Program",
+      "source": "Apple Upgrade Program",
       "deposit": 0,
-      "withdrawal": 67,
+      "withdrawal": 56.97,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:36:23.876Z",
       "deleted_at": null
     },
     {
@@ -5152,10 +5154,10 @@
       "description": "Bill",
       "source": "Progressive Car Insurance",
       "deposit": 0,
-      "withdrawal": 197.83,
+      "withdrawal": 198.5,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-08-10T21:52:57.299Z",
+      "updated_at": "2026-10-06T21:40:19.632Z",
       "deleted_at": null
     },
     {
@@ -5596,14 +5598,14 @@
       "id": "44ac1c11-152f-4880-9041-654649b2e31e",
       "account_id": "woody-checking",
       "owner": "woody",
-      "txn_date": "2027-01-16",
+      "txn_date": "2027-01-23",
       "description": "Loan Payment",
-      "source": "Iphone Upgrade Program",
+      "source": "Apple Upgrade Program",
       "deposit": 0,
-      "withdrawal": 67,
+      "withdrawal": 56.97,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:36:23.886Z",
       "deleted_at": null
     },
     {
@@ -5768,10 +5770,10 @@
       "description": "Bill",
       "source": "Progressive Car Insurance",
       "deposit": 0,
-      "withdrawal": 187.83,
+      "withdrawal": 198.5,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:40:19.644Z",
       "deleted_at": null
     },
     {
@@ -6072,14 +6074,14 @@
       "id": "cd970e55-e8bf-4f80-adb5-8b90e1262d42",
       "account_id": "woody-checking",
       "owner": "woody",
-      "txn_date": "2027-02-16",
+      "txn_date": "2027-02-23",
       "description": "Loan Payment",
-      "source": "Iphone Upgrade Program",
+      "source": "Apple Upgrade Program",
       "deposit": 0,
-      "withdrawal": 67,
+      "withdrawal": 56.97,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:36:23.895Z",
       "deleted_at": null
     },
     {
@@ -6244,10 +6246,10 @@
       "description": "Bill",
       "source": "Progressive Car Insurance",
       "deposit": 0,
-      "withdrawal": 187.83,
+      "withdrawal": 198.5,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:40:19.656Z",
       "deleted_at": null
     },
     {
@@ -6604,14 +6606,14 @@
       "id": "ad38be2c-39ae-4219-86ab-f44fd61c096d",
       "account_id": "woody-checking",
       "owner": "woody",
-      "txn_date": "2027-03-16",
+      "txn_date": "2027-03-23",
       "description": "Loan Payment",
-      "source": "Iphone Upgrade Program",
+      "source": "Apple Upgrade Program",
       "deposit": 0,
-      "withdrawal": 67,
+      "withdrawal": 56.97,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:36:23.906Z",
       "deleted_at": null
     },
     {
@@ -6776,10 +6778,10 @@
       "description": "Bill",
       "source": "Progressive Car Insurance",
       "deposit": 0,
-      "withdrawal": 187.83,
+      "withdrawal": 198.5,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:40:19.666Z",
       "deleted_at": null
     },
     {
@@ -7178,14 +7180,14 @@
       "id": "63ec999c-b91a-49e5-bb1c-8d2ff8a813ea",
       "account_id": "woody-checking",
       "owner": "woody",
-      "txn_date": "2027-04-16",
+      "txn_date": "2027-04-23",
       "description": "Loan Payment",
-      "source": "Iphone Upgrade Program",
+      "source": "Apple Upgrade Program",
       "deposit": 0,
-      "withdrawal": 67,
+      "withdrawal": 56.97,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:36:23.915Z",
       "deleted_at": null
     },
     {
@@ -7196,10 +7198,10 @@
       "description": "Bill",
       "source": "Progressive Car Insurance",
       "deposit": 0,
-      "withdrawal": 187.83,
+      "withdrawal": 198.5,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:40:19.677Z",
       "deleted_at": null
     },
     {
@@ -7570,14 +7572,14 @@
       "id": "19d81e20-009b-4784-be9e-453091f0e02a",
       "account_id": "woody-checking",
       "owner": "woody",
-      "txn_date": "2027-05-16",
+      "txn_date": "2027-05-23",
       "description": "Loan Payment",
-      "source": "Iphone Upgrade Program",
+      "source": "Apple Upgrade Program",
       "deposit": 0,
-      "withdrawal": 67,
+      "withdrawal": 56.97,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:36:23.924Z",
       "deleted_at": null
     },
     {
@@ -7588,10 +7590,10 @@
       "description": "Bill",
       "source": "Progressive Car Insurance",
       "deposit": 0,
-      "withdrawal": 187.83,
+      "withdrawal": 198.5,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:40:19.687Z",
       "deleted_at": null
     },
     {
@@ -7962,14 +7964,14 @@
       "id": "579bf2c4-2ef3-418e-b881-acc04b8df09a",
       "account_id": "woody-checking",
       "owner": "woody",
-      "txn_date": "2027-06-16",
+      "txn_date": "2027-06-23",
       "description": "Loan Payment",
-      "source": "Iphone Upgrade Program",
+      "source": "Apple Upgrade Program",
       "deposit": 0,
-      "withdrawal": 67,
+      "withdrawal": 56.97,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:36:23.932Z",
       "deleted_at": null
     },
     {
@@ -7980,10 +7982,10 @@
       "description": "Bill",
       "source": "Progressive Car Insurance",
       "deposit": 0,
-      "withdrawal": 187.83,
+      "withdrawal": 198.5,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:40:19.697Z",
       "deleted_at": null
     },
     {
@@ -8354,14 +8356,14 @@
       "id": "bdd57112-84ec-45fa-b383-0dfa0fdd7dc2",
       "account_id": "woody-checking",
       "owner": "woody",
-      "txn_date": "2027-07-16",
+      "txn_date": "2027-07-23",
       "description": "Loan Payment",
-      "source": "Iphone Upgrade Program",
+      "source": "Apple Upgrade Program",
       "deposit": 0,
-      "withdrawal": 67,
+      "withdrawal": 56.97,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:36:23.941Z",
       "deleted_at": null
     },
     {
@@ -8512,10 +8514,10 @@
       "description": "Bill",
       "source": "Progressive Car Insurance",
       "deposit": 0,
-      "withdrawal": 187.83,
+      "withdrawal": 198.5,
       "note": "",
       "created_at": "2026-07-06T23:17:37.678Z",
-      "updated_at": "2026-07-06T23:17:37.678Z",
+      "updated_at": "2026-10-06T21:40:19.707Z",
       "deleted_at": null
     },
     {
@@ -16049,6 +16051,244 @@
       "created_at": "2026-09-30T16:41:45.311Z",
       "updated_at": "2026-09-30T16:41:45.311Z",
       "deleted_at": null
+    },
+    {
+      "id": "8207f88f-b3b3-4b4e-ad67-76ef0c6bfc42",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-11-23",
+      "description": "Loan Payment",
+      "source": "Apple Card Installments",
+      "deposit": 0,
+      "withdrawal": 41.5,
+      "note": "",
+      "created_at": "2026-10-06T21:22:36.821Z",
+      "updated_at": "2026-10-06T21:22:36.821Z",
+      "deleted_at": null
+    },
+    {
+      "id": "f8367313-ce86-4cf0-a490-6e0cef812ff0",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-11-23",
+      "description": "Loan Payment",
+      "source": "Apple Card Installments",
+      "deposit": 0,
+      "withdrawal": 41.5,
+      "note": "",
+      "created_at": "2026-10-06T21:22:36.840Z",
+      "updated_at": "2026-10-06T21:24:27.431Z",
+      "deleted_at": null
+    },
+    {
+      "id": "fb98a54b-5373-4e5e-9116-3a870b2ab8a0",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-12-23",
+      "description": "Loan Payment",
+      "source": "Apple Card Installments",
+      "deposit": 0,
+      "withdrawal": 41.5,
+      "note": "",
+      "created_at": "2026-10-06T21:22:36.853Z",
+      "updated_at": "2026-10-06T21:22:36.853Z",
+      "deleted_at": null
+    },
+    {
+      "id": "566b9743-6edb-4b73-9718-07f9b4f3c08d",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-01-23",
+      "description": "Loan Payment",
+      "source": "Apple Card Installments",
+      "deposit": 0,
+      "withdrawal": 41.5,
+      "note": "",
+      "created_at": "2026-10-06T21:22:36.865Z",
+      "updated_at": "2026-10-06T21:22:36.865Z",
+      "deleted_at": null
+    },
+    {
+      "id": "14944152-cb82-495a-87f3-3798a5f74c40",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-02-23",
+      "description": "Loan Payment",
+      "source": "Apple Card Installments",
+      "deposit": 0,
+      "withdrawal": 41.5,
+      "note": "",
+      "created_at": "2026-10-06T21:22:36.875Z",
+      "updated_at": "2026-10-06T21:22:36.875Z",
+      "deleted_at": null
+    },
+    {
+      "id": "9fe2d550-1887-481d-a309-010aa1674e94",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-03-23",
+      "description": "Loan Payment",
+      "source": "Apple Card Installments",
+      "deposit": 0,
+      "withdrawal": 41.5,
+      "note": "",
+      "created_at": "2026-10-06T21:22:36.886Z",
+      "updated_at": "2026-10-06T21:22:36.886Z",
+      "deleted_at": null
+    },
+    {
+      "id": "5e426cbf-b58a-40cb-8fd0-cb2422f42b85",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-04-23",
+      "description": "Loan Payment",
+      "source": "Apple Card Installments",
+      "deposit": 0,
+      "withdrawal": 41.5,
+      "note": "",
+      "created_at": "2026-10-06T21:22:36.897Z",
+      "updated_at": "2026-10-06T21:22:36.897Z",
+      "deleted_at": null
+    },
+    {
+      "id": "325bda3a-9981-4f8e-93a9-81135879a153",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-05-23",
+      "description": "Loan Payment",
+      "source": "Apple Card Installments",
+      "deposit": 0,
+      "withdrawal": 41.5,
+      "note": "",
+      "created_at": "2026-10-06T21:22:36.907Z",
+      "updated_at": "2026-10-06T21:22:36.907Z",
+      "deleted_at": null
+    },
+    {
+      "id": "54096871-e84f-45c1-be83-e3fbe019b47c",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-06-23",
+      "description": "Loan Payment",
+      "source": "Apple Card Installments",
+      "deposit": 0,
+      "withdrawal": 41.5,
+      "note": "",
+      "created_at": "2026-10-06T21:22:36.917Z",
+      "updated_at": "2026-10-06T21:22:36.917Z",
+      "deleted_at": null
+    },
+    {
+      "id": "d1d04ad2-c3be-44d2-80ae-3374b925ed4b",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-07-23",
+      "description": "Loan Payment",
+      "source": "Apple Card Installments",
+      "deposit": 0,
+      "withdrawal": 41.5,
+      "note": "",
+      "created_at": "2026-10-06T21:22:36.929Z",
+      "updated_at": "2026-10-06T21:22:36.929Z",
+      "deleted_at": null
+    },
+    {
+      "id": "cdcf91eb-ffad-4ed7-bac6-acd93fba76eb",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-08-23",
+      "description": "Loan Payment",
+      "source": "Apple Card Installments",
+      "deposit": 0,
+      "withdrawal": 41.5,
+      "note": "",
+      "created_at": "2026-10-06T21:22:36.940Z",
+      "updated_at": "2026-10-06T21:22:36.940Z",
+      "deleted_at": null
+    },
+    {
+      "id": "dad0f57b-fb06-4dff-9178-cf7ac6495b14",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-09-23",
+      "description": "Loan Payment",
+      "source": "Apple Card Installments",
+      "deposit": 0,
+      "withdrawal": 41.5,
+      "note": "",
+      "created_at": "2026-10-06T21:22:36.951Z",
+      "updated_at": "2026-10-06T21:22:36.951Z",
+      "deleted_at": null
+    },
+    {
+      "id": "eaac2b7f-a903-451a-b7a1-b30ab18f0393",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-10-23",
+      "description": "Loan Payment",
+      "source": "Apple Card Installments",
+      "deposit": 0,
+      "withdrawal": 41.5,
+      "note": "",
+      "created_at": "2026-10-06T21:22:36.959Z",
+      "updated_at": "2026-10-06T21:22:36.959Z",
+      "deleted_at": null
+    },
+    {
+      "id": "346db37e-472b-41ef-9ead-b8fd8505aba7",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2026-10-23",
+      "description": "Loan Payment",
+      "source": "Apple Upgrade Program",
+      "deposit": 0,
+      "withdrawal": 56.97,
+      "note": "",
+      "created_at": "2026-10-06T21:36:23.792Z",
+      "updated_at": "2026-10-06T21:36:23.792Z",
+      "deleted_at": null
+    },
+    {
+      "id": "b78815da-7180-4953-bc40-59b4b5e48336",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-10-23",
+      "description": "Loan Payment",
+      "source": "Apple Upgrade Program",
+      "deposit": 0,
+      "withdrawal": 56.97,
+      "note": "",
+      "created_at": "2026-10-06T21:36:23.817Z",
+      "updated_at": "2026-10-06T21:36:23.817Z",
+      "deleted_at": null
+    },
+    {
+      "id": "2f8819b2-ddb0-4ca4-abbf-4c976ddec6f4",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-09-23",
+      "description": "Loan Payment",
+      "source": "Apple Upgrade Program",
+      "deposit": 0,
+      "withdrawal": 56.97,
+      "note": "",
+      "created_at": "2026-10-06T21:36:23.831Z",
+      "updated_at": "2026-10-06T21:36:23.831Z",
+      "deleted_at": null
+    },
+    {
+      "id": "0952e0c9-b700-4235-9778-9100c99e67f8",
+      "account_id": "woody-checking",
+      "owner": "woody",
+      "txn_date": "2027-08-23",
+      "description": "Loan Payment",
+      "source": "Apple Upgrade Program",
+      "deposit": 0,
+      "withdrawal": 56.97,
+      "note": "",
+      "created_at": "2026-10-06T21:36:23.844Z",
+      "updated_at": "2026-10-06T21:36:23.844Z",
+      "deleted_at": null
     }
   ],
   "plan_targets": [
@@ -16311,6 +16551,987 @@
       },
       "created_at": "2026-07-07T15:57:12.964Z",
       "updated_at": "2026-07-07T16:02:54.000Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody",
+      "owner": "woody",
+      "kind": "csp_plan",
+      "name": "Woody — Conscious Spending Plan 2026",
+      "data": {
+        "take_home": 4822,
+        "gross_monthly": 7249,
+        "net_worth": {
+          "assets": 18000,
+          "investments": 37056.62,
+          "savings": 1708.93,
+          "debt": 32619.87
+        },
+        "buckets": [
+          {
+            "bucket": "fixed",
+            "label": "Fixed Costs",
+            "rec_pct": [
+              50,
+              60
+            ],
+            "sort_order": 0
+          },
+          {
+            "bucket": "investments",
+            "label": "Investments",
+            "rec_pct": [
+              10,
+              10
+            ],
+            "sort_order": 1
+          },
+          {
+            "bucket": "savings",
+            "label": "Savings Goals",
+            "rec_pct": [
+              5,
+              10
+            ],
+            "sort_order": 2
+          },
+          {
+            "bucket": "guilt_free",
+            "label": "Guilt-Free Spending",
+            "rec_pct": [
+              20,
+              35
+            ],
+            "sort_order": 3,
+            "catch_all": true
+          }
+        ]
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "2026-10-06T21:06:03.191Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-rajna",
+      "owner": "rajna",
+      "kind": "csp_plan",
+      "name": "Rajna — Conscious Spending Plan 2026",
+      "data": {
+        "take_home": 3579.43,
+        "gross_monthly": 3579.43,
+        "net_worth": {
+          "assets": 0,
+          "investments": 252.91,
+          "savings": 735,
+          "debt": 16623
+        },
+        "buckets": [
+          {
+            "bucket": "fixed",
+            "label": "Fixed Costs",
+            "rec_pct": [
+              50,
+              60
+            ],
+            "sort_order": 0
+          },
+          {
+            "bucket": "investments",
+            "label": "Investments",
+            "rec_pct": [
+              10,
+              10
+            ],
+            "sort_order": 1
+          },
+          {
+            "bucket": "savings",
+            "label": "Savings Goals",
+            "rec_pct": [
+              5,
+              10
+            ],
+            "sort_order": 2
+          },
+          {
+            "bucket": "guilt_free",
+            "label": "Guilt-Free Spending",
+            "rec_pct": [
+              20,
+              35
+            ],
+            "sort_order": 3,
+            "catch_all": true
+          }
+        ]
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "2026-10-06T22:26:39.149Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody-rent-mortgage",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Rent / Mortgage",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [
+          "Housing"
+        ],
+        "sort_order": 0
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "1970-01-01T00:00:00.000Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody-utilities",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Utilities",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [
+          "Housing"
+        ],
+        "sort_order": 1
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "2026-10-06T19:17:20.424Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody-insurance",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Insurance",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 198.5,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Progressive Car Insurance"
+        ],
+        "categories": [],
+        "sort_order": 2
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "2026-10-06T19:18:21.222Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody-car-payment-transportation",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Car Payment / Transportation",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 800,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Car Note",
+          "Car Registration",
+          "Car Ticket"
+        ],
+        "categories": [],
+        "sort_order": 3
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "2026-10-06T21:15:19.585Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody-rajna-assistance-program",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Rajna Assistance Program",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 240,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Rajna Discover",
+          "Rajna Chase",
+          "Rajna",
+          "Rajna Zelle"
+        ],
+        "categories": [],
+        "sort_order": 4
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "2026-10-06T21:15:19.602Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody-debt-payments",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Debt Payments",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 2714,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Student Loans"
+        ],
+        "categories": [
+          "Credit Card Payment"
+        ],
+        "sort_order": 5
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "2026-10-06T21:10:41.066Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody-groceries",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Groceries",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 200,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [],
+        "sort_order": 6
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "1970-01-01T00:00:00.000Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody-phone",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Phone",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 66,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "iPhone Upgrade Program"
+        ],
+        "categories": [],
+        "sort_order": 7
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "2026-10-06T19:25:59.597Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody-subscriptions",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Subscriptions",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 40,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "YouTube",
+          "Amazon Prime",
+          "Termius",
+          "Google Storage",
+          "Amazon Subscribe & Save"
+        ],
+        "categories": [],
+        "sort_order": 8
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "1970-01-01T00:00:00.000Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody-miscellaneous-15-buffer",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Miscellaneous (15% buffer)",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [
+          "Misc",
+          "Expense"
+        ],
+        "sort_order": 9
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "2026-10-06T21:06:03.229Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody-post-tax-retirement-savings",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Post-Tax Retirement Savings",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "investments",
+        "target_amount": 200,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Fidelity Roth IRA"
+        ],
+        "categories": [],
+        "sort_order": 10
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "1970-01-01T00:00:00.000Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody-stocks",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Stocks",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "investments",
+        "target_amount": 20,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Fidelity Individual"
+        ],
+        "categories": [],
+        "sort_order": 11
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "2026-10-06T19:38:43.848Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody-real-estate",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Real Estate",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "investments",
+        "target_amount": 10,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Fundrise"
+        ],
+        "categories": [],
+        "sort_order": 12
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "1970-01-01T00:00:00.000Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody-long-term-emergency-fund",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Long Term Emergency Fund",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "savings",
+        "target_amount": 200,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Emergency HYSA"
+        ],
+        "categories": [],
+        "sort_order": 13
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "1970-01-01T00:00:00.000Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody-vacations",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Vacations",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "savings",
+        "target_amount": 50,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Vacation HYSA"
+        ],
+        "categories": [],
+        "sort_order": 14
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "1970-01-01T00:00:00.000Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody-getting-an-apartment",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Getting an apartment",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "savings",
+        "target_amount": 50,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Apartment HYSA"
+        ],
+        "categories": [],
+        "sort_order": 15
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "1970-01-01T00:00:00.000Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody-gifts",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Gifts",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "savings",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [
+          "Gift",
+          "Donation",
+          "Charity"
+        ],
+        "sort_order": 16
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "1970-01-01T00:00:00.000Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody-wedding",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Wedding",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "savings",
+        "target_amount": 20,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Wedding HYSA"
+        ],
+        "categories": [],
+        "sort_order": 17,
+        "proposed": true
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "2026-10-06T19:38:43.859Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody-ring",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Ring",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "savings",
+        "target_amount": 20,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Ring HYSA"
+        ],
+        "categories": [],
+        "sort_order": 18,
+        "proposed": true
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "2026-10-06T19:38:43.869Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-woody-honeymoon",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Honeymoon",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "savings",
+        "target_amount": 20,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Honeymoon HYSA"
+        ],
+        "categories": [],
+        "sort_order": 19,
+        "proposed": true
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "2026-10-06T19:38:43.879Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-rajna-rent-mortgage",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Rent / Mortgage",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 1335,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Inkwell Rent"
+        ],
+        "categories": [],
+        "sort_order": 0
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "1970-01-01T00:00:00.000Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-rajna-utilities",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Utilities",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 135,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Inkwell Utilities",
+          "Inkwell Electricity",
+          "Georgia Power"
+        ],
+        "categories": [],
+        "sort_order": 1
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "1970-01-01T00:00:00.000Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-rajna-car-payment-transportation",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Car Payment / Transportation",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [
+          "Transportation"
+        ],
+        "sort_order": 2
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "1970-01-01T00:00:00.000Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-rajna-parents",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Parents",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 400,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Ammu",
+          "Remitly"
+        ],
+        "categories": [],
+        "sort_order": 3
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "1970-01-01T00:00:00.000Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-rajna-debt-payments",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Debt Payments",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 500,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [
+          "Credit Card Payment"
+        ],
+        "sort_order": 4
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "2026-10-06T22:36:41.509Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-rajna-groceries-toiletries-supplements",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Groceries (Toiletries/Supplements)",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 150,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [
+          "Groceries"
+        ],
+        "sort_order": 5
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "2026-10-06T22:36:41.526Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-rajna-taxes-payment-plans",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Taxes Payment Plans",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 306,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "IRS",
+          "Comptroller of Maryland"
+        ],
+        "categories": [],
+        "sort_order": 6
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "1970-01-01T00:00:00.000Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-rajna-subscriptions",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Subscriptions",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 48,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Netflix",
+          "ChatGPT",
+          "Apple",
+          "Starz",
+          "Dramawave",
+          "Uber One",
+          "Google"
+        ],
+        "categories": [],
+        "sort_order": 7
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "1970-01-01T00:00:00.000Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-rajna-miscellaneous",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Miscellaneous",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 86,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [
+          "Misc",
+          "School"
+        ],
+        "sort_order": 8
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "2026-10-06T22:36:41.538Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-rajna-phone",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Phone",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "AT&T"
+        ],
+        "categories": [],
+        "sort_order": 9,
+        "proposed": true
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "2026-10-06T22:36:41.562Z",
+      "deleted_at": "2026-10-06T22:36:41.562Z"
+    },
+    {
+      "id": "csp-rajna-tuition-school",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Tuition / School",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Emory University",
+          "Emory SGS Office"
+        ],
+        "categories": [
+          "School"
+        ],
+        "sort_order": 10,
+        "proposed": true
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "2026-10-06T22:36:41.572Z",
+      "deleted_at": "2026-10-06T22:36:41.572Z"
+    },
+    {
+      "id": "csp-rajna-transfers-to-own-woody-s-accounts",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Transfers to own / Woody's accounts",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Zelle transfer",
+          "Internal transfer",
+          "Venmo"
+        ],
+        "categories": [],
+        "sort_order": 11,
+        "proposed": true
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "2026-10-06T22:36:41.582Z",
+      "deleted_at": "2026-10-06T22:36:41.582Z"
+    },
+    {
+      "id": "csp-rajna-post-tax-retirement-savings",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Post-Tax Retirement Savings",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "investments",
+        "target_amount": 25,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Roth IRA"
+        ],
+        "categories": [],
+        "sort_order": 12
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "1970-01-01T00:00:00.000Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-rajna-stocks",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Stocks",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "investments",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [],
+        "sort_order": 13
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "1970-01-01T00:00:00.000Z",
+      "deleted_at": null
+    },
+    {
+      "id": "csp-rajna-long-term-emergency-fund",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Long Term Emergency Fund",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "savings",
+        "target_amount": 50,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Emergency Savings"
+        ],
+        "categories": [],
+        "sort_order": 14
+      },
+      "created_at": "1970-01-01T00:00:00.000Z",
+      "updated_at": "1970-01-01T00:00:00.000Z",
+      "deleted_at": null
+    },
+    {
+      "id": "t3-csp_plan",
+      "owner": "woody",
+      "kind": "csp_plan",
+      "name": "T3 renamed",
+      "data": {
+        "take_home": 1234.56,
+        "buckets": [
+          {
+            "bucket": "fixed",
+            "label": "F",
+            "rec_pct": [
+              50,
+              60
+            ],
+            "sort_order": 0
+          },
+          {
+            "bucket": "guilt_free",
+            "label": "G",
+            "sort_order": 1,
+            "catch_all": true
+          }
+        ],
+        "target_amount": 7,
+        "note": "edited"
+      },
+      "created_at": "2026-10-06T16:29:48.735Z",
+      "updated_at": "2026-10-06T16:29:48.842Z",
+      "deleted_at": "2026-10-06T16:29:48.842Z"
+    },
+    {
+      "id": "t3-csp_item",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "T3 renamed",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 7,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "A",
+          "B"
+        ],
+        "categories": [
+          "C"
+        ],
+        "sort_order": 99,
+        "note": "edited"
+      },
+      "created_at": "2026-10-06T16:29:48.744Z",
+      "updated_at": "2026-10-06T16:29:48.844Z",
+      "deleted_at": "2026-10-06T16:29:48.844Z"
+    },
+    {
+      "id": "01a857f7-0eb6-4a61-ba80-b0c9b2ffa848",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Braces",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 152.39,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Braces"
+        ],
+        "categories": [],
+        "sort_order": 20
+      },
+      "created_at": "2026-10-06T21:06:03.239Z",
+      "updated_at": "2026-10-06T21:06:03.239Z",
+      "deleted_at": null
+    },
+    {
+      "id": "ee96a766-9fd8-4d29-8160-9bec852304d4",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "PRP Treatment",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 400,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Woody PRP"
+        ],
+        "categories": [],
+        "sort_order": 12
+      },
+      "created_at": "2026-10-06T22:36:41.550Z",
+      "updated_at": "2026-10-06T22:36:41.550Z",
       "deleted_at": null
     }
   ]

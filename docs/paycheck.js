@@ -7,6 +7,9 @@
 // saving. Edits/adds/deletes are staged and written back to the ledger on Save.
 
 import { windowFor } from "./shared/paycycle.js";
+import { mountPlanNav } from "./nav-plan.js";
+
+mountPlanNav(document.querySelector(".nav"), { view: null });
 
 const $ = (s) => document.querySelector(s);
 const fmt = (n) => (Number(n) || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
@@ -170,13 +173,17 @@ function computeView() {
   return { rows, balById, startBal, endBal: round2(endBal), deposits: round2(deposits), withdrawals: round2(withdrawals), min: round2(min), minRow };
 }
 
-// Categorical colors assigned by category IDENTITY (never by slice size), from the
-// validated dark palette; unmapped categories fold into a single gray "Other".
+// Categorical colors assigned by category IDENTITY (never by slice size);
+// unmapped categories fold into a single catch-all "Other". These are CSS
+// variables, not literals, so the pie follows the theme — each theme ships its
+// own validated set in theme.css (SVG `fill` accepts `var()` because the chart
+// is inline in the document).
 const CAT_COLORS = {
-  "Housing": "#3987e5", "Bill": "#199e70", "Savings": "#c98500", "Investments": "#008300",
-  "Credit Card Payment": "#9085e9", "Loan Payment": "#e66767", "Food": "#d55181", "Fun": "#d95926",
+  "Housing": "var(--cat-housing)", "Bill": "var(--cat-bill)", "Savings": "var(--cat-savings)",
+  "Investments": "var(--cat-investments)", "Credit Card Payment": "var(--cat-card)",
+  "Loan Payment": "var(--cat-loan)", "Food": "var(--cat-food)", "Fun": "var(--cat-fun)",
 };
-const OTHER_COLOR = "#898781";
+const OTHER_COLOR = "var(--cat-other)";
 const NS = "http://www.w3.org/2000/svg";
 
 function renderChart(rows) {

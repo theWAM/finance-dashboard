@@ -4,12 +4,13 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Finance Dashboard — Ledger</title>
+<link rel="stylesheet" href="./theme.css" />
+<!-- Colors live in theme.css. theme-boot.js applies the current PROFILE's theme
+     before the first paint — blocking and classic on purpose: settings.js is a
+     deferred module, so letting it do this would flash the wrong theme on every
+     navigation. -->
+<script src="./theme-boot.js"></script>
 <style>
-  :root {
-    --bg: #0f1115; --panel: #171a21; --panel-2: #1e222b; --line: #2a2f3a;
-    --text: #e7e9ee; --muted: #9aa3b2; --accent: #4f8cff; --accent-weak: #24304b;
-    --pos: #46c08a; --neg: #ef6b7b; --danger: #b3303f;
-  }
   * { box-sizing: border-box; }
   body {
     font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
@@ -72,14 +73,14 @@
     background: var(--accent); border: none; color: white; border-radius: 8px;
     padding: 7px 14px; cursor: pointer; font-weight: 600;
   }
-  .btn:hover { filter: brightness(1.08); }
+  .btn:hover { filter: var(--btn-hover-filter); }
   .btn.ghost { background: var(--accent-weak); color: var(--text); }
   .btn[disabled] { opacity: .4; cursor: default; }
   .btn[disabled]:hover { filter: none; }
-  .dirty-note { color: #e0a336; font-size: 12px; white-space: nowrap; }
+  .dirty-note { color: var(--warn); font-size: 12px; white-space: nowrap; }
 
-  tr.edited { background: rgba(79,140,255,.08); }
-  tr.new-row { background: rgba(70,192,138,.10); }
+  tr.edited { background: var(--row-edited); }
+  tr.new-row { background: var(--row-new); }
   tr.to-delete { opacity: .45; }
   tr.to-delete input { text-decoration: line-through; }
 
@@ -130,21 +131,10 @@
   /* Date display: full value on desktop, abbreviated (M/D/YY) only on phones. */
   .date-abbr { display: none; }
 
-  /* Filter bar: a funnel toggle on the left of the timeframe text. The funnel
-     stays put and gets an "active" look when the full controls are showing.
-     A targeted [hidden] override is required because .filters sets display:flex,
-     which otherwise beats the [hidden] attribute. */
-  /* Slide down/up by animating the grid row from 0fr → 1fr (animates to the
-     content's natural height). The inner clips during the slide; JS flips it to
-     visible once open so the Category/Source dropdowns aren't cut off. */
-  #filterPanel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .25s ease; }
-  #filterPanel.open { grid-template-rows: 1fr; margin-bottom: 14px; }
-  #filterPanel > .filters { overflow: hidden; min-height: 0; margin-bottom: 0; }
-  .filter-head { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-  .filter-head #filterSummary { color: var(--text); font-weight: 600; }
-  .icon-btn { display: inline-flex; align-items: center; justify-content: center; background: var(--panel-2); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; cursor: pointer; }
-  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .icon-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-weak); }
+  /* The timeframe control (funnel toggle + preset/From/To panel) lives in
+     timeframe-ui.js and brings its own `tf-`prefixed CSS, so this page and the
+     Spending Plan are identical by construction. The Ledger-only facets below
+     (.ms*) are appended into the control's slot. */
   .del.restore { color: var(--accent); }
 
   .userchip {
@@ -154,20 +144,20 @@
   .userchip:hover { border-color: var(--accent); }
   .userchip .avatar {
     width: 24px; height: 24px; border-radius: 50%; background: var(--accent);
-    color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 700;
+    color: var(--on-accent); display: grid; place-items: center; font-size: 11px; font-weight: 700;
     overflow: hidden;
   }
   .userchip .avatar img { width: 100%; height: 100%; object-fit: cover; }
   .userchip .switch { color: var(--muted); font-size: 11px; }
 
   .modal {
-    position: fixed; inset: 0; background: rgba(6,8,12,.72); backdrop-filter: blur(3px);
+    position: fixed; inset: 0; background: var(--scrim); backdrop-filter: blur(3px);
     display: grid; place-items: center; z-index: 20;
   }
   .modal[hidden] { display: none; }
   .modal-card {
     background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
-    padding: 32px; width: min(1120px, 96vw); box-shadow: 0 24px 60px rgba(0,0,0,.5);
+    padding: 32px; width: min(1120px, 96vw); box-shadow: var(--shadow-lg);
   }
   .modal-card h2 { margin: 0 0 6px; font-size: 24px; text-align: center; }
   .modal-card p { margin: 0 0 24px; color: var(--muted); font-size: 14px; text-align: center; }
@@ -184,19 +174,11 @@
        any screen (a fixed 448px looked huge on smaller laptops). */
     width: clamp(150px, 30vw, 460px); height: clamp(150px, 30vw, 460px);
     border-radius: 50%; object-fit: cover;
-    background: var(--accent); box-shadow: 0 12px 36px rgba(0,0,0,.4);
+    background: var(--accent); box-shadow: var(--shadow-photo);
   }
-  .who-photo.initials { display: grid; place-items: center; color: #fff; font-size: clamp(56px, 10vw, 160px); font-weight: 700; }
+  .who-photo.initials { display: grid; place-items: center; color: var(--on-accent); font-size: clamp(56px, 10vw, 160px); font-weight: 700; }
   .who-card .name { font-weight: 600; font-size: clamp(20px, 2.2vw, 32px); }
 
-  .filters { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
-  .filters > label { color: var(--muted); font-size: 12px; display: inline-flex; gap: 6px; align-items: center; }
-  .filters input[type="date"] {
-    background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
-    padding: 6px 9px; color: var(--text);
-  }
-  .filters input[type="date"]:focus { outline: none; border-color: var(--accent); }
-  .filters .btn { padding: 6px 12px; }
   .filter-count { color: var(--muted); font-size: 12px; }
   #syncStatus.stale { color: var(--neg); font-weight: 600; }
 
@@ -224,7 +206,7 @@
     position: absolute; top: calc(100% + 4px); left: 0; z-index: 8;
     background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
     padding: 6px; min-width: 210px; max-height: 340px; overflow: auto;
-    box-shadow: 0 12px 30px rgba(0,0,0,.45);
+    box-shadow: var(--shadow-sm);
   }
   .ms-panel[hidden] { display: none; }
   .ms-opt {
@@ -246,7 +228,7 @@
   .daily-check {
     position: fixed; bottom: 20px; right: 20px; z-index: 12; width: 300px;
     background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
-    padding: 14px 16px; box-shadow: 0 16px 40px rgba(0,0,0,.5);
+    padding: 14px 16px; box-shadow: var(--shadow-md);
   }
   .daily-check[hidden] { display: none; }
   .dc-close { position: absolute; top: 8px; right: 10px; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 16px; }
@@ -275,7 +257,6 @@
   </button>
   <button id="publishBtn" class="btn ghost" title="Publish a snapshot to the public site">Publish</button>
   <button id="refreshBtn" class="btn ghost" title="Sync in the latest published data">Sync</button>
-  <button id="lowPowerBtn" class="btn ghost" aria-pressed="false" title="Lighter rendering for slower machines (per-computer setting)">Low power: off</button>
   <span id="syncStatus" class="filter-count" title=""></span>
   <div class="grow"></div>
   <span id="dirtyNote" class="dirty-note" hidden>unsaved changes</span>
@@ -287,38 +268,15 @@
 </header>
 
 <main>
-  <div class="filter-head">
-    <button id="filterToggle" class="icon-btn" aria-pressed="false" title="Filters" aria-label="Toggle filters">
-      <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M1.5 3h13l-5 6v4l-3 1.5V9z" fill="currentColor"/></svg>
-    </button>
-    <span id="filterSummary">Timeframe</span>
-  </div>
-  <div id="filterPanel">
-   <div class="filters">
-    <select id="fPreset" title="Timeframe">
-      <option value="custom" hidden>Custom range</option>
-      <option value="3paychecks">3 paychecks</option>
-      <option value="last30">Last 30 days</option>
-      <option value="next30">Next 30 days</option>
-      <option value="last60">Last 60 days</option>
-      <option value="next60">Next 60 days</option>
-      <option value="last90">Last 90 days</option>
-      <option value="next90">Next 90 days</option>
-      <option value="last6mo">Last 6 months</option>
-      <option value="next6mo">Next 6 months</option>
-      <option value="thisyear">This year</option>
-      <option value="lastyear">Last year</option>
-      <option value="nextyear">Next year</option>
-      <option value="all">All time</option>
-    </select>
-    <label>From <input type="date" id="fFrom"></label>
-    <label>To <input type="date" id="fTo"></label>
+  <!-- The shared timeframe control mounts here (see timeframe-ui.js); app.js
+       then moves the Ledger-only facets below into its filter row. -->
+  <div id="timeframe"></div>
+  <template id="ledgerFacets">
     <div class="ms" id="msCategory"></div>
     <div class="ms" id="msSource"></div>
     <button id="fClear" class="btn ghost" hidden>Clear</button>
     <span id="fCount" class="filter-count"></span>
-   </div>
-  </div>
+  </template>
 
   <div id="bulkBar" class="bulkbar" hidden>
     <span class="bulk-count" id="bulkCount">0 selected</span>
@@ -388,6 +346,7 @@
 </div>
 
 <script type="module" src="./mock-api.js"></script>
+<script type="module" src="./settings.js"></script>
 <script type="module" src="./app.js"></script>
 </body>
 </html>

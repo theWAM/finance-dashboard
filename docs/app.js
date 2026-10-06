@@ -1,5 +1,9 @@
-import { windowFor, previousWindowFor } from "./shared/paycycle.js";
+import { payAnchor as timeframeAnchor, DEFAULT_PRESET, PRESETS } from "./shared/timeframe.js";
+import { mountTimeframe } from "./timeframe-ui.js";
 import { formatStamp, lastUpdated } from "./shared/stamp.js";
+import { mountPlanNav } from "./nav-plan.js";
+
+mountPlanNav(document.querySelector(".nav"), { view: null });
 
 // Ledger grid: a spreadsheet-style editor over the local CRUD API.
 //
@@ -33,6 +37,19 @@ const byDate = (a, b) =>
 
 const TODAY = new Date().toISOString().slice(0, 10);
 const params = new URLSearchParams(location.search);
+// A repeatable (?source=a&source=b) or comma-separated (?source=a,b) param,
+// as a list of trimmed, non-empty values.
+const paramList = (key) => params.getAll(key).flatMap((v) => v.split(",")).map((v) => v.trim()).filter(Boolean);
+// Deep-link filter from the URL — used by the CSP drill-down's "View in
+// Ledger" link (and hand-built URLs) to land pre-filtered. Resolved once at
+// load; absent params keep today's behavior (resetFilter's old default).
+const deepLink = {
+  preset: params.get("preset") || "",
+  from: params.get("from") || "",
+  to: params.get("to") || "",
+  categories: paramList("category"),
+  sources: paramList("source"),
+};
 const state = {
   accountId: params.get("account"),
   accounts: [],
@@ -121,6 +138,9 @@ async function selectUser(id) {
   if (hasPending() && !confirm("Discard unsaved changes?")) return;
   state.currentUser = id;
   localStorage.setItem("currentUser", id);
+  // The theme belongs to the person, and this switch doesn't reload — tell the
+  // settings panel so it can re-resolve for the newly selected profile.
+  window.dispatchEvent(new CustomEvent("userchange", { detail: { id } }));
   $("#who").hidden = true;
   renderUserChip();
   state.accountId = null; // re-default to the newly selected person's account
@@ -198,66 +218,40 @@ function matchesFilter(r) {
 }
 
 // The current person's cadence + the paycheck to anchor pay-window math to.
-function payAnchor() {
-  const today = new Date().toISOString().slice(0, 10);
-  const person = state.people.find((p) => p.id === state.currentUser);
-  const cadence = person?.pay_cadence || "biweekly";
-  const pays = state.rows
-    .filter((t) => /paycheck/i.test(t.description || "") && Number(t.deposit) > 0)
-    .map((t) => t.txn_date).sort();
-  let anchor = today;
-  if (pays.length) { const past = pays.filter((d) => d <= today); anchor = past.length ? past[past.length - 1] : pays[pays.length - 1]; }
-  return { cadence, anchor, today };
-}
+// Resolved fresh on every preset application (the control calls this), so the
+// `3paychecks` window follows the latest paycheck as rows are added.
+const payAnchor = () => timeframeAnchor(state.rows, {
+  person: state.people.find((p) => p.id === state.currentUser),
+});
 
-// Map a timeframe preset key to a { from, to } date window ("" = open-ended).
-function presetWindow(key) {
-  const now = new Date();
-  const iso = (d) => d.toISOString().slice(0, 10);
-  const t = iso(now);
-  const addDays = (n) => { const d = new Date(now); d.setDate(d.getDate() + n); return iso(d); };
-  const addMonths = (n) => { const d = new Date(now); d.setMonth(d.getMonth() + n); return iso(d); };
-  const y = now.getFullYear();
-  switch (key) {
-    case "3paychecks": {
-      const { cadence, anchor } = payAnchor();
-      const prev = previousWindowFor(cadence, anchor, t);      // one paycheck ago
-      const cur = windowFor(cadence, anchor, t);               // current period
-      const next = windowFor(cadence, anchor, cur.nextStart);  // next period
-      return { from: prev.start, to: next.nextStart };         // prev · current · next
-    }
-    case "last30": return { from: addDays(-30), to: t };
-    case "next30": return { from: t, to: addDays(30) };
-    case "last60": return { from: addDays(-60), to: t };
-    case "next60": return { from: t, to: addDays(60) };
-    case "last90": return { from: addDays(-90), to: t };
-    case "next90": return { from: t, to: addDays(90) };
-    case "last6mo": return { from: addMonths(-6), to: t };
-    case "next6mo": return { from: t, to: addMonths(6) };
-    case "thisyear": return { from: `${y}-01-01`, to: `${y}-12-31` };
-    case "lastyear": return { from: `${y - 1}-01-01`, to: `${y - 1}-12-31` };
-    case "nextyear": return { from: `${y + 1}-01-01`, to: `${y + 1}-12-31` };
-    case "all": return { from: "", to: "" };
-    default: return { from: "", to: "" };
-  }
-}
+// The shared timeframe control owns the funnel toggle, the "Displaying …" chip,
+// the preset <select> and From/To; the Ledger-only Category/Source facets (plus
+// Clear and the row count) are appended into its slot, so the filter row looks
+// and behaves exactly as it did when all of it lived in this file.
+const tf = mountTimeframe($("#timeframe"), {
+  context: () => payAnchor(),
+  onChange: ({ from, to }) => { state.filter.from = from; state.filter.to = to; render(); },
+  summaryExtra: () => {
+    const n = state.filter.categories.size + state.filter.sources.size;
+    return n ? `${n} filter${n === 1 ? "" : "s"}` : "";
+  },
+});
+tf.slot.appendChild($("#ledgerFacets").content);
 
-function applyPreset(key) {
-  const { from, to } = presetWindow(key);
-  state.filter.from = from;
-  state.filter.to = to;
-  $("#fFrom").value = from;
-  $("#fTo").value = to;
-  $("#fPreset").value = key;
-  render();
-}
-
+// A fresh account starts on the default timeframe with no facets selected —
+// unless the URL carries a deep-link window/facets (?preset=, ?from=, ?to=,
+// ?category=, ?source=), in which case that's the "fresh" state instead.
+// Silent: loadLedger renders once afterwards.
 function resetFilter() {
-  const { from, to } = presetWindow("3paychecks"); // default timeframe
-  state.filter = { from, to, categories: new Set(), sources: new Set() };
-  if ($("#fFrom")) $("#fFrom").value = from;
-  if ($("#fTo")) $("#fTo").value = to;
-  if ($("#fPreset")) $("#fPreset").value = "3paychecks";
+  const presetValid = deepLink.preset && PRESETS.some((p) => p.key === deepLink.preset);
+  const win = presetValid ? tf.applyPreset(deepLink.preset, { silent: true })
+    : (deepLink.from || deepLink.to) ? tf.set({ from: deepLink.from, to: deepLink.to }, { silent: true })
+    : tf.applyPreset(DEFAULT_PRESET, { silent: true });
+  state.filter = {
+    from: win.from, to: win.to,
+    categories: new Set(deepLink.categories),
+    sources: new Set(deepLink.sources),
+  };
 }
 
 // Distinct values of a field across the loaded ledger, sorted case-insensitively.
@@ -486,21 +480,9 @@ function render() {
   state._shown = shown;
   updateSelectionUI();
   renderControls();
-  updateFilterSummary();
+  tf.refreshSummary();   // the chip also reports the Ledger-only facet count
 }
 
-// The collapsed filter chip shows the active timeframe (and any facet filters).
-function updateFilterSummary() {
-  const el = $("#filterSummary");
-  if (!el) return;
-  const sel = $("#fPreset");
-  const label = sel.value === "custom"
-    ? `${state.filter.from || "…"} – ${state.filter.to || "…"}`
-    : (sel.selectedOptions[0]?.textContent || "Timeframe");
-  const facets = state.filter.categories.size + state.filter.sources.size;
-  const phrase = facets ? `${label} · ${facets} filter${facets === 1 ? "" : "s"}` : label;
-  el.textContent = `Displaying ${phrase}`;
-}
 
 function rowEl(row, bal) {
   const tr = document.createElement("tr");
@@ -949,49 +931,22 @@ $("#rows").addEventListener("change", (e) => {
   updateSelectionUI();
 });
 
-function setLowPower(on, rerender = true) {
-  state.lowPower = on;
-  localStorage.setItem("lowPower", on ? "1" : "0");
-  document.body.classList.toggle("lowpower", on);
-  const btn = $("#lowPowerBtn");
-  if (btn) { btn.classList.toggle("active", on); btn.setAttribute("aria-pressed", String(on)); btn.textContent = `Low power: ${on ? "on" : "off"}`; }
-  if (rerender) render();
-}
-$("#lowPowerBtn").addEventListener("click", () => setLowPower(!state.lowPower));
+// The toggle itself lives in the global Settings panel (settings.js), which
+// owns the localStorage flag and the `body.lowpower` class. All the Ledger has
+// to do is swap renderers when it changes — it is the only page with a lighter
+// renderer to swap to, so the other four never listen.
+window.addEventListener("lowpowerchange", (e) => {
+  state.lowPower = !!e.detail?.on;
+  render();
+});
 
-$("#fPreset").addEventListener("change", (e) => applyPreset(e.target.value));
-$("#fFrom").addEventListener("change", (e) => { state.filter.from = e.target.value; $("#fPreset").value = "custom"; render(); });
-$("#fTo").addEventListener("change", (e) => { state.filter.to = e.target.value; $("#fPreset").value = "custom"; render(); });
 $("#fClear").addEventListener("click", () => {
   // Clear wipes to show-all (not the default window), so nothing is hidden.
-  state.filter = { from: "", to: "", categories: new Set(), sources: new Set() };
-  $("#fFrom").value = ""; $("#fTo").value = ""; $("#fPreset").value = "all";
+  const { from, to } = tf.clear({ silent: true });
+  state.filter = { from, to, categories: new Set(), sources: new Set() };
   buildFilters(); render();
 });
 document.addEventListener("click", () => closeAllPanels()); // click-away closes dropdowns
-
-// Filter bar: a funnel toggle beside the timeframe text. The funnel stays put
-// and shows an "active" state while the full controls are open.
-function setFiltersOpen(open) {
-  const p = $("#filterPanel");
-  const inner = p.querySelector(".filters");
-  const t = $("#filterToggle");
-  t.classList.toggle("active", open);
-  t.setAttribute("aria-pressed", String(open));
-  if (open) {
-    p.classList.add("open");
-    // Reveal overflow only after the slide finishes, so dropdowns aren't clipped.
-    p.addEventListener("transitionend", (e) => {
-      if (e.propertyName === "grid-template-rows" && p.classList.contains("open")) inner.style.overflow = "visible";
-    }, { once: true });
-  } else {
-    inner.style.overflow = "hidden"; // clip again before sliding up
-    p.classList.remove("open");
-  }
-  localStorage.setItem("filtersOpen", open ? "1" : "0");
-}
-$("#filterToggle").addEventListener("click", () => setFiltersOpen(!$("#filterPanel").classList.contains("open")));
-setFiltersOpen(localStorage.getItem("filtersOpen") === "1"); // default collapsed
 
 $("#selectAll").addEventListener("change", (e) => {
   if (e.target.checked) for (const r of state._shown) state.selected.add(r._id);
@@ -1077,7 +1032,6 @@ window.addEventListener("beforeunload", (e) => { if (hasPending()) { e.preventDe
 
 (async function init() {
   try {
-    setLowPower(state.lowPower, false); // sync body class + button before first render
     await loadPeople();
     if (state.people.length <= 1) {
       // Single-person (or empty) household: auto-select and skip the popup.

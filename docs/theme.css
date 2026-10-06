@@ -1,0 +1,212 @@
+/* ===========================================================================
+   theme.css — the ONE place colors live.
+   ---------------------------------------------------------------------------
+   Every page used to carry its own copy of the same 11-token `:root` block, so
+   a second theme meant editing six files. Now each page links this file and
+   paints itself out of the tokens below; `:root` is the original dark theme
+   (unchanged values — the current look is the spec) and
+   `:root[data-theme="peach"]` is the light one.
+
+   Switching is `document.documentElement.dataset.theme = "peach" | "dark"`,
+   done by settings.js and pre-applied by a tiny inline <head> script on each
+   page so the stored theme is live before the first paint (a deferred module
+   would flash the default first).
+
+   Rules for adding anything here:
+   - No page may hardcode a color. If a value isn't expressible with a token,
+     add a token — that's what --on-accent / --scrim / --row-* / --shadow-*
+     exist for. A literal is invisible in dark and wrong in peach.
+   - "Text ON a filled color" is its own token (--on-accent/--on-danger/
+     --on-slice). White works on a saturated blue and fails on a pastel mint,
+     so the pairing has to be per-theme, not per-element.
+   =========================================================================== */
+
+:root {
+  color-scheme: dark;
+
+  /* surfaces + text */
+  --bg: #0f1115; --panel: #171a21; --panel-2: #1e222b; --line: #2a2f3a;
+  --text: #e7e9ee; --muted: #9aa3b2; --accent: #4f8cff; --accent-weak: #24304b;
+
+  /* semantics */
+  --pos: #46c08a; --neg: #ef6b7b; --warn: #e0a336; --danger: #b3303f;
+
+  /* text drawn on top of a filled --accent / --danger / chart slice */
+  --on-accent: #fff; --on-danger: #fff; --on-slice: #fff;
+
+  /* .btn hover: a filled button has to move AWAY from its background, so a
+     dark theme brightens and a light one darkens. */
+  --btn-hover-filter: brightness(1.08);
+
+  /* overlay behind modals and the settings panel */
+  --scrim: rgba(6, 8, 12, .72);
+
+  /* staged-edit row tints (Ledger / Plan / Spending Plan / This Paycheck) */
+  --row-edited: rgba(79, 140, 255, .08);
+  --row-new: rgba(70, 192, 138, .10);
+  --row-neg: rgba(239, 107, 123, .09);
+
+  /* This Paycheck banners */
+  --banner-warn-bg: rgba(224, 163, 54, .14); --banner-warn-line: rgba(224, 163, 54, .4);
+  --banner-ok-bg: rgba(70, 192, 138, .12);   --banner-ok-line: rgba(70, 192, 138, .35);
+
+  --shadow-sm: 0 12px 30px rgba(0, 0, 0, .45);
+  --shadow-md: 0 16px 40px rgba(0, 0, 0, .5);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, .5);
+  --shadow-photo: 0 12px 36px rgba(0, 0, 0, .4);
+
+  /* charts: the monthly-spend line, then the paycheck pie by category IDENTITY
+     (never by slice size) — 8 mapped categories + one catch-all gray. */
+  --chart-line: #3987e5;
+  --cat-housing: #3987e5; --cat-bill: #199e70; --cat-savings: #c98500;
+  --cat-investments: #008300; --cat-card: #9085e9; --cat-loan: #e66767;
+  --cat-food: #d55181; --cat-fun: #d95926; --cat-other: #898781;
+}
+
+/* ---------------------------------------------------------------------------
+   Peach — peach, pale yellow, mint, white.
+   Inverted surface convention vs. dark: the page is the tinted one (pale
+   yellow) and panels are pure white, separated by a peach --line rather than
+   by luminance. Mint is the accent; peach is the secondary surface.
+
+   On the pastel red/green: a true pastel on a near-white page tops out around
+   2.5:1, which is unreadable. --pos/--neg sit at ~3.3:1 — soft, desaturated,
+   visibly pastel next to the dark theme's values, and legible because every
+   place they're used is a bold number or a short tabular cell (WCAG's 3:1
+   large-text line). See resolved decision #15 in TASKS.md.
+   --------------------------------------------------------------------------- */
+:root[data-theme="peach"] {
+  color-scheme: light;
+
+  --bg: #fff8ea;          /* pale yellow */
+  --panel: #ffffff;       /* white */
+  --panel-2: #fff1e2;     /* peach */
+  --line: #ecd8c6;        /* peach border */
+  --text: #46382f;        /* warm near-black, 10.6:1 on --bg */
+  --muted: #857368;       /* 4.3:1 on --bg */
+  --accent: #1b8168;      /* deep mint — white text clears 4.5:1 on it */
+  --accent-weak: #d7f0e7; /* pastel mint, for active nav / ghost buttons */
+
+  --pos: #2f9b74;         /* pastel sage */
+  --neg: #d06b7d;         /* pastel rose */
+  --warn: #b57b1e;
+  --danger: #b8475c;
+
+  --on-accent: #fff; --on-danger: #fff;
+  --on-slice: #2e2622;    /* pie labels go dark — the slices are pastel */
+
+  /* darken, don't brighten: brightening mint on white drops the white label
+     below 4.5:1 */
+  --btn-hover-filter: brightness(.92);
+
+  --scrim: rgba(70, 52, 38, .45);
+
+  --row-edited: rgba(27, 129, 104, .10);
+  --row-new: rgba(47, 155, 116, .13);
+  --row-neg: rgba(208, 107, 125, .12);
+
+  --banner-warn-bg: rgba(181, 123, 30, .12); --banner-warn-line: rgba(181, 123, 30, .38);
+  --banner-ok-bg: rgba(47, 155, 116, .12);   --banner-ok-line: rgba(47, 155, 116, .34);
+
+  --shadow-sm: 0 10px 26px rgba(124, 88, 56, .16);
+  --shadow-md: 0 14px 34px rgba(124, 88, 56, .18);
+  --shadow-lg: 0 22px 52px rgba(124, 88, 56, .22);
+  --shadow-photo: 0 12px 32px rgba(124, 88, 56, .20);
+
+  --chart-line: #1b8168;
+  --cat-housing: #e8a07a; --cat-bill: #8ec9ad; --cat-savings: #e8c468;
+  --cat-investments: #6fb894; --cat-card: #b5a3d8; --cat-loan: #e59191;
+  --cat-food: #dd8fa8; --cat-fun: #eda871; --cat-other: #bfae9f;
+}
+
+/* ===========================================================================
+   Settings launcher + panel (settings.js builds the markup; the CSS lives here
+   so it isn't duplicated into every page's inline <style>).
+   =========================================================================== */
+
+.settings-fab {
+  position: fixed; left: 18px; bottom: 18px; z-index: 40;
+  width: 42px; height: 42px; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
+  background: var(--panel-2); color: var(--muted);
+  border: 1px solid var(--line); box-shadow: var(--shadow-sm);
+  transition: transform .16s ease, color .16s ease, border-color .16s ease;
+}
+.settings-fab:hover { transform: scale(1.08); color: var(--text); border-color: var(--accent); }
+.settings-fab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.settings-fab svg { width: 20px; height: 20px; display: block; }
+/* The panel replaces the gear in that corner rather than sitting next to it. */
+.settings-fab[aria-expanded="true"] { opacity: 0; pointer-events: none; }
+
+.settings-scrim {
+  position: fixed; inset: 0; z-index: 41;
+  background: var(--scrim); backdrop-filter: blur(2px);
+  opacity: 0; transition: opacity .18s ease;
+}
+.settings-wrap[data-open="true"] .settings-scrim { opacity: 1; }
+
+.settings-panel {
+  position: fixed; left: 18px; bottom: 18px; z-index: 42;
+  width: min(320px, calc(100vw - 36px));
+  max-height: calc(100vh - 36px); overflow: auto;
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--line); border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  padding: 16px 16px 14px;
+  /* grows out of the bottom-left corner the gear occupies */
+  transform-origin: bottom left;
+  transform: scale(.85); opacity: 0;
+  transition: transform .18s cubic-bezier(.2, .8, .3, 1), opacity .18s ease;
+}
+.settings-wrap[data-open="true"] .settings-panel { transform: scale(1); opacity: 1; }
+
+.settings-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.settings-head h2 { font-size: 14px; margin: 0; font-weight: 700; flex: 1; }
+.settings-close {
+  background: transparent; border: 1px solid transparent; border-radius: 8px;
+  color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1;
+  padding: 4px 8px; font-family: inherit;
+}
+.settings-close:hover { color: var(--text); border-color: var(--line); background: var(--panel-2); }
+
+.settings-group { border-top: 1px solid var(--line); padding: 12px 0 2px; }
+.settings-group:first-of-type { border-top: none; padding-top: 0; }
+.settings-group > h3 {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--muted); font-weight: 600; margin: 0 0 9px;
+}
+.settings-hint { color: var(--muted); font-size: 12px; margin: 8px 0 2px; line-height: 1.45; }
+
+/* Appearance: a two-option segmented control, one swatch per theme. */
+.theme-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.theme-opt {
+  display: grid; gap: 7px; justify-items: start;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 11px;
+  padding: 9px 10px; cursor: pointer; color: var(--muted);
+  font: inherit; font-size: 12px; font-weight: 600; text-align: left;
+}
+.theme-opt:hover { border-color: var(--accent); color: var(--text); }
+.theme-opt[aria-checked="true"] { border-color: var(--accent); background: var(--accent-weak); color: var(--text); }
+.theme-opt .sw { display: flex; width: 100%; height: 20px; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); }
+.theme-opt .sw i { flex: 1; }
+
+/* Performance: a plain switch. */
+.settings-row { display: flex; align-items: center; gap: 12px; }
+.settings-row .lbl { flex: 1; font-size: 13px; font-weight: 600; }
+.settings-switch {
+  flex: none; width: 40px; height: 23px; border-radius: 999px; cursor: pointer;
+  background: var(--panel-2); border: 1px solid var(--line); padding: 0;
+  position: relative; transition: background .16s ease, border-color .16s ease;
+}
+.settings-switch .knob {
+  position: absolute; top: 2px; left: 2px; width: 17px; height: 17px; border-radius: 50%;
+  background: var(--muted); transition: transform .16s ease, background .16s ease;
+}
+.settings-switch[aria-checked="true"] { background: var(--accent-weak); border-color: var(--accent); }
+.settings-switch[aria-checked="true"] .knob { transform: translateX(17px); background: var(--accent); }
+.settings-switch:focus-visible, .theme-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-fab, .settings-panel, .settings-scrim, .settings-switch .knob { transition: none; }
+  .settings-fab:hover { transform: none; }
+}

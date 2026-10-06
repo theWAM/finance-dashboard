@@ -4,12 +4,13 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Finance Dashboard</title>
+<link rel="stylesheet" href="./theme.css" />
+<!-- Colors live in theme.css. theme-boot.js applies the current PROFILE's theme
+     before the first paint — blocking and classic on purpose: settings.js is a
+     deferred module, so letting it do this would flash the wrong theme on every
+     navigation. -->
+<script src="./theme-boot.js"></script>
 <style>
-  :root {
-    --bg: #0f1115; --panel: #171a21; --panel-2: #1e222b; --line: #2a2f3a;
-    --text: #e7e9ee; --muted: #9aa3b2; --accent: #4f8cff; --accent-weak: #24304b;
-    --pos: #46c08a; --neg: #ef6b7b; --warn: #e0a336;
-  }
   * { box-sizing: border-box; }
   body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); font-size: 14px; }
   header { padding: 18px 24px; border-bottom: 1px solid var(--line); background: var(--panel); }
@@ -32,6 +33,7 @@
       <a href="./index.html" class="active">Dashboard</a>
       <a href="./ledger.html">Ledger</a>
       <a href="./paycheck.html">This Paycheck</a>
+      <a href="./csp.html">Spending Plan</a>
     </nav>
   </div>
   <label class="meta" style="display:inline-flex;align-items:center;gap:8px;">View
@@ -42,6 +44,12 @@
 </header>
 <main><div id="dashRoot"><p class="muted">Loading…</p></div></main>
 
+<!-- This page reads people straight out of snapshot.json and has no /api/ shim,
+     so it hands the per-profile themes to settings.js rather than let it fetch.
+     Declared (empty) before that module loads; filled in once the snapshot is
+     here, then announced with `userchange`. -->
+<script>window.__profileThemes = {};</script>
+<script type="module" src="./settings.js"></script>
 <script type="module">
   import { renderDashboard } from "./shared/dashboard-render.js";
   import { lastUpdated } from "./shared/stamp.js";
@@ -58,6 +66,7 @@
         lastUpdated(snap.published_at) + (snap.published_by ? ` by ${snap.published_by}` : "");
 
       const people = snap.people || [];
+      for (const p of people) window.__profileThemes[p.id] = p.theme || null;
       const sel = document.getElementById("userSel");
       for (const p of people.filter((x) => !x.deleted_at)) {
         const o = document.createElement("option"); o.value = p.id; o.textContent = p.name; sel.appendChild(o);
@@ -66,6 +75,11 @@
       sel.value = localStorage.getItem("pubView") || "";
       const draw = () => {
         localStorage.setItem("pubView", sel.value);
+        // The published dashboard picks a person with this selector rather than
+        // the usual `currentUser` chip, so mirror the choice into the key
+        // theme-boot.js reads and announce it for the settings panel.
+        if (sel.value) localStorage.setItem("currentUser", sel.value); else localStorage.removeItem("currentUser");
+        window.dispatchEvent(new CustomEvent("userchange", { detail: { id: sel.value } }));
         renderDashboard(document.getElementById("dashRoot"), {
           people,
           accounts: snap.accounts || [],

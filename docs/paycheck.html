@@ -4,12 +4,13 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Finance Dashboard — This Paycheck</title>
+<link rel="stylesheet" href="./theme.css" />
+<!-- Colors live in theme.css. theme-boot.js applies the current PROFILE's theme
+     before the first paint — blocking and classic on purpose: settings.js is a
+     deferred module, so letting it do this would flash the wrong theme on every
+     navigation. -->
+<script src="./theme-boot.js"></script>
 <style>
-  :root {
-    --bg: #0f1115; --panel: #171a21; --panel-2: #1e222b; --line: #2a2f3a;
-    --text: #e7e9ee; --muted: #9aa3b2; --accent: #4f8cff; --accent-weak: #24304b;
-    --pos: #46c08a; --neg: #ef6b7b; --warn: #e0a336;
-  }
   * { box-sizing: border-box; }
   body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); font-size: 14px; }
   header { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 16px 24px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; }
@@ -19,14 +20,14 @@
   .nav a.active { color: var(--text); background: var(--accent-weak); }
   .grow { flex: 1; }
   button { font: inherit; color: inherit; }
-  .btn { background: var(--accent); border: none; color: #fff; border-radius: 8px; padding: 7px 14px; cursor: pointer; font-weight: 600; }
-  .btn:hover { filter: brightness(1.08); }
+  .btn { background: var(--accent); border: none; color: var(--on-accent); border-radius: 8px; padding: 7px 14px; cursor: pointer; font-weight: 600; }
+  .btn:hover { filter: var(--btn-hover-filter); }
   .btn.ghost { background: var(--accent-weak); color: var(--text); }
   .btn[disabled] { opacity: .4; cursor: default; }
 
   .userchip { display: inline-flex; align-items: center; gap: 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 5px 6px 5px 12px; cursor: pointer; }
   .userchip:hover { border-color: var(--accent); }
-  .userchip .avatar { width: 24px; height: 24px; border-radius: 50%; overflow: hidden; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+  .userchip .avatar { width: 24px; height: 24px; border-radius: 50%; overflow: hidden; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; font-size: 11px; font-weight: 700; }
   .userchip .avatar img { width: 100%; height: 100%; object-fit: cover; }
   .userchip .switch { color: var(--muted); font-size: 11px; }
 
@@ -55,8 +56,8 @@
   .value.neg { color: var(--neg); } .value.pos { color: var(--pos); }
 
   .banner { border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; }
-  .banner.warn { background: rgba(224,163,54,.14); border: 1px solid rgba(224,163,54,.4); color: var(--warn); }
-  .banner.ok { background: rgba(70,192,138,.12); border: 1px solid rgba(70,192,138,.35); color: var(--pos); }
+  .banner.warn { background: var(--banner-warn-bg); border: 1px solid var(--banner-warn-line); color: var(--warn); }
+  .banner.ok { background: var(--banner-ok-bg); border: 1px solid var(--banner-ok-line); color: var(--pos); }
 
   .toolbar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
 
@@ -66,7 +67,7 @@
   .chart-body { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
   #donut { flex: 0 0 auto; }
   #donut path { stroke: var(--panel-2); stroke-width: 2; }
-  .slice-label { fill: #fff; font-size: 11px; font-weight: 700; text-anchor: middle; }
+  .slice-label { fill: var(--on-slice); font-size: 11px; font-weight: 700; text-anchor: middle; }
   .donut-total { fill: var(--text); font-size: 22px; font-weight: 700; text-anchor: middle; }
   .donut-sub { fill: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; text-anchor: middle; }
   .legend { display: grid; grid-template-columns: auto 1fr auto auto; gap: 7px 14px; align-items: center; font-size: 13px; min-width: 340px; }
@@ -85,9 +86,9 @@
   td.col-dep input { color: var(--pos); }
   td.proj { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); padding-right: 12px; white-space: nowrap; }
   td.proj.neg { color: var(--neg); font-weight: 600; }
-  tr.neg-row { background: rgba(239,107,123,.09); }
-  tr.edited { background: rgba(79,140,255,.08); }
-  tr.new-row { background: rgba(70,192,138,.10); }
+  tr.neg-row { background: var(--row-neg); }
+  tr.edited { background: var(--row-edited); }
+  tr.new-row { background: var(--row-new); }
   tr.to-delete { opacity: .45; } tr.to-delete input { text-decoration: line-through; }
   .col-date { width: 130px; } .col-dep, .col-wd { width: 120px; } .col-proj { width: 150px; }
   .dirty-note { color: var(--warn); font-size: 12px; white-space: nowrap; }
@@ -103,15 +104,15 @@
   .toast.show { opacity: 1; }
   .empty { color: var(--muted); padding: 30px 4px; }
 
-  .modal { position: fixed; inset: 0; background: rgba(6,8,12,.72); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 20; }
+  .modal { position: fixed; inset: 0; background: var(--scrim); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 20; }
   .modal[hidden] { display: none; }
-  .modal-card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 32px; width: min(1120px, 96vw); box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+  .modal-card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 32px; width: min(1120px, 96vw); box-shadow: var(--shadow-lg); }
   .modal-card h2 { margin: 0 0 6px; font-size: 24px; text-align: center; }
   .who-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 28px; }
   .who-card { display: flex; flex-direction: column; align-items: center; gap: 22px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 24px; padding: 36px 28px; cursor: pointer; color: var(--text); transition: transform .08s ease, border-color .08s ease, background .08s ease; }
   .who-card:hover { border-color: var(--accent); background: var(--accent-weak); transform: translateY(-2px); }
-  .who-photo { width: clamp(150px, 30vw, 460px); height: clamp(150px, 30vw, 460px); border-radius: 50%; object-fit: cover; background: var(--accent); box-shadow: 0 12px 36px rgba(0,0,0,.4); }
-  .who-photo.initials { display: grid; place-items: center; color: #fff; font-size: clamp(56px, 10vw, 160px); font-weight: 700; }
+  .who-photo { width: clamp(150px, 30vw, 460px); height: clamp(150px, 30vw, 460px); border-radius: 50%; object-fit: cover; background: var(--accent); box-shadow: var(--shadow-photo); }
+  .who-photo.initials { display: grid; place-items: center; color: var(--on-accent); font-size: clamp(56px, 10vw, 160px); font-weight: 700; }
   .who-card .name { font-weight: 600; font-size: clamp(20px, 2.2vw, 32px); }
 
   .modal-card.recur-card { width: min(440px, 92vw); padding: 26px; }
@@ -241,6 +242,7 @@
 </div>
 
 <script type="module" src="./mock-api.js"></script>
+<script type="module" src="./settings.js"></script>
 <script type="module" src="./paycheck.js"></script>
 </body>
 </html>

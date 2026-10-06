@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Finance Dashboard — Spending Plan</title>
+<link rel="stylesheet" href="./theme.css" />
+<!-- Colors live in theme.css. theme-boot.js applies the current PROFILE's theme
+     before the first paint — blocking and classic on purpose: settings.js is a
+     deferred module, so letting it do this would flash the wrong theme on every
+     navigation. -->
+<script src="./theme-boot.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); font-size: 14px; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 16px 24px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; }
+  .nav { display: flex; gap: 4px; }
+  .nav a { color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+  .nav a:hover { color: var(--text); background: var(--panel-2); }
+  .nav a.active { color: var(--text); background: var(--accent-weak); }
+  .grow { flex: 1; }
+  button, select, input { font: inherit; color: inherit; }
+  .btn { background: var(--accent); border: none; color: var(--on-accent); border-radius: 8px; padding: 7px 14px; cursor: pointer; font-weight: 600; }
+  .btn:hover { filter: var(--btn-hover-filter); }
+  .btn.ghost { background: var(--accent-weak); color: var(--text); }
+  .btn[disabled] { opacity: .4; cursor: default; }
+  .dirty-note { color: var(--warn); font-size: 12px; white-space: nowrap; }
+
+  main { padding: 20px 24px 80px; max-width: 1180px; }
+  /* the Plan/Spending-Plan switcher sits above the page content, not inline
+     with the main navbar. Margin only — `.view-switch`'s own `display:
+     inline-flex` (added by view-switch.js only once it has 2+ views to show)
+     still controls whether it renders at all. */
+  #viewSwitch { margin-bottom: 16px; }
+
+  /* --- plan section ------------------------------------------------------ */
+  .plan-section { margin-bottom: 36px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); overflow: hidden; }
+  .plan-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 18px; padding: 16px 18px; border-bottom: 1px solid var(--line); background: var(--panel-2); }
+  .plan-head .name-field input { font-size: 16px; font-weight: 700; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 5px 8px; color: var(--text); min-width: 360px; }
+  .plan-head .name-field input:hover { border-color: var(--line); }
+  .plan-head .name-field input:focus { outline: none; border-color: var(--accent); background: var(--panel); }
+  .plan-fields { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 3px; }
+  .field label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
+  .field input { background: var(--panel); border: 1px solid var(--line); border-radius: 7px; padding: 6px 9px; color: var(--text); width: 120px; }
+  .field input:focus { outline: none; border-color: var(--accent); }
+  .field.money input { text-align: right; font-variant-numeric: tabular-nums; }
+  /* Balance sheet: the computed net worth leads the row, the four typed
+     components follow it, separated by a rule so it reads as a total of them. */
+  .netw { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; padding: 10px 18px; color: var(--muted); font-size: 12px; }
+  .netw .field input { width: 100px; }
+  .netw .netw-total { padding-right: 14px; margin-right: 4px; border-right: 1px solid var(--line); }
+  .netw .netw-total b { font-size: 17px; color: var(--text); font-variant-numeric: tabular-nums; padding: 4px 0; }
+  .netw .netw-total b.neg { color: var(--neg); }
+  .plan-actions { margin-left: auto; display: flex; gap: 8px; align-self: center; }
+  .plan-actions .del { font-size: 18px; }
+
+  /* --- buckets ------------------------------------------------------------ */
+  /* Padding moved onto the head and body: the head is the collapse toggle, so
+     it needs its own hit area and hover, and a collapsed bucket is nothing but
+     that head. */
+  .bucket { border-bottom: 1px solid var(--line); }
+  .bucket:last-child { border-bottom: none; }
+  .bucket-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 11px 18px; cursor: pointer; }
+  .bucket-head:hover { background: var(--panel-2); }
+  .bucket-body { padding: 0 18px 14px; }
+  .caret-btn { flex-shrink: 0; background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: 10px; line-height: 1; padding: 4px 3px; border-radius: 4px; transition: transform .12s; }
+  .caret-btn:hover { color: var(--text); }
+  .caret-btn[aria-expanded="true"] { transform: rotate(90deg); }
+  .bucket-head input.label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 4px 7px; color: var(--text); width: 200px; }
+  .bucket-head input.label:hover { border-color: var(--line); }
+  .bucket-head input.label:focus { outline: none; border-color: var(--accent); background: var(--panel-2); }
+  .rec-pct { color: var(--muted); font-size: 12px; white-space: nowrap; }
+
+  /* Fixed columns: six now that Status is gone (T11) — the freed width goes to
+     Name and Match rule, which were the squeezed ones. */
+  table { border-collapse: collapse; width: 100%; }
+  .bucket table { table-layout: fixed; }
+  .bucket thead th:nth-child(1) { width: 230px; }
+  .bucket thead th:nth-child(2) { width: 185px; }
+  .bucket thead th:nth-child(3) { width: 150px; }
+  .bucket thead th:nth-child(4) { width: 105px; }
+  .bucket thead th:nth-child(6) { width: 36px; }
+  .bucket thead th:nth-child(3), .bucket thead th:nth-child(4) { text-align: right; padding-right: 10px; }
+  .bucket td.name-cell input, .bucket .u-name { overflow: hidden; text-overflow: ellipsis; }
+  thead th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+  tbody td { padding: 2px 4px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  td input, td select { width: 100%; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 7px 8px; color: var(--text); }
+  td input:hover, td select:hover { border-color: var(--line); }
+  td input:focus, td select:focus { outline: none; border-color: var(--accent); background: var(--panel-2); }
+  td select { background: var(--panel-2); }
+  td.num input { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.new-row { background: var(--row-new); }
+  tr.edited { background: var(--row-edited); }
+  tr.proposed-row td.name-cell::after { content: "proposed"; margin-left: 6px; color: var(--warn); font-size: 10px; text-transform: uppercase; letter-spacing: .03em; }
+  .row-actions { width: 36px; text-align: center; }
+  .del { background: transparent; border: none; color: var(--muted); cursor: pointer; border-radius: 6px; padding: 4px 8px; font-size: 15px; }
+  .del:hover { color: var(--neg); background: var(--panel-2); }
+  .add-row { margin-top: 8px; }
+  .add-row .btn { padding: 5px 12px; font-size: 13px; }
+  .muted { color: var(--muted); }
+
+  /* target basis: a $/% toggle beside the number */
+  .target-field { display: flex; align-items: center; gap: 4px; }
+  .target-field input[type="number"] { text-align: right; font-variant-numeric: tabular-nums; }
+  .basis-toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; flex-shrink: 0; }
+  .basis-toggle button { background: var(--panel-2); border: none; color: var(--muted); padding: 6px 8px; cursor: pointer; font-size: 12px; font-weight: 700; }
+  .basis-toggle button.on { background: var(--accent-weak); color: var(--accent); }
+  .derived { color: var(--muted); font-size: 11px; white-space: nowrap; }
+
+  /* --- comparison columns (target vs. actual) ----------------------------- */
+  .ph { color: var(--muted); font-size: 12px; }
+  td.money { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; padding-right: 10px; }
+  /* Direction-aware: the sign alone doesn't say whether it's good news. */
+  .delta.good { color: var(--pos); }
+  .delta.warn { color: var(--warn); }
+  .delta.bad { color: var(--neg); }
+  /* Sits under the match-rule chips now that the Status column is gone (T11).
+     `:not([hidden])` — an explicit `display` would otherwise beat the UA
+     stylesheet's `[hidden] { display: none }` and show it on every row. */
+  .conflict:not([hidden]) { display: inline-block; color: var(--warn); cursor: help; margin-top: 2px; }
+
+  /* The Actual-avg cell doubles as the drill-down toggle. */
+  .drill-toggle { display: inline-flex; align-items: center; gap: 6px; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 5px 7px; cursor: pointer; color: var(--text); font-variant-numeric: tabular-nums; }
+  .drill-toggle:hover { border-color: var(--line); background: var(--panel-2); }
+  .drill-toggle .caret { color: var(--muted); font-size: 9px; transition: transform .12s; }
+  .drill-toggle.open .caret { transform: rotate(90deg); }
+  .drill-toggle[disabled] { cursor: default; color: var(--muted); }
+  .drill-toggle[disabled]:hover { border-color: transparent; background: transparent; }
+
+  tr.unassigned-row td { color: var(--muted); }
+  tr.unassigned-row .u-name { padding-left: 8px; font-style: italic; }
+
+  /* --- drill-down panel --------------------------------------------------- */
+  tr.drill-row > td { padding: 0 4px 10px; border-bottom: 1px solid var(--line); }
+  .drill { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .drill-top { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-bottom: 10px; font-size: 12px; color: var(--muted); }
+  .drill-top b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .drill-top .spacer { flex: 1; }
+  .drill-top .btn { padding: 4px 11px; font-size: 12px; text-decoration: none; }
+  .drill-top .proj { color: var(--warn); }
+  .drill table { width: auto; min-width: 440px; }
+  .drill thead th { padding: 4px 10px 4px 0; border-bottom: 1px solid var(--line); }
+  .drill tbody td { padding: 4px 10px 4px 0; border-bottom: none; font-size: 12px; }
+  .drill td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  .drill .sub { color: var(--muted); font-size: 11px; margin: 10px 0 4px; text-transform: uppercase; letter-spacing: .04em; }
+  .drill .rows-scroll { max-height: 240px; overflow: auto; }
+  .drill .future td { color: var(--warn); }
+  .drill .note { color: var(--muted); font-size: 11px; margin-top: 6px; }
+
+  /* --- roll-ups: bucket head + plan head ---------------------------------- */
+  /* Pushed to the right of the bucket head, so a plan's four buckets read as a
+     column of aligned target / actual / delta triples. It fits on one line now
+     that the arrow, the pill and the rec clause are gone. */
+  .bucket-sum { margin-left: auto; display: inline-flex; align-items: baseline; gap: 18px; font-size: 12px; white-space: nowrap; }
+  .grp { display: inline-flex; align-items: baseline; gap: 5px; }
+  .lbl { color: var(--muted); }
+  .pc { color: var(--muted); font-size: 11px; }
+  .bucket-sum b, .plan-roll b { color: var(--text); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .bucket-sum .delta, .plan-roll .delta { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .plan-roll { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; font-size: 12px; color: var(--muted); }
+  /* Same triple, same spacing as a bucket line: the groups live inside one
+     span, so the flex gap above can't reach between them. */
+  .plan-roll .nums { display: inline-flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
+  .plan-roll b { font-size: 14px; }
+  .recon-warn { color: var(--neg); font-size: 11px; }
+  /* Fold-up controls, and the single statement that every figure below is a
+     monthly average (so no number repeats a `/mo`). */
+  .plan-tools { flex-basis: 100%; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .plan-tools .btn { padding: 3px 10px; font-size: 12px; }
+  .per-month-note { color: var(--muted); font-size: 11px; }
+
+  /* multi-select chip fields (ledger sources / categories) */
+  .tag-multi { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; min-width: 170px; }
+  .tag-chip { display: inline-flex; align-items: center; gap: 4px; background: var(--accent-weak); color: var(--text); border-radius: 999px; padding: 2px 4px 2px 10px; font-size: 12px; white-space: nowrap; }
+  .tag-x { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; line-height: 1; padding: 0 4px; border-radius: 999px; }
+  .tag-x:hover { color: var(--neg); }
+  .tag-input { flex: 1 1 80px; min-width: 80px; }
+  .rule-group { display: flex; flex-direction: column; gap: 4px; }
+  .rule-group .rule-label { color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .03em; }
+
+  .userchip { display: inline-flex; align-items: center; gap: 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 5px 6px 5px 12px; cursor: pointer; }
+  .userchip .avatar { width: 24px; height: 24px; border-radius: 50%; overflow: hidden; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+  .userchip .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .userchip .switch { color: var(--muted); font-size: 11px; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
+  .toast.show { opacity: 1; }
+
+  .page-actions { margin: 18px 0 40px; }
+</style>
+</head>
+<body>
+<header>
+  <nav class="nav">
+    <a href="./">Ledger</a>
+    <a href="./paycheck.html">This Paycheck</a>
+    <a href="./plan.html">Plan</a>
+    <a href="./dashboard.html">Dashboard</a>
+  </nav>
+  <button id="userChip" class="userchip" title="Switch person" hidden>
+    <span class="avatar" id="userAvatar"></span><span id="userName"></span><span class="switch">switch</span>
+  </button>
+  <div class="grow"></div>
+  <span id="dirtyNote" class="dirty-note" hidden>unsaved changes</span>
+  <button id="discardBtn" class="btn ghost" hidden>Discard</button>
+  <button id="saveBtn" class="btn" disabled>Save plan</button>
+</header>
+
+<main>
+  <span id="viewSwitch"></span>
+  <div id="timeframe"></div>
+  <div id="cspRoot"></div>
+</main>
+
+<div class="toast" id="toast"></div>
+<script type="module" src="./mock-api.js"></script>
+<script type="module" src="./settings.js"></script>
+<script type="module" src="./csp.js"></script>
+</body>
+</html>

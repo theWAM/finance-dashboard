@@ -28,7 +28,7 @@ function ensureStyles() {
   s.textContent = `
   .dash { max-width: 1080px; }
   .health { display: flex; align-items: center; gap: 14px; padding: 16px 18px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); margin-bottom: 20px; }
-  .health .badge { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; font-weight: 700; color: #fff; }
+  .health .badge { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; font-weight: 700; color: var(--on-accent); }
   .health .h-title { font-weight: 700; font-size: 16px; }
   .health .h-sub { color: var(--muted); font-size: 13px; }
   .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 24px; }
@@ -38,7 +38,7 @@ function ensureStyles() {
   .tile .t-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
   .dash h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 22px 0 10px; }
   .drift-row { display: grid; grid-template-columns: 22px 1.3fr 1fr auto; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; background: var(--panel); }
-  .drift-row .st { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 700; }
+  .drift-row .st { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: var(--on-accent); font-size: 12px; font-weight: 700; }
   .drift-row .d-name { font-weight: 600; display: inline-flex; align-items: center; gap: 8px; }
   .drift-row .d-detail { color: var(--muted); font-size: 12px; }
   .drift-row .d-vals { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; white-space: nowrap; }
@@ -46,7 +46,7 @@ function ensureStyles() {
   .av-stack { display: inline-flex; align-items: center; }
   .av-stack .pav { width: 20px; height: 20px; border-radius: 50%; object-fit: cover; border: 2px solid var(--panel); background: var(--accent); margin-left: -7px; }
   .av-stack .pav:first-child { margin-left: 0; }
-  .av-stack .pav-i { display: grid; place-items: center; color: #fff; font-size: 10px; font-weight: 700; }
+  .av-stack .pav-i { display: grid; place-items: center; color: var(--on-accent); font-size: 10px; font-weight: 700; }
   /* editable plan tag */
   .plan-edit { cursor: pointer; border-bottom: 1px dashed var(--muted); }
   .plan-edit:hover { color: var(--text); border-bottom-color: var(--accent); }
@@ -212,7 +212,7 @@ function drawSpendChart(svg, data) {
 
   const dots = pts.map((p) => {
     const over = p.d.amount > SPEND_LIMIT;
-    return `<circle class="spend-dot" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${over ? 5 : 3.5}" fill="${over ? "var(--neg)" : "#3987e5"}" stroke="var(--panel)" stroke-width="1.5"><title>${p.d.month}: ${fmt2(p.d.amount)}${over ? " · over $600" : ""}</title></circle>`;
+    return `<circle class="spend-dot" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${over ? 5 : 3.5}" fill="${over ? "var(--neg)" : "var(--chart-line)"}" stroke="var(--panel)" stroke-width="1.5"><title>${p.d.month}: ${fmt2(p.d.amount)}${over ? " · over $600" : ""}</title></circle>`;
   }).join("");
   const labels = pts.map((p, i) => {
     const [yr, mm] = p.d.month.split("-").map(Number);
@@ -224,10 +224,10 @@ function drawSpendChart(svg, data) {
     <defs><clipPath id="${cid}"><rect x="${padL}" y="${padT}" width="${(W - padR - padL).toFixed(1)}" height="${Math.max(0, limitY - padT).toFixed(1)}"/></clipPath></defs>
     <line x1="${padL}" x2="${W - padR}" y1="${y(domainMax).toFixed(1)}" y2="${y(domainMax).toFixed(1)}" stroke="var(--line)"/>
     <text class="axis-label" x="4" y="${(y(domainMax) + 4).toFixed(1)}">${fmt(domainMax)}</text>
-    <path d="${areaPath}" fill="#3987e5" fill-opacity="0.15"/>
+    <path d="${areaPath}" fill="var(--chart-line)" fill-opacity="0.15"/>
     <path d="${areaPath}" fill="var(--neg)" fill-opacity="0.22" clip-path="url(#${cid})"/>
     <line x1="${padL}" x2="${W - padR}" y1="${limitY.toFixed(1)}" y2="${limitY.toFixed(1)}" stroke="var(--neg)" stroke-dasharray="4 3" stroke-opacity="0.8"/>
     <text class="axis-label" x="4" y="${(limitY + 4).toFixed(1)}" style="fill:var(--neg)">${fmt(SPEND_LIMIT)}</text>
-    <path d="${linePath}" fill="none" stroke="#3987e5" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="${linePath}" fill="none" stroke="var(--chart-line)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
     ${dots}${labels}`;
 }

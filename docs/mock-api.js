@@ -142,7 +142,10 @@ function decorate() {
     #ro-banner { position: sticky; top: 0; z-index: 30; background: var(--accent-weak, #24304b); color: var(--text, #e7e9ee);
       border-bottom: 1px solid var(--line, #2a2f3a); padding: 8px 16px; font-size: 13px; text-align: center; }
     #ro-banner b { color: var(--warn, #e0a336); }
-    #saveBtn, #discardBtn, #publishBtn, #refreshBtn, #dirtyNote, #lowPowerBtn { display: none !important; }`;
+    /* Low power used to be a seventh header button hidden here; it now lives in
+       the Settings panel, which stays available on the published view — theme
+       and rendering are the reader's own machine preferences. */
+    #saveBtn, #discardBtn, #publishBtn, #refreshBtn, #dirtyNote { display: none !important; }`;
   document.head.appendChild(style);
 
   const bar = document.createElement("div");
@@ -154,7 +157,7 @@ function decorate() {
   const nav = document.querySelector(".nav");
   if (nav) {
     const here = location.pathname.split("/").pop() || "index.html";
-    const links = [["index.html", "Dashboard"], ["ledger.html", "Ledger"], ["paycheck.html", "This Paycheck"]];
+    const links = [["index.html", "Dashboard"], ["ledger.html", "Ledger"], ["paycheck.html", "This Paycheck"], ["csp.html", "Spending Plan"]];
     nav.innerHTML = links.map(([href, label]) =>
       `<a href="./${href}"${(here === href || (here === "" && href === "index.html")) ? ' class="active"' : ""}>${label}</a>`).join("");
   }

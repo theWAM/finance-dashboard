@@ -5,6 +5,9 @@
 // the "plan …" tag.
 
 import { renderDashboard } from "/shared/dashboard-render.js";
+import { mountPlanNav } from "./nav-plan.js";
+
+mountPlanNav(document.querySelector(".nav"), { view: null });
 
 let currentUser = new URLSearchParams(location.search).get("user") || localStorage.getItem("currentUser") || "";
 
@@ -32,6 +35,8 @@ function renderSwitch() {
     b.onclick = () => {
       currentUser = id;
       if (id) localStorage.setItem("currentUser", id); else localStorage.removeItem("currentUser");
+      // Per-profile theme: this switch doesn't reload, so announce it.
+      window.dispatchEvent(new CustomEvent("userchange", { detail: { id } }));
       draw();
       renderSwitch();
     };

@@ -10,7 +10,20 @@
   "scripts": {
     "start": "node local/server.js",
     "dev": "node --watch local/server.js",
-    "backup": "node local/backup-db.js"
+    "backup": "node local/backup-db.js",
+    "seed:csp": "node local/seed-csp.js",
+    "seed:cards": "node local/seed-cards.js",
+    "seed:card-rules": "node local/seed-card-rules.js",
+    "load:cards": "node local/load-card-statements.js",
+    "categorize:cards": "node local/categorize-cards.js",
+    "backfill:transfers": "node local/backfill-transfers.js",
+    "check:csp": "node local/check-csp.js",
+    "check:theme": "node local/check-theme.js",
+    "check:cards": "node local/check-cards.js",
+    "check:transfers": "node local/backfill-transfers.js --audit",
+    "check:import": "node local/check-import.js",
+    "check:bulk": "node local/check-bulk.js",
+    "check:rules": "node local/check-rules.js"
   },
   "dependencies": {
     "express": "^4.21.2"

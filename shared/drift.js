@@ -3,6 +3,7 @@
 // local app and the published view show identical results. Browser + Node safe.
 
 import { live } from "./merge.js";
+import { cardAccounts, cardMeta, cardDebtAsOf, classifyCardRow } from "./cards.js";
 
 const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
 const ym = (iso) => { const [y, m] = String(iso).split("-").map(Number); return y * 12 + (m - 1); };
@@ -57,26 +58,96 @@ export function computeDrift(transactions, planTargets = [], { asOf }) {
       const months = spanMonths(matched, asOf);
       const actualMonthly = round2(paid / months);
       const planM = Number(d.monthly_payment) || 0;
-      // Planned one-time payments (bonuses) still ahead of us shrink the balance
-      // we have to chip away at monthly, so the payoff projection pulls in.
       const bonuses = Array.isArray(d.one_time_payments) ? d.one_time_payments : [];
-      const futureBonus = round2(bonuses.filter((p) => (p.date || "") >= asOf).reduce((s, p) => s + (Number(p.amount) || 0), 0));
-      const balance = Math.max(0, (Number(d.balance) || 0) - futureBonus);
-      const projMonths = actualMonthly > 0 ? Math.ceil(balance / actualMonthly) : null;
-      const projected = projMonths != null ? addMonths(asOf, projMonths) : null;
-      const targetMonth = d.target_date ? String(d.target_date).slice(0, 7) : null;
-      let status = "bad";
-      if (actualMonthly > 0 || balance <= 0) {
-        if (balance <= 0 || !targetMonth || (projected && projected <= targetMonth)) status = "good";
-        else status = actualMonthly >= planM * 0.75 ? "warn" : "bad";
-      }
-      const bonusNote = futureBonus > 0 ? ` (incl. $${futureBonus} one-time)` : "";
-      out.push({ id: pt.id, kind: pt.kind, name: pt.name, owner: pt.owner, owners: d.owners, planValue: planM, actualValue: actualMonthly,
-        detail: projected ? `$${actualMonthly}/mo → payoff ~${projected}${bonusNote} (target ${targetMonth || "—"})` : "no payments yet",
-        status });
+      out.push(debtPayoffResult({
+        id: pt.id, name: pt.name, owner: pt.owner, owners: d.owners,
+        balance: Number(d.balance) || 0, actualMonthly, planMonthly: planM,
+        targetDate: d.target_date, bonuses, asOf,
+      }));
     }
   }
   return out;
+}
+
+/**
+ * The debt-payoff math itself, pulled out of `computeDrift`'s loop so T35's
+ * per-card rows can run the identical projection against a card's real
+ * balance instead of a hand-entered one. Planned one-time payments (bonuses)
+ * still ahead of `asOf` shrink the balance there is left to chip away at
+ * monthly, exactly as they did inline.
+ *
+ * @param {{id, kind?, name, owner, owners, balance:number, actualMonthly:number,
+ *   planMonthly?:number, targetDate?:string|null, bonuses?:Array, asOf:string}} args
+ */
+export function debtPayoffResult({ id, kind = "debt_payoff", name, owner, owners, balance, actualMonthly, planMonthly = 0, targetDate = null, bonuses = [], asOf }) {
+  const futureBonus = round2(bonuses.filter((p) => (p.date || "") >= asOf).reduce((s, p) => s + (Number(p.amount) || 0), 0));
+  const bal = Math.max(0, (Number(balance) || 0) - futureBonus);
+  const projMonths = actualMonthly > 0 ? Math.ceil(bal / actualMonthly) : null;
+  const projected = projMonths != null ? addMonths(asOf, projMonths) : null;
+  const targetMonth = targetDate ? String(targetDate).slice(0, 7) : null;
+  let status = "bad";
+  if (actualMonthly > 0 || bal <= 0) {
+    if (bal <= 0 || !targetMonth || (projected && projected <= targetMonth)) status = "good";
+    else status = actualMonthly >= planMonthly * 0.75 ? "warn" : "bad";
+  }
+  const bonusNote = futureBonus > 0 ? ` (incl. $${futureBonus} one-time)` : "";
+  return {
+    id, kind, name, owner, owners, planValue: planMonthly, actualValue: actualMonthly,
+    detail: projected ? `$${actualMonthly}/mo → payoff ~${projected}${bonusNote} (target ${targetMonth || "—"})` : "no payments yet",
+    status,
+  };
+}
+
+/**
+ * One payoff-drift row per real card (T35), run through the same
+ * `debtPayoffResult` math as a hand-entered debt — but fed by the card's real
+ * balance today (`cardDebtAsOf`) and its real average monthly payment, not a
+ * number typed in once and left to go stale.
+ *
+ * A card whose issuer/name/alias overlaps a hand-entered `debt_payoff` plan
+ * target's `sources` borrows that target's `monthly_payment` / `target_date`
+ * / `one_time_payments` as the plan side of the comparison — the household
+ * already committed to those, and this is the same card. `matchedPlanId`
+ * rides along so a caller can drop the now-redundant hand-entered row rather
+ * than show the same debt twice. A card with no matching target gets no plan
+ * (`planValue: 0`), so its status is just "is it moving at all".
+ *
+ * @param {Array} transactions  full ledger (any accounts), raw or live
+ * @param {Array} accounts      accounts, for the card set and its metadata
+ * @param {Array} planTargets   plan_targets (any kind; only debt_payoff is used)
+ * @param {{owner?:string, asOf:string}} opts
+ */
+export function cardPayoffDrift(transactions, accounts = [], planTargets = [], { owner = "", asOf }) {
+  const cards = cardAccounts(accounts, { owner });
+  const debtTargets = planTargets.filter((pt) => pt.kind === "debt_payoff" && !pt.deleted_at);
+  const rows = live(transactions);
+
+  return cards.map((a) => {
+    const meta = cardMeta(a);
+    const aliases = new Set([a.name, meta.issuer, ...meta.sourceAliases].filter(Boolean));
+    const plan = debtTargets.find((pt) => planSourcesOf(pt.data || {}).some((s) => aliases.has(s)));
+    const d = plan?.data || {};
+
+    const cardRows = rows.filter((t) => t.account_id === a.id);
+    const payments = cardRows
+      .filter((t) => t.txn_date <= asOf && classifyCardRow(t) === "payment")
+      .map((t) => ({ txn_date: t.txn_date, withdrawal: round2((Number(t.deposit) || 0) - (Number(t.withdrawal) || 0)) }))
+      .filter((t) => t.withdrawal > 0);
+    const months = spanMonths(payments, asOf);
+    const paid = round2(payments.reduce((s, t) => s + t.withdrawal, 0));
+    const actualMonthly = round2(paid / months);
+
+    return {
+      ...debtPayoffResult({
+        id: `card:${a.id}`, name: a.name, owner: a.owner, owners: d.owners,
+        balance: cardDebtAsOf(cardRows, a, asOf), actualMonthly,
+        planMonthly: Number(d.monthly_payment) || 0, targetDate: d.target_date,
+        bonuses: Array.isArray(d.one_time_payments) ? d.one_time_payments : [],
+        asOf,
+      }),
+      matchedPlanId: plan?.id || null,
+    };
+  });
 }
 
 // Savings goals, with rollover. A goal sums the contributions inside its own

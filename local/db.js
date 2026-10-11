@@ -23,7 +23,11 @@ import { dirname, join } from "node:path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // Private local database, kept beside the server code and gitignored.
-const DB_PATH = join(__dirname, "dashboard.db");
+// `DASHBOARD_DB` overrides the path, which is how a write path gets exercised
+// against a throwaway copy instead of the real ledger — T29's bulk-import route
+// is tested that way (local/check-bulk.js). Unset in normal use, so the default
+// is unchanged.
+const DB_PATH = process.env.DASHBOARD_DB || join(__dirname, "dashboard.db");
 
 // Uses Node's built-in SQLite (node:sqlite) — no native module to compile.
 const db = new DatabaseSync(DB_PATH);
@@ -112,6 +116,48 @@ ensureColumn("plan_targets", "owner", "owner TEXT NOT NULL DEFAULT 'shared'");
 ensureColumn("people", "avatar", "avatar TEXT NOT NULL DEFAULT ''"); // URL/path to a profile image
 ensureColumn("people", "sort_order", "sort_order INTEGER NOT NULL DEFAULT 0"); // display order in pickers
 ensureColumn("people", "pay_cadence", "pay_cadence TEXT NOT NULL DEFAULT 'biweekly'"); // weekly|biweekly|semimonthly|monthly
+// Color theme is a property of the PERSON, not of the machine: it rides the
+// snapshot and the LWW merge like any other profile field, so a Publish carries
+// your choice over. '' = never chosen, fall back to the default (slate/dark).
+// Holds the FAMILY as of T39; the pre-pair ids ('dark', 'peach') are still
+// readable, since theme-boot.js migrates them ('dark' -> slate/dark). The mode
+// half of the pair has its own column as of T41.
+ensureColumn("people", "theme", "theme TEXT NOT NULL DEFAULT ''"); // '' | slate | peach (legacy: dark)
+// Mode half of the pair (T41): light | dark | auto, same ride as `theme`.
+// Per decision #36, the column never arrives null — the backfill below fills
+// it from the existing `theme` the moment the migration runs, so a profile's
+// stored pair is always complete and the client never has to infer a mode.
+ensureColumn("people", "theme_mode", "theme_mode TEXT NOT NULL DEFAULT ''"); // '' only until the backfill below runs
+// Phase 13 (T26): card accounts, import identity, transfer pairing. All four
+// are additive and nullable/defaulted, so no schema_version bump — see T26's
+// decision log note on an older machine dropping an unknown column on merge.
+ensureColumn("accounts", "data", "data TEXT NOT NULL DEFAULT '{}'"); // JSON: issuer/last4/credit_limit/apr/statement_day/due_day/min_payment/source_aliases
+ensureColumn("transactions", "transfer_id", "transfer_id TEXT"); // pairs a checking withdrawal with a card deposit (or card-to-card)
+ensureColumn("transactions", "external_id", "external_id TEXT"); // importer's per-row fingerprint; makes re-upload a no-op
+ensureColumn("transactions", "import_batch", "import_batch TEXT"); // which upload/load produced the row
+// T30(c): a row this app PREDICTED rather than observed. Holds
+// `"<cadence>:<merchant stem>"` (e.g. `monthly:AMAZON PRIME`) — the flag and
+// the match key in one column, so the supersede rule can find the projection a
+// real statement row is about to replace without parsing a free-text note.
+// NULL on every ordinary row, which is every row that existed before this.
+//
+// Additive and nullable like T26's four, so no schema_version bump: `SELECT *`
+// carries it into the snapshot and `mergeInto` derives its column list from
+// PRAGMA table_info. An older machine that has not pulled this code drops the
+// column on merge, and the projection degrades to an ordinary future-dated row
+// there — visible and editable, never corrupt.
+ensureColumn("transactions", "projected", "projected TEXT");
+db.exec(`
+  CREATE INDEX IF NOT EXISTS idx_transactions_transfer ON transactions(transfer_id);
+  CREATE INDEX IF NOT EXISTS idx_transactions_external ON transactions(external_id);
+`);
+db.exec(`
+  UPDATE people SET theme_mode = CASE
+    WHEN theme = 'peach' THEN 'light'
+    ELSE 'dark'
+  END
+  WHERE theme_mode = ''
+`); // 'slate' and the legacy 'dark' both land on dark; unset ('') also lands on dark
 
 const now = new Date().toISOString();
 

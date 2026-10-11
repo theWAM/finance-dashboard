@@ -3,6 +3,12 @@
 // its kind-specific fields. Edits stage locally and persist on "Save plan"
 // (POST new / PATCH changed / DELETE removed).
 
+import { mountPlanNav } from "./nav-plan.js";
+import { mountViewSwitch } from "./view-switch.js";
+
+mountPlanNav(document.querySelector(".nav"), { view: "plan" });
+mountViewSwitch(document.getElementById("viewSwitch"), { active: "plan" });
+
 const $ = (s) => document.querySelector(s);
 const fmt = (n) => (Number(n) || 0).toLocaleString("en-US", { style: "currency", currency: "USD" });
 

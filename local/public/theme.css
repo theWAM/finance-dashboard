@@ -1,0 +1,909 @@
+/* ===========================================================================
+   theme.css — the ONE place colors live.
+   ---------------------------------------------------------------------------
+   A TWELVE-CELL TABLE: six families × two modes. `data-theme` carries the
+   FAMILY (slate | peach | bordeaux | lagoon | orchid | thicket) and
+   `data-mode` carries the RESOLVED mode (light | dark — never `auto`, which
+   theme-boot.js has already collapsed before the first paint).
+
+   Two attributes rather than twelve flat ids (`bordeaux-dark`), because a flat
+   id makes "all dark variants" and "both Bordeaux variants" unselectable, and
+   the settings preview needs both.
+
+   Blocks hang off ATTRIBUTE selectors, not `:root[...]`, so any container can
+   carry a variant:
+
+       <div data-theme="peach" data-mode="dark"> … </div>
+
+   Identical in production (the attributes land on <html>), and it is the
+   difference between a showcase page that renders the real tokens and one that
+   keeps its own copy of 400+ values and drifts the week after it's written.
+
+   `:root` is the no-JS / first-byte fallback and carries Slate-dark. It shares
+   one rule with `[data-theme="slate"][data-mode="dark"]` rather than repeating
+   the values, so the fallback and the named variant CANNOT drift apart —
+   check-theme.js asserts they resolve to the same token set. Note the
+   specificity that makes this work: `:root` is (0,1,0) and every variant
+   selector is (0,2,0), so a variant always beats the fallback regardless of
+   source order.
+
+   NOTHING IS MODE-INVARIANT. Every variant declares the full token set, even
+   where a family's two modes could share a value. The alternative — a
+   `[data-theme="x"]` block of shared tokens plus per-mode overrides — saves
+   maybe four declarations per family and buys a failure mode nobody catches:
+   a token that looks right in the one mode anyone opened and inherits a
+   wrong value in the other. Two tokens prove the rule rather than the
+   exception: `--btn-hover-filter` inverts between modes (brighten on dark,
+   darken on light) and every shadow is an rgba that has to re-tint, so "which
+   tokens are family-level" would have been a list of none anyway.
+
+   Switching is handled by theme-boot.js (pre-paint) and settings.js (on pick).
+
+   Rules for adding anything here:
+   - No page may hardcode a color. If a value isn't expressible with a token,
+     add a token — that's what --on-accent / --scrim / --row-* / --shadow-*
+     exist for. A literal is invisible in dark and wrong in peach.
+   - "Text ON a filled color" is its own token (--on-accent/--on-danger/
+     --on-slice). White works on a saturated blue and fails on a pastel mint,
+     so the pairing has to be per-variant, not per-element.
+   - A FAMILY IS NEVER HALF-ADDED. Both modes land in the same commit;
+     `npm run check:theme` fails if one is missing.
+   - No `@media (prefers-color-scheme: …)` in this file, ever. `auto` is
+     resolved in theme-boot.js — one rule, one place.
+
+   THE --cat-* CONTRACT IS TWELVE NAMES, and this list is now closed:
+     housing bill savings investments card loan food fun other
+     groceries transport misc            ← the three Phase 13 (cards) needs
+   Assigned by category IDENTITY, never by slice size, and a family may tint
+   them toward its palette but may NOT collapse two categories into one hue.
+   All twelve are declared in every variant.
+
+   HOW A FAMILY'S TWO VARIANTS ARE DERIVED FROM EACH OTHER (the spine rule).
+   Each of the four new families arrives as ONE mode, assigned from its five
+   source swatches; the counterpart is derived by these eight steps and not by
+   taste, so a family added later lands in the same place twice:
+     1. SURFACES come from the family's extreme swatch, pushed PAST it. Five
+        swatches have to furnish four surfaces in each of two modes, so only
+        the one anchor is ever verbatim: the light counterpart lightens the
+        palest swatch toward white for --bg and makes --panel the brightest
+        surface; the dark counterpart deepens the darkest swatch BELOW the
+        palette so --panel / --panel-2 / --line have somewhere to lift to.
+     2. --text is the opposite extreme of --bg, taken from the family — most
+        often the other variant's --bg verbatim — then moved only as far as
+        4.5:1 on all three surfaces demands.
+     3. --accent KEEPS ITS LANE across both modes (Bordeaux bronze, Lagoon
+        teal, Orchid rose, Thicket green) and moves only in lightness: DEEPER
+        in light so --on-accent can be white, BRIGHTER in dark so a near-black
+        --on-accent clears instead. This is decision #16 generalized — Peach's
+        accent is deep mint #1b8168 because pastel mint cannot carry white —
+        and it is why a family reads as one family in both modes.
+        The exception, and it is documented where it happens: Orchid-dark moves
+        the accent to the NEXT swatch along the family's axis, because
+        brightening its light rosewood lands ~10° from --neg.
+     4. --on-accent / --on-slice follow the thing they sit ON, not the mode:
+        white on a deep accent, the family's near-black on a bright one. Four
+        of the eight new variants therefore put dark text on their accent.
+     5. --accent-weak is the family's one OTHER hue, deepened (dark) or paled
+        (light) — the slate-teal in Bordeaux, periwinkle in Orchid, willow in
+        Thicket, teal in Lagoon — so each family shows two colors, not one
+        ramp. --chart-line usually draws from the same swatch.
+     6. --pos / --neg / --warn / --danger are SEMANTIC FIRST. They stay green /
+        red / amber / deep-red whatever the family, and are tinted toward it
+        only as far as the 3:1 (and 4.5:1 for --on-danger) targets allow. A
+        family with no green in its palette imports one; a family whose accent
+        already owns amber moves --warn out of the way (Bordeaux).
+     7. --btn-hover-filter follows MODE, not family: brightness(1.08) on dark,
+        brightness(.93) on light. A filled button has to move AWAY from its
+        background.
+     8. --scrim is the family's darkest swatch at .72-.74 on dark, .45 on
+        light; the shadows are that swatch pushed near-black on dark and the
+        family's own deep swatch on light (never neutral grey — Peach already
+        does this with rgba(124, 88, 56, ...)).
+   None of this is eyeballed: every variant was solved against the targets in
+   check-theme.js and all eight new ones clear every one of them with at least
+   10% of margin, which is why the KNOWN list did not grow.
+
+   How the twelve values are derived for a new variant (the rule, then T43's tint):
+     1. Hue is fixed per category, taken from Slate-dark — the one palette
+        whose twelve hues are cleanly separated (min gap 17°):
+          loan 0 · fun 17 · savings 40 · misc 69 · investments 120 · bill 159
+          groceries 186 · housing 213 · card 247 · transport 276 · food 338
+          other = gray (identity by absence of hue — it's the catch-all)
+     2. Lightness is solved, not picked, against that variant's --on-slice:
+          LIGHT surfaces → the DIMMEST lightness that still clears 4.5:1, so
+            slices stay vivid instead of washing into a white panel.
+          DARK surfaces → a fixed pastel band (L .68 / S .42), so slices sit
+            clearly ABOVE the surface. Dimmest-passing on a dark panel yields
+            muddy mid-tones; it passes the checker and looks wrong.
+     3. Verify, don't eyeball. check:theme holds every variant to TWO targets:
+          every slice clears 4.5:1 against --on-slice, and all 66 pairs of the
+          twelve clear ΔE2000 ≥ 8.0 of each other — because two slices that
+          collapse into one color break a pie in a way no contrast target sees.
+          The metric is PERCEPTUAL, not a hue angle: --cat-other is gray, so its
+          hue is arbitrary and reads 5° from savings in slate-dark while being
+          obviously distinct (ΔE 25.6). See the SEPARATION block in
+          check-theme.js for the measurements behind the 8.0.
+        The tightest pair this rule produces is NOT in a green-dominant family —
+        hue is fixed per category above, so Thicket is no narrower than Slate.
+        It is card 247° vs transport 276°, which lands at ΔE 8.4 on a dark
+        surface before any tint: 0.4 of room.
+     4. T43's tint is a RIGID hue rotation plus a saturation bump, same degree
+        for all twelve (card/transport included) so every pairwise gap is
+        preserved exactly rather than converging — a rotation that pulls
+        toward a family's hue by CONVERGING the twelve (less turn for
+        categories already close to it) is what collapses card into transport,
+        since both sit in the one hue band (blue-violet, ~247–276°) where
+        ΔE2000 is already compressed. A rigid turn only changes each pair's
+        separation through that same compression band moving under it, which
+        is why each family's rotation was chosen by scanning degree-by-degree
+        for the widest safe window and landing inside it, not at its edge:
+        Bordeaux -6° (toward wine/bronze), Lagoon +13° (toward jewel teal),
+        Orchid +8° (toward violet-rose), Thicket -7° (toward turf). Saturation
+        rises with it (+.02 to +.07) so the tint reads as richer, not just
+        rotated. --cat-other is untouched by either step — its identity is
+        already family-tinted by hand (T42) and has no hue for a rotation to
+        act on.
+   KNOWN DEVIATION: peach-light predates this rule. Its frozen values put three
+   pairs under ΔE 8.0 (housing/fun 5.5, card/transport 5.6, and the pastel mints
+   bill 152° / investments 150° at 6.1, separated by luminance alone), so they
+   are recorded by name in check-theme.js's KNOWN_SEPARATION the same way its
+   contrast shortfalls are recorded — excused only because they're listed.
+   =========================================================================== */
+
+/* ---------------------------------------------------------------------------
+   SLATE · dark — the app's original look, and the no-JS fallback.
+   Every value below is the spec; it has not changed since before theming.
+   The three new --cat-* are additive and clear white at 4.74 / 5.49 / 4.54.
+   --------------------------------------------------------------------------- */
+:root,
+[data-theme="slate"][data-mode="dark"] {
+  color-scheme: dark;
+
+  /* surfaces + text */
+  --bg: #0f1115; --panel: #171a21; --panel-2: #1e222b; --line: #2a2f3a;
+  --text: #e7e9ee; --muted: #9aa3b2; --accent: #4f8cff; --accent-weak: #24304b;
+
+  /* semantics */
+  --pos: #46c08a; --neg: #ef6b7b; --warn: #e0a336; --danger: #b3303f;
+
+  /* text drawn on top of a filled --accent / --danger / chart slice */
+  --on-accent: #fff; --on-danger: #fff; --on-slice: #fff;
+
+  /* .btn hover: a filled button has to move AWAY from its background, so a
+     dark theme brightens and a light one darkens. */
+  --btn-hover-filter: brightness(1.08);
+
+  /* overlay behind modals and the settings panel */
+  --scrim: rgba(6, 8, 12, .72);
+
+  /* staged-edit row tints (Ledger / Plan / Spending Plan / This Paycheck) */
+  --row-edited: rgba(79, 140, 255, .08);
+  --row-new: rgba(70, 192, 138, .10);
+  --row-neg: rgba(239, 107, 123, .09);
+
+  /* This Paycheck banners */
+  --banner-warn-bg: rgba(224, 163, 54, .14); --banner-warn-line: rgba(224, 163, 54, .4);
+  --banner-ok-bg: rgba(70, 192, 138, .12);   --banner-ok-line: rgba(70, 192, 138, .35);
+
+  --shadow-sm: 0 12px 30px rgba(0, 0, 0, .45);
+  --shadow-md: 0 16px 40px rgba(0, 0, 0, .5);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, .5);
+  --shadow-photo: 0 12px 36px rgba(0, 0, 0, .4);
+
+  /* charts: the monthly-spend line, then the paycheck/card pie by category
+     IDENTITY (never by slice size) — 12 mapped categories + a catch-all gray. */
+  --chart-line: #3987e5;
+  --cat-housing: #3987e5; --cat-bill: #199e70; --cat-savings: #c98500;
+  --cat-investments: #008300; --cat-card: #9085e9; --cat-loan: #e66767;
+  --cat-food: #d55181; --cat-fun: #d95926; --cat-other: #898781;
+  --cat-groceries: #0f7f8c; --cat-transport: #8a4fb0; --cat-misc: #6f7d20;
+  --cat-interest: #81317b;
+}
+
+/* ---------------------------------------------------------------------------
+   SLATE · light — a STANDARD neutral light, not a tinted one.
+   Neutral white/grey surfaces keeping the family's #4f8cff accent, because
+   Peach already owns warm-light and a second tinted light would blur the two.
+   The accent darkens to #2563d6 so a white label clears 4.5:1 on a filled
+   button — same hue family, moved only as far as contrast demands.
+
+   PROVISIONAL (decision #35): the mockup is this variant's review gate, and
+   it is the variant most likely to move. Nothing in the derivation rule above
+   takes "Slate light is neutral" as a premise, so retinting it later stays a
+   one-variant edit.
+
+   Slices here are the dimmest-passing values, which lands all twelve at a
+   near-uniform ~3.35:1 against the white panel — no slice visually dominates.
+   --------------------------------------------------------------------------- */
+[data-theme="slate"][data-mode="light"] {
+  color-scheme: light;
+
+  --bg: #f5f6f8;          /* neutral off-white page */
+  --panel: #ffffff;       /* panels are the brightest surface (vs. peach's inversion) */
+  --panel-2: #eceff4;
+  --line: #d8dde6;
+  --text: #1b2027;        /* neutral near-black, 14.9:1 on --bg */
+  --muted: #5c6472;       /* 5.3:1 on --bg */
+  --accent: #2563d6;      /* the #4f8cff family, darkened for white-on-accent */
+  --accent-weak: #e1eafc; /* pale blue, for active nav / ghost buttons */
+
+  --pos: #0f7a53;
+  --neg: #c22a3c;
+  --warn: #8a6208;
+  --danger: #a32130;
+
+  --on-accent: #fff; --on-danger: #fff;
+  --on-slice: #1b2027;    /* pie labels go dark — same reasoning as peach */
+
+  /* darken, don't brighten: brightening a mid blue drops the white label */
+  --btn-hover-filter: brightness(.93);
+
+  --scrim: rgba(20, 24, 32, .46);
+
+  --row-edited: rgba(37, 99, 214, .08);
+  --row-new: rgba(15, 122, 83, .10);
+  --row-neg: rgba(194, 42, 60, .08);
+
+  --banner-warn-bg: rgba(138, 98, 8, .12);  --banner-warn-line: rgba(138, 98, 8, .38);
+  --banner-ok-bg: rgba(15, 122, 83, .11);   --banner-ok-line: rgba(15, 122, 83, .32);
+
+  --shadow-sm: 0 10px 26px rgba(22, 28, 40, .10);
+  --shadow-md: 0 14px 34px rgba(22, 28, 40, .12);
+  --shadow-lg: 0 22px 52px rgba(22, 28, 40, .16);
+  --shadow-photo: 0 12px 32px rgba(22, 28, 40, .14);
+
+  --chart-line: #2563d6;
+  --cat-housing: #538ed7; --cat-bill: #259f74; --cat-savings: #b18429;
+  --cat-investments: #26a226; --cat-card: #8b80e1; --cat-loan: #dc6969;
+  --cat-food: #db648f; --cat-fun: #d46f48; --cat-other: #8d939e;
+  --cat-groceries: #2799a5; --cat-transport: #b16fdd; --cat-misc: #849523;
+  --cat-interest: #dbbdd9;
+}
+
+/* ---------------------------------------------------------------------------
+   PEACH · light — peach, pale yellow, mint, white. Values unchanged from
+   Phase 12; only the selector moved.
+   Inverted surface convention vs. dark: the page is the tinted one (pale
+   yellow) and panels are pure white, separated by a peach --line rather than
+   by luminance. Mint is the accent; peach is the secondary surface.
+
+   On the pastel red/green: a true pastel on a near-white page tops out around
+   2.5:1, which is unreadable. --pos/--neg sit at ~3.3:1 — soft, desaturated,
+   visibly pastel next to the dark theme's values, and legible because every
+   place they're used is a bold number or a short tabular cell (WCAG's 3:1
+   large-text line). See resolved decision #15 in TASKS.md.
+   --------------------------------------------------------------------------- */
+[data-theme="peach"][data-mode="light"] {
+  color-scheme: light;
+
+  --bg: #fff8ea;          /* pale yellow */
+  --panel: #ffffff;       /* white */
+  --panel-2: #fff1e2;     /* peach */
+  --line: #ecd8c6;        /* peach border */
+  --text: #46382f;        /* warm near-black, 10.6:1 on --bg */
+  --muted: #857368;       /* 4.3:1 on --bg */
+  --accent: #1b8168;      /* deep mint — white text clears 4.5:1 on it */
+  --accent-weak: #d7f0e7; /* pastel mint, for active nav / ghost buttons */
+
+  --pos: #2f9b74;         /* pastel sage */
+  --neg: #d06b7d;         /* pastel rose */
+  --warn: #b57b1e;
+  --danger: #b8475c;
+
+  --on-accent: #fff; --on-danger: #fff;
+  --on-slice: #2e2622;    /* pie labels go dark — the slices are pastel */
+
+  /* darken, don't brighten: brightening mint on white drops the white label
+     below 4.5:1 */
+  --btn-hover-filter: brightness(.92);
+
+  --scrim: rgba(70, 52, 38, .45);
+
+  --row-edited: rgba(27, 129, 104, .10);
+  --row-new: rgba(47, 155, 116, .13);
+  --row-neg: rgba(208, 107, 125, .12);
+
+  --banner-warn-bg: rgba(181, 123, 30, .12); --banner-warn-line: rgba(181, 123, 30, .38);
+  --banner-ok-bg: rgba(47, 155, 116, .12);   --banner-ok-line: rgba(47, 155, 116, .34);
+
+  --shadow-sm: 0 10px 26px rgba(124, 88, 56, .16);
+  --shadow-md: 0 14px 34px rgba(124, 88, 56, .18);
+  --shadow-lg: 0 22px 52px rgba(124, 88, 56, .22);
+  --shadow-photo: 0 12px 32px rgba(124, 88, 56, .20);
+
+  --chart-line: #1b8168;
+  --cat-housing: #e8a07a; --cat-bill: #8ec9ad; --cat-savings: #e8c468;
+  --cat-investments: #6fb894; --cat-card: #b5a3d8; --cat-loan: #e59191;
+  --cat-food: #dd8fa8; --cat-fun: #eda871; --cat-other: #bfae9f;
+  --cat-groceries: #7fc3cc; --cat-transport: #c79fd4; --cat-misc: #b9c184;
+  --cat-interest: #dbbdd9;
+}
+
+/* ---------------------------------------------------------------------------
+   PEACH · dark — the same family at night: deep cocoa surfaces, the mint
+   accent brightened to carry on them, peach kept as the secondary surface so
+   --panel-2 still reads warm. Peach-light's inverted convention does NOT
+   carry over; on a dark page the brightest surface is the panel again.
+
+   --on-accent / --on-slice go DARK here, which is the one place this variant
+   diverges from slate-dark's shape and the reason it needs no KNOWN entry:
+   slate-dark puts white on a saturated accent and on eight pie slices and
+   misses 4.5:1 on all of them (recorded, pre-theming). Peach-dark's accent
+   and slices are bright, so cocoa text on them clears the target outright.
+   --------------------------------------------------------------------------- */
+[data-theme="peach"][data-mode="dark"] {
+  color-scheme: dark;
+
+  --bg: #1b1211;          /* deep cocoa */
+  --panel: #241917;
+  --panel-2: #30221f;     /* warm, peach-leaning secondary */
+  --line: #3f2e29;
+  --text: #f5e8dd;        /* warm off-white, 14.0:1 on --bg */
+  --muted: #b49c8d;       /* 6.3:1 on --bg */
+  --accent: #4ec49f;      /* mint, brightened to carry on cocoa */
+  --accent-weak: #1d3b32; /* deep mint, for active nav / ghost buttons */
+
+  --pos: #5cc495;
+  --neg: #ef8b9d;
+  --warn: #e3ab5c;
+  --danger: #b43d52;      /* stays deep: it fills a destructive button */
+
+  --on-accent: #20140f; --on-danger: #fff;
+  --on-slice: #20140f;    /* pie labels go dark — the slices are bright */
+
+  --btn-hover-filter: brightness(1.08);
+
+  --scrim: rgba(12, 7, 6, .72);
+
+  --row-edited: rgba(78, 196, 159, .10);
+  --row-new: rgba(92, 196, 149, .12);
+  --row-neg: rgba(239, 139, 157, .10);
+
+  --banner-warn-bg: rgba(227, 171, 92, .14); --banner-warn-line: rgba(227, 171, 92, .40);
+  --banner-ok-bg: rgba(92, 196, 149, .12);   --banner-ok-line: rgba(92, 196, 149, .35);
+
+  --shadow-sm: 0 12px 30px rgba(10, 5, 4, .50);
+  --shadow-md: 0 16px 40px rgba(10, 5, 4, .55);
+  --shadow-lg: 0 24px 60px rgba(10, 5, 4, .55);
+  --shadow-photo: 0 12px 36px rgba(10, 5, 4, .45);
+
+  --chart-line: #4ec49f;
+  --cat-housing: #8baad0; --cat-bill: #8bd0b8; --cat-savings: #d0b98b;
+  --cat-investments: #8bd08b; --cat-card: #938bd0; --cat-loan: #d08b8b;
+  --cat-food: #d08ba4; --cat-fun: #d09f8b; --cat-other: #b9ada2;
+  --cat-groceries: #8bc9d0; --cat-transport: #b48bd0; --cat-misc: #c5d08b;
+  --cat-interest: #dbbdd9;
+}
+
+/* ---------------------------------------------------------------------------
+   BORDEAUX · dark — the native mode. Deep wine surfaces, honey bronze accent,
+   vanilla custard text, and one cool note (the slate-teal) so the family isn't
+   a single hue ramp.
+
+   --bg is #540B0E Night Bordeaux verbatim; --panel / --panel-2 / --line lift
+   above it through the Brown Red register (#9E2A2B lives on as --danger at
+   full strength, where it fills a destructive button). --accent-weak is the
+   deepened #335C67 slate-teal, which is the one swatch that keeps "deep wine +
+   bronze" from reading as monochrome, and --chart-line is the same teal lifted
+   so a line on a wine panel is visible.
+
+   --warn moves to burnt orange rather than taking the bronze: --accent already
+   owns amber here, and a warning banner has to be tellable from the accent.
+
+   The twelve --cat-* are T43's rigid -6° hue turn (+.05 saturation) off the
+   rule-straight table — see the file header's step 4 for why rigid and why -6.
+   --------------------------------------------------------------------------- */
+[data-theme="bordeaux"][data-mode="dark"] {
+  color-scheme: dark;
+
+  --bg: #540b0e; --panel: #661619; --panel-2: #7d2225; --line: #933334;
+  --text: #fff3b0; --muted: #cfae8c; --accent: #e09f3e; --accent-weak: #2d4a52;
+
+  --pos: #74c08a; --neg: #f0857d; --warn: #f28b3c; --danger: #9e2a2b;
+
+  --on-accent: #3a1508; --on-danger: #fff; --on-slice: #2b0e0b;
+
+  --btn-hover-filter: brightness(1.08);
+
+  --scrim: rgba(28, 4, 6, .74);
+
+  --row-edited: rgba(224, 159, 62, .09);
+  --row-new: rgba(116, 192, 138, .11);
+  --row-neg: rgba(240, 133, 125, .10);
+
+  --banner-warn-bg: rgba(242, 139, 60, .14); --banner-warn-line: rgba(242, 139, 60, .40);
+  --banner-ok-bg: rgba(116, 192, 138, .12);  --banner-ok-line: rgba(116, 192, 138, .35);
+
+  --shadow-sm: 0 12px 30px rgba(22, 3, 5, .50);
+  --shadow-md: 0 16px 40px rgba(22, 3, 5, .55);
+  --shadow-lg: 0 24px 60px rgba(22, 3, 5, .55);
+  --shadow-photo: 0 12px 36px rgba(22, 3, 5, .45);
+
+  --chart-line: #6ba3b0;
+  --cat-housing: #87b1d4; --cat-bill: #87d4b1; --cat-savings: #d4b387;
+  --cat-investments: #8fd487; --cat-card: #8887d4; --cat-loan: #d4878f;
+  --cat-food: #d487aa; --cat-fun: #d49587; --cat-other: #b7aba4;
+  --cat-groceries: #87d4d4; --cat-transport: #ad87d4; --cat-misc: #cfd487;
+  --cat-interest: #dbbdd9;
+}
+
+/* ---------------------------------------------------------------------------
+   BORDEAUX · light — the derived counterpart. Custard surfaces, wine text, the
+   bronze accent pushed deep enough to carry white.
+
+   Spine rule step 1: the counterpart's --bg comes from the family's OPPOSITE
+   extreme pushed PAST the palette — #FFF3B0 Vanilla Custard lightened to
+   #fdf6dc, with --panel the brightest surface and #f7e9c9 (custard proper) the
+   secondary. Step 2: --text is #540B0E, the dark variant's --bg, verbatim.
+   Step 3: --accent keeps the bronze LANE and moves only in lightness —
+   #E09F3E can't carry white at all, so it deepens to #96570c (white at 5.6:1).
+
+   The twelve --cat-* carry the same -6° T43 turn as the dark variant's note.
+   --------------------------------------------------------------------------- */
+[data-theme="bordeaux"][data-mode="light"] {
+  color-scheme: light;
+
+  --bg: #fdf6dc; --panel: #fffdf3; --panel-2: #f7e9c9; --line: #e3d3a6;
+  --text: #540b0e; --muted: #7d5b43; --accent: #96570c; --accent-weak: #f6e3bb;
+
+  --pos: #19744f; --neg: #ab2f32; --warn: #a3521a; --danger: #8e2325;
+
+  --on-accent: #fff; --on-danger: #fff; --on-slice: #30100d;
+
+  --btn-hover-filter: brightness(.93);
+
+  --scrim: rgba(60, 14, 12, .45);
+
+  --row-edited: rgba(150, 87, 12, .09);
+  --row-new: rgba(25, 116, 79, .11);
+  --row-neg: rgba(171, 47, 50, .10);
+
+  --banner-warn-bg: rgba(163, 82, 26, .12); --banner-warn-line: rgba(163, 82, 26, .38);
+  --banner-ok-bg: rgba(25, 116, 79, .11);   --banner-ok-line: rgba(25, 116, 79, .33);
+
+  --shadow-sm: 0 10px 26px rgba(84, 24, 20, .14);
+  --shadow-md: 0 14px 34px rgba(84, 24, 20, .16);
+  --shadow-lg: 0 22px 52px rgba(84, 24, 20, .20);
+  --shadow-photo: 0 12px 32px rgba(84, 24, 20, .18);
+
+  --chart-line: #2f5a65;
+  --cat-housing: #2986d2; --cat-bill: #1d945e; --cat-savings: #b37423;
+  --cat-investments: #2a961e; --cat-card: #7675e4; --cat-loan: #dd525f;
+  --cat-food: #dc4b8e; --cat-fun: #d85a3c; --cat-other: #938980;
+  --cat-groceries: #1c9090; --cat-transport: #a264e0; --cat-misc: #81881b;
+  --cat-interest: #dbbdd9;
+}
+
+/* ---------------------------------------------------------------------------
+   LAGOON · dark — the native mode. Jewel teal on blackberry, with raspberry
+   as the whole red register.
+
+   The one variant where --panel-2 changes HUE rather than luminance: #114f4e
+   (the deepened #0E7C7B Teal) against blackberry panels. That is the family's
+   point — "jewel teal + berry" needs both jewels present on a surface, not one
+   of them confined to the accent — and it is why every surface here was
+   contrast-solved against #D4F4DD Frosted Mint rather than assumed: a
+   saturated teal panel still has to carry body copy at 4.5:1 (it does, 7.4:1).
+
+   The twelve --cat-* are T43's rigid +13° hue turn (+.06 saturation) off the
+   rule-straight table, chosen with margin against where card/transport (the
+   fixed table's tightest pair) drops under ΔE 8.0.
+   --------------------------------------------------------------------------- */
+[data-theme="lagoon"][data-mode="dark"] {
+  color-scheme: dark;
+
+  --bg: #4b1d3f; --panel: #5b2a4d; --panel-2: #114f4e; --line: #6f3c5f;
+  --text: #d4f4dd; --muted: #b394a8; --accent: #17bebb; --accent-weak: #0e3f45;
+
+  --pos: #58c98a; --neg: #f2718c; --warn: #e9b35a; --danger: #d62246;
+
+  --on-accent: #06302f; --on-danger: #fff; --on-slice: #10201f;
+
+  --btn-hover-filter: brightness(1.08);
+
+  --scrim: rgba(20, 7, 16, .74);
+
+  --row-edited: rgba(23, 190, 187, .09);
+  --row-new: rgba(88, 201, 138, .11);
+  --row-neg: rgba(242, 113, 140, .10);
+
+  --banner-warn-bg: rgba(233, 179, 90, .14); --banner-warn-line: rgba(233, 179, 90, .40);
+  --banner-ok-bg: rgba(88, 201, 138, .12);   --banner-ok-line: rgba(88, 201, 138, .35);
+
+  --shadow-sm: 0 12px 30px rgba(14, 4, 11, .50);
+  --shadow-md: 0 16px 40px rgba(14, 4, 11, .55);
+  --shadow-lg: 0 24px 60px rgba(14, 4, 11, .55);
+  --shadow-photo: 0 12px 36px rgba(14, 4, 11, .45);
+
+  --chart-line: #17bebb;
+  --cat-housing: #8698d5; --cat-bill: #86d5ca; --cat-savings: #d5cc86;
+  --cat-investments: #86d597; --cat-card: #a086d5; --cat-loan: #d59786;
+  --cat-food: #d58691; --cat-fun: #d5ae86; --cat-other: #a4b5b7;
+  --cat-groceries: #86bcd5; --cat-transport: #c686d5; --cat-misc: #b7d586;
+  --cat-interest: #dbbdd9;
+}
+
+/* ---------------------------------------------------------------------------
+   LAGOON · light — the derived counterpart. Frosted-mint surfaces, blackberry
+   text, the teal accent at full palette strength.
+
+   #0E7C7B is the one source swatch in any of the four families deep enough to
+   carry white UNCHANGED (5.0:1), so --accent moves not at all here — step 3 of
+   the spine rule moves it only as far as the target demands. The blackberry
+   that was --bg in the dark counterpart becomes --text, which is step 2 run in
+   the other direction.
+
+   The twelve --cat-* carry the same +13° T43 turn as the dark variant's note.
+   --------------------------------------------------------------------------- */
+[data-theme="lagoon"][data-mode="light"] {
+  color-scheme: light;
+
+  --bg: #eefaf2; --panel: #ffffff; --panel-2: #d9f2e4; --line: #b9ddcb;
+  --text: #3b1832; --muted: #566a6b; --accent: #0e7c7b; --accent-weak: #cfeeed;
+
+  --pos: #0f7a55; --neg: #c01f40; --warn: #8c5f12; --danger: #b11c39;
+
+  --on-accent: #fff; --on-danger: #fff; --on-slice: #0f1e21;
+
+  --btn-hover-filter: brightness(.93);
+
+  --scrim: rgba(24, 40, 42, .45);
+
+  --row-edited: rgba(14, 124, 123, .09);
+  --row-new: rgba(15, 122, 85, .11);
+  --row-neg: rgba(192, 31, 64, .10);
+
+  --banner-warn-bg: rgba(140, 95, 18, .12); --banner-warn-line: rgba(140, 95, 18, .38);
+  --banner-ok-bg: rgba(15, 122, 85, .11);   --banner-ok-line: rgba(15, 122, 85, .33);
+
+  --shadow-sm: 0 10px 26px rgba(20, 62, 61, .14);
+  --shadow-md: 0 14px 34px rgba(20, 62, 61, .16);
+  --shadow-lg: 0 22px 52px rgba(20, 62, 61, .20);
+  --shadow-photo: 0 12px 32px rgba(20, 62, 61, .18);
+
+  --chart-line: #0e7c7b;
+  --cat-housing: #5f7ee1; --cat-bill: #1c9383; --cat-savings: #92841c;
+  --cat-investments: #1d9737; --cat-card: #946de3; --cat-loan: #d95c39;
+  --cat-food: #de5367; --cat-fun: #bd7124; --cat-other: #7f8f92;
+  --cat-groceries: #248cbc; --cat-transport: #c351de; --cat-misc: #64901b;
+  --cat-interest: #dbbdd9;
+}
+
+/* ---------------------------------------------------------------------------
+   ORCHID · light — the native mode. Violet → rose: pale periwinkle page,
+   white panels, pink-orchid secondary, rosewood accent.
+
+   "#B15E6C Rosewood as --accent AND the --text anchor" is one swatch doing two
+   incompatible jobs, so it does neither verbatim: --text anchors TOWARD it at
+   #3b1f29 (deep rosewood, 12.1:1 on --bg) and --accent deepens to #8d4455 so
+   white clears 4.5:1 (it reaches 7.3:1). Likewise #CF8BA9 Old Rose tops out at
+   2.4:1 on a near-white page and cannot be --neg as transcribed — it deepens
+   to #b4465f, which is the same reasoning decision #15 recorded for Peach's
+   pastels, applied to a swatch that is one step too pale to survive it.
+   #B3B3F1 Periwinkle stays nearly verbatim as --accent-weak.
+
+   The twelve --cat-* are T43's rigid +8° hue turn off the rule-straight table
+   — a smaller turn than Lagoon's or Bordeaux's, because card and transport
+   (the fixed table's tightest pair at any family) sit closest to Orchid's own
+   violet-rose pull, so the safe window before they collide is narrower here.
+   --banner-ok is retuned separately below: --pos itself reads cool once
+   blended over this page's periwinkle.
+   --------------------------------------------------------------------------- */
+[data-theme="orchid"][data-mode="light"] {
+  color-scheme: light;
+
+  --bg: #f1eeff; --panel: #ffffff; --panel-2: #f7e8f4; --line: #dcd0ec;
+  --text: #3b1f29; --muted: #71596a; --accent: #8d4455; --accent-weak: #e2e0fb;
+
+  --pos: #1d7a58; --neg: #b4465f; --warn: #8c5d12; --danger: #9e3348;
+
+  --on-accent: #fff; --on-danger: #fff; --on-slice: #22141d;
+
+  --btn-hover-filter: brightness(.93);
+
+  --scrim: rgba(45, 28, 44, .45);
+
+  --row-edited: rgba(141, 68, 85, .09);
+  --row-new: rgba(29, 122, 88, .11);
+  --row-neg: rgba(180, 70, 95, .10);
+
+  --banner-warn-bg: rgba(140, 93, 18, .12); --banner-warn-line: rgba(140, 93, 18, .38);
+  /* --pos itself (29,122,88) is teal-leaning: at .11 over the periwinkle --bg
+     it blends cooler than it reads alone (B > G in the mix), the opposite of
+     every other family's banner-ok. A low-blue forest green at a touch more
+     alpha corrects the cast without moving off the semantic green. */
+  --banner-ok-bg: rgba(34, 139, 58, .13);   --banner-ok-line: rgba(34, 139, 58, .38);
+
+  --shadow-sm: 0 10px 26px rgba(70, 40, 62, .14);
+  --shadow-md: 0 14px 34px rgba(70, 40, 62, .16);
+  --shadow-lg: 0 22px 52px rgba(70, 40, 62, .20);
+  --shadow-photo: 0 12px 32px rgba(70, 40, 62, .18);
+
+  --chart-line: #8d4455;
+  --cat-housing: #537ed9; --cat-bill: #209178; --cat-savings: #967f21;
+  --cat-investments: #209430; --cat-card: #8a6edf; --cat-loan: #d65844;
+  --cat-food: #d95170; --cat-fun: #c06a2a; --cat-other: #988798;
+  --cat-groceries: #258baa; --cat-transport: #b657da; --cat-misc: #6b8b1e;
+  --cat-interest: #dbbdd9;
+}
+
+/* ---------------------------------------------------------------------------
+   ORCHID · dark — the derived counterpart. Deep violet-plum surfaces, the
+   accent moved to pink orchid, periwinkle as the chart line.
+
+   The one place a counterpart changes which SWATCH holds the accent lane
+   rather than just its lightness, and the reason is the lane's neighbour:
+   brightening the light variant's rosewood #8d4455 lands on a rose that sits
+   ~10° from --neg, so two different meanings would read as one color. Pink
+   orchid #DCB6D5 is the next swatch along the family's violet → rose axis, so
+   --accent becomes #dd8fbe (~325°) and --neg stays red (~355°). The family's
+   OTHER hue then has somewhere to go: periwinkle becomes --chart-line and the
+   deepened periwinkle becomes --accent-weak, mirroring the light variant.
+
+   The twelve --cat-* carry the same +8° T43 turn as the light counterpart —
+   see its note above.
+   --------------------------------------------------------------------------- */
+[data-theme="orchid"][data-mode="dark"] {
+  color-scheme: dark;
+
+  --bg: #1b1526; --panel: #241c33; --panel-2: #332442; --line: #42314f;
+  --text: #efe6f6; --muted: #b2a3c2; --accent: #dd8fbe; --accent-weak: #3a2b52;
+
+  --pos: #5fc596; --neg: #f0717f; --warn: #e3ab5c; --danger: #a93350;
+
+  --on-accent: #2a1526; --on-danger: #fff; --on-slice: #1e1424;
+
+  --btn-hover-filter: brightness(1.08);
+
+  --scrim: rgba(14, 10, 22, .74);
+
+  --row-edited: rgba(221, 143, 190, .09);
+  --row-new: rgba(95, 197, 150, .11);
+  --row-neg: rgba(240, 113, 127, .10);
+
+  --banner-warn-bg: rgba(227, 171, 92, .14); --banner-warn-line: rgba(227, 171, 92, .40);
+  --banner-ok-bg: rgba(95, 197, 150, .12);   --banner-ok-line: rgba(95, 197, 150, .35);
+
+  --shadow-sm: 0 12px 30px rgba(9, 6, 14, .50);
+  --shadow-md: 0 16px 40px rgba(9, 6, 14, .55);
+  --shadow-lg: 0 24px 60px rgba(9, 6, 14, .55);
+  --shadow-photo: 0 12px 36px rgba(9, 6, 14, .45);
+
+  --chart-line: #b4a6f5;
+  --cat-housing: #89a0d2; --cat-bill: #89d2c2; --cat-savings: #d2c389;
+  --cat-investments: #89d293; --cat-card: #9b89d2; --cat-loan: #d29389;
+  --cat-food: #d2899a; --cat-fun: #d2a889; --cat-other: #b7a4b7;
+  --cat-groceries: #89c1d2; --cat-transport: #be89d2; --cat-misc: #bcd289;
+  --cat-interest: #dbbdd9;
+}
+
+/* ---------------------------------------------------------------------------
+   THICKET · light — the native mode. Lemon chiffon page, dark coffee text,
+   turf green accent, scarlet as the red register.
+
+   The only new variant whose --bg is a source swatch VERBATIM (#F4F0BB), and
+   the only one where the page is more saturated than its panels — the same
+   inversion Peach-light uses, for the same reason: the tint belongs to the
+   page and panels read as paper on top of it.
+
+   #87C38F Willow Green is transcribed as --pos but reaches only 1.7:1 on
+   chiffon, so --pos deepens to #1d7a4b and willow goes to --accent-weak
+   instead. That leaves --pos and --accent a few degrees apart, which is also
+   true of Peach-light (#2f9b74 beside #1b8168) and is fine: they never appear
+   on the same element.
+
+   The twelve --cat-* are T43's rigid -7° hue turn (+.05 saturation) off the
+   rule-straight table, toward turf and away from loan/fun — the fixed
+   table's second-tightest pair after card/transport, and the one this
+   direction of turn threatens first.
+   --------------------------------------------------------------------------- */
+[data-theme="thicket"][data-mode="light"] {
+  color-scheme: light;
+
+  --bg: #f4f0bb; --panel: #fffdf0; --panel-2: #eae6ad; --line: #d6d194;
+  --text: #43291f; --muted: #6d5a42; --accent: #226f54; --accent-weak: #d6ecd9;
+
+  --pos: #1d7a4b; --neg: #c9272f; --warn: #8a5a10; --danger: #b02230;
+
+  --on-accent: #fff; --on-danger: #fff; --on-slice: #271812;
+
+  --btn-hover-filter: brightness(.93);
+
+  --scrim: rgba(45, 33, 22, .45);
+
+  --row-edited: rgba(34, 111, 84, .09);
+  --row-new: rgba(29, 122, 75, .11);
+  --row-neg: rgba(201, 39, 47, .10);
+
+  --banner-warn-bg: rgba(138, 90, 16, .12); --banner-warn-line: rgba(138, 90, 16, .38);
+  --banner-ok-bg: rgba(29, 122, 75, .11);   --banner-ok-line: rgba(29, 122, 75, .33);
+
+  --shadow-sm: 0 10px 26px rgba(60, 42, 26, .14);
+  --shadow-md: 0 14px 34px rgba(60, 42, 26, .16);
+  --shadow-lg: 0 22px 52px rgba(60, 42, 26, .20);
+  --shadow-photo: 0 12px 32px rgba(60, 42, 26, .18);
+
+  --chart-line: #226f54;
+  --cat-housing: #2988d0; --cat-bill: #1e955e; --cat-savings: #b67524;
+  --cat-investments: #2c971e; --cat-card: #7777e4; --cat-loan: #dd5464;
+  --cat-food: #dc4d92; --cat-fun: #d95b40; --cat-other: #848e7b;
+  --cat-groceries: #1d9290; --cat-transport: #a167e1; --cat-misc: #84881b;
+  --cat-interest: #dbbdd9;
+}
+
+/* ---------------------------------------------------------------------------
+   THICKET · dark — the derived counterpart. Forest surfaces, willow green as
+   --pos at last, scarlet deepened for the destructive button.
+
+   Step 1 sends the counterpart's surfaces PAST the palette's dark anchor, and
+   here that choice is the whole variant: #43291F Dark Coffee deepened would
+   land within a few points of Peach-dark's #1b1211, i.e. two families reading
+   as one at night. So the surfaces go FOREST (#0f1a13 → #2b4133), derived from
+   the #226F54 turf green that is the family's identity, and the coffee stays
+   where it can still be felt — in --on-accent, --on-slice and the shadows.
+
+   #87C38F Willow Green needs no adjustment on a dark surface (8.4:1 on --bg),
+   so the swatch that could not be --pos in the light variant is --pos verbatim
+   here. --accent is the turf green brightened to #4fbd85 for the same reason
+   Peach-dark brightens its mint.
+
+   The twelve --cat-* carry the same -7° T43 turn as the light variant's note.
+   --------------------------------------------------------------------------- */
+[data-theme="thicket"][data-mode="dark"] {
+  color-scheme: dark;
+
+  --bg: #0f1a13; --panel: #16241b; --panel-2: #1e3025; --line: #2b4133;
+  --text: #eaf2e2; --muted: #9db5a4; --accent: #4fbd85; --accent-weak: #1b3a2a;
+
+  --pos: #87c38f; --neg: #f0747e; --warn: #e8b45a; --danger: #c0262f;
+
+  --on-accent: #0d1f14; --on-danger: #fff; --on-slice: #121d15;
+
+  --btn-hover-filter: brightness(1.08);
+
+  --scrim: rgba(6, 14, 9, .74);
+
+  --row-edited: rgba(79, 189, 133, .09);
+  --row-new: rgba(135, 195, 143, .11);
+  --row-neg: rgba(240, 116, 126, .10);
+
+  --banner-warn-bg: rgba(232, 180, 90, .14); --banner-warn-line: rgba(232, 180, 90, .40);
+  --banner-ok-bg: rgba(135, 195, 143, .12);  --banner-ok-line: rgba(135, 195, 143, .35);
+
+  --shadow-sm: 0 12px 30px rgba(4, 10, 6, .50);
+  --shadow-md: 0 16px 40px rgba(4, 10, 6, .55);
+  --shadow-lg: 0 24px 60px rgba(4, 10, 6, .55);
+  --shadow-photo: 0 12px 36px rgba(4, 10, 6, .45);
+
+  --chart-line: #87c38f;
+  --cat-housing: #87b3d4; --cat-bill: #87d4b0; --cat-savings: #d4b187;
+  --cat-investments: #90d487; --cat-card: #8787d4; --cat-loan: #d48790;
+  --cat-food: #d487ac; --cat-fun: #d49487; --cat-other: #adb7a4;
+  --cat-groceries: #87d4d3; --cat-transport: #ac87d4; --cat-misc: #d1d487;
+  --cat-interest: #dbbdd9;
+}
+
+/* ===========================================================================
+   Settings launcher + panel (settings.js builds the markup; the CSS lives here
+   so it isn't duplicated into every page's inline <style>).
+   =========================================================================== */
+
+.settings-fab {
+  position: fixed; left: 18px; bottom: 18px; z-index: 40;
+  width: 42px; height: 42px; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
+  background: var(--panel-2); color: var(--muted);
+  border: 1px solid var(--line); box-shadow: var(--shadow-sm);
+  transition: transform .16s ease, color .16s ease, border-color .16s ease;
+}
+.settings-fab:hover { transform: scale(1.08); color: var(--text); border-color: var(--accent); }
+.settings-fab:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.settings-fab svg { width: 20px; height: 20px; display: block; }
+/* The panel replaces the gear in that corner rather than sitting next to it. */
+.settings-fab[aria-expanded="true"] { opacity: 0; pointer-events: none; }
+
+.settings-scrim {
+  position: fixed; inset: 0; z-index: 41;
+  background: var(--scrim); backdrop-filter: blur(2px);
+  opacity: 0; transition: opacity .18s ease;
+}
+.settings-wrap[data-open="true"] .settings-scrim { opacity: 1; }
+
+.settings-panel {
+  position: fixed; left: 18px; bottom: 18px; z-index: 42;
+  width: min(320px, calc(100vw - 36px));
+  max-height: calc(100vh - 36px); overflow: auto;
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--line); border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  padding: 16px 16px 14px;
+  /* grows out of the bottom-left corner the gear occupies */
+  transform-origin: bottom left;
+  transform: scale(.85); opacity: 0;
+  transition: transform .18s cubic-bezier(.2, .8, .3, 1), opacity .18s ease;
+}
+.settings-wrap[data-open="true"] .settings-panel { transform: scale(1); opacity: 1; }
+
+.settings-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.settings-head h2 { font-size: 14px; margin: 0; font-weight: 700; flex: 1; }
+.settings-close {
+  background: transparent; border: 1px solid transparent; border-radius: 8px;
+  color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1;
+  padding: 4px 8px; font-family: inherit;
+}
+.settings-close:hover { color: var(--text); border-color: var(--line); background: var(--panel-2); }
+
+.settings-group { border-top: 1px solid var(--line); padding: 12px 0 2px; }
+.settings-group:first-of-type { border-top: none; padding-top: 0; }
+.settings-group > h3 {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--muted); font-weight: 600; margin: 0 0 9px;
+}
+.settings-hint { color: var(--muted); font-size: 12px; margin: 8px 0 2px; line-height: 1.45; }
+
+/* Appearance: TWO coupled radiogroups — a six-tile family grid and a three-way
+   mode control — in a 320px panel. Three-up is what makes six tiles fit beside
+   Performance without the panel scrolling; GRID_COLS in settings.js mirrors the
+   3 so the arrow keys walk the grid you can actually see. */
+.theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.theme-opt, .mode-opt {
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+  cursor: pointer; color: var(--muted);
+  font: inherit; font-weight: 600; text-align: center;
+}
+.theme-opt:hover, .mode-opt:hover { border-color: var(--accent); color: var(--text); }
+.theme-opt[aria-checked="true"], .mode-opt[aria-checked="true"] {
+  border-color: var(--accent); background: var(--accent-weak); color: var(--text);
+}
+.theme-opt { display: grid; gap: 6px; padding: 7px 6px 6px; font-size: 11px; }
+/* The FRAME takes --line from the panel it sits in; the STRIP inside carries
+   `data-theme`/`data-mode`, so its four stripes are that variant's real tokens
+   rather than a copy of them — the same attribute-selector move the showcase
+   page uses, and the reason a retint can't leave these swatches lying. The
+   strip's mode is the one the panel currently resolves to, so a tile previews
+   what picking it would actually paint. */
+.theme-opt .sw {
+  display: block; height: 17px; border-radius: 5px; overflow: hidden;
+  border: 1px solid var(--line);
+}
+.theme-opt .swv { display: flex; height: 100%; }
+.theme-opt .swv i { flex: 1; }
+/* Two surfaces then the family's two hues, ending on the accent — which is
+   exactly what a family IS under theme.css's spine rule, and the only four
+   tokens that actually separate twelve variants. Not --pos/--neg/--warn: those
+   are semantic first and stay green/red/amber whatever the family, so a stripe
+   of one is the same stripe six times over. */
+.theme-opt .swv i:nth-child(1) { background: var(--bg); }
+.theme-opt .swv i:nth-child(2) { background: var(--panel-2); }
+.theme-opt .swv i:nth-child(3) { background: var(--accent-weak); }
+.theme-opt .swv i:nth-child(4) { background: var(--accent); }
+
+/* 12px, not the grid's 7px: the mode control is the OTHER radiogroup, and at
+   one row of three it would otherwise read as a third row of family tiles. */
+.mode-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 12px; }
+.mode-opt { padding: 7px 4px; font-size: 12px; }
+/* The OS answer inside the Auto line — the one word on it that changes. */
+.theme-hint b { color: var(--text); font-weight: 600; }
+
+/* Performance: a plain switch. */
+.settings-row { display: flex; align-items: center; gap: 12px; }
+.settings-row .lbl { flex: 1; font-size: 13px; font-weight: 600; }
+.settings-switch {
+  flex: none; width: 40px; height: 23px; border-radius: 999px; cursor: pointer;
+  background: var(--panel-2); border: 1px solid var(--line); padding: 0;
+  position: relative; transition: background .16s ease, border-color .16s ease;
+}
+.settings-switch .knob {
+  position: absolute; top: 2px; left: 2px; width: 17px; height: 17px; border-radius: 50%;
+  background: var(--muted); transition: transform .16s ease, background .16s ease;
+}
+.settings-switch[aria-checked="true"] { background: var(--accent-weak); border-color: var(--accent); }
+.settings-switch[aria-checked="true"] .knob { transform: translateX(17px); background: var(--accent); }
+.settings-switch:focus-visible, .theme-opt:focus-visible, .mode-opt:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-fab, .settings-panel, .settings-scrim, .settings-switch .knob { transition: none; }
+  .settings-fab:hover { transform: none; }
+}

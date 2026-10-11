@@ -16,40 +16,16 @@
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import db from "./db.js";
+import { parseCsv } from "../shared/csv.js";
 import { accountBalance } from "../shared/metrics.js";
 
 // --- CSV parsing -----------------------------------------------------------
+//
+// `parseCsv` moved to shared/csv.js in T29 so the statement uploader could
+// reuse it instead of growing a second parser. Re-exported here because this
+// module is its original home and other callers import it from this path.
 
-/** Parse CSV text into rows of string cells. Handles quoted fields, escaped
- *  double-quotes ("") and commas/newlines inside quotes. */
-export function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let field = "";
-  let inQuotes = false;
-  const s = text.replace(/\r\n?/g, "\n"); // normalize line endings
-  for (let i = 0; i < s.length; i++) {
-    const c = s[i];
-    if (inQuotes) {
-      if (c === '"') {
-        if (s[i + 1] === '"') { field += '"'; i++; }
-        else inQuotes = false;
-      } else field += c;
-    } else if (c === '"') {
-      inQuotes = true;
-    } else if (c === ",") {
-      row.push(field); field = "";
-    } else if (c === "\n") {
-      row.push(field); field = "";
-      rows.push(row); row = [];
-    } else {
-      field += c;
-    }
-  }
-  // flush trailing field/row (files may not end in a newline)
-  if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
-  return rows;
-}
+export { parseCsv };
 
 /** M/D/YYYY (the sheet's format) -> ISO YYYY-MM-DD. Returns "" if unparseable. */
 export function toIsoDate(s) {

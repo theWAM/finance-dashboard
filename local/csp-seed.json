@@ -1,0 +1,804 @@
+{
+  "schema": 1,
+  "generated_by": "T0 — ingest of Woody CSP 2026.pdf + Rajna CSP 2026.pdf",
+  "plans": [
+    {
+      "id": "csp-woody",
+      "owner": "woody",
+      "kind": "csp_plan",
+      "name": "Woody — Conscious Spending Plan 2026",
+      "data": {
+        "take_home": 4822,
+        "gross_monthly": 7249,
+        "net_worth": {
+          "assets": 18000,
+          "investments": 28405,
+          "savings": 1581,
+          "debt": 35000
+        },
+        "buckets": [
+          {
+            "bucket": "fixed",
+            "label": "Fixed Costs",
+            "rec_pct": [
+              50,
+              60
+            ],
+            "sort_order": 0
+          },
+          {
+            "bucket": "investments",
+            "label": "Investments",
+            "rec_pct": [
+              10,
+              10
+            ],
+            "sort_order": 1
+          },
+          {
+            "bucket": "savings",
+            "label": "Savings Goals",
+            "rec_pct": [
+              5,
+              10
+            ],
+            "sort_order": 2
+          },
+          {
+            "bucket": "guilt_free",
+            "label": "Guilt-Free Spending",
+            "rec_pct": [
+              20,
+              35
+            ],
+            "sort_order": 3,
+            "catch_all": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "csp-rajna",
+      "owner": "rajna",
+      "kind": "csp_plan",
+      "name": "Rajna — Conscious Spending Plan 2026",
+      "data": {
+        "take_home": 3370,
+        "gross_monthly": 3370,
+        "net_worth": {
+          "assets": 0,
+          "investments": 0,
+          "savings": 735,
+          "debt": 16623
+        },
+        "buckets": [
+          {
+            "bucket": "fixed",
+            "label": "Fixed Costs",
+            "rec_pct": [
+              50,
+              60
+            ],
+            "sort_order": 0
+          },
+          {
+            "bucket": "investments",
+            "label": "Investments",
+            "rec_pct": [
+              10,
+              10
+            ],
+            "sort_order": 1
+          },
+          {
+            "bucket": "savings",
+            "label": "Savings Goals",
+            "rec_pct": [
+              5,
+              10
+            ],
+            "sort_order": 2
+          },
+          {
+            "bucket": "guilt_free",
+            "label": "Guilt-Free Spending",
+            "rec_pct": [
+              20,
+              35
+            ],
+            "sort_order": 3,
+            "catch_all": true
+          }
+        ]
+      }
+    }
+  ],
+  "items": [
+    {
+      "id": "csp-woody-rent-mortgage",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Rent / Mortgage",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [
+          "Housing"
+        ],
+        "sort_order": 0
+      }
+    },
+    {
+      "id": "csp-woody-utilities",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Utilities",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [],
+        "sort_order": 1
+      }
+    },
+    {
+      "id": "csp-woody-insurance",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Insurance",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 170,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Progressive Car Insurance"
+        ],
+        "categories": [],
+        "sort_order": 2
+      }
+    },
+    {
+      "id": "csp-woody-car-payment-transportation",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Car Payment / Transportation",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 760,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Car Note",
+          "Car Registration",
+          "Car Ticket"
+        ],
+        "categories": [],
+        "sort_order": 3
+      }
+    },
+    {
+      "id": "csp-woody-rajna-assistance-program",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Rajna Assistance Program",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 350,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Rajna Discover",
+          "Rajna Affirm",
+          "Rajna Chase",
+          "Rajna",
+          "Rajna Zelle"
+        ],
+        "categories": [],
+        "sort_order": 4
+      }
+    },
+    {
+      "id": "csp-woody-debt-payments",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Debt Payments",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 2000,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [
+          "Credit Card Payment",
+          "Loan Payment",
+          "Interest"
+        ],
+        "sort_order": 5,
+        "direction": "fund",
+        "good_at": 1.0,
+        "warn_at": 0.8
+      }
+    },
+    {
+      "id": "csp-woody-groceries",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Groceries",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 200,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [
+          "Groceries"
+        ],
+        "sort_order": 6
+      }
+    },
+    {
+      "id": "csp-woody-phone",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Phone",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 66,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [],
+        "sort_order": 7
+      }
+    },
+    {
+      "id": "csp-woody-subscriptions",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Subscriptions",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 40,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "YouTube",
+          "Amazon Prime",
+          "Termius",
+          "Google Storage",
+          "Amazon Subscribe & Save"
+        ],
+        "categories": [],
+        "sort_order": 8
+      }
+    },
+    {
+      "id": "csp-woody-miscellaneous-15-buffer",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Miscellaneous (15% buffer)",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "fixed",
+        "target_amount": 538,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [
+          "Misc",
+          "Expense"
+        ],
+        "sort_order": 9
+      }
+    },
+    {
+      "id": "csp-woody-post-tax-retirement-savings",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Post-Tax Retirement Savings",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "investments",
+        "target_amount": 200,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Fidelity Roth IRA"
+        ],
+        "categories": [],
+        "sort_order": 10
+      }
+    },
+    {
+      "id": "csp-woody-stocks",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Stocks",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "investments",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Fidelity Individual"
+        ],
+        "categories": [],
+        "sort_order": 11
+      }
+    },
+    {
+      "id": "csp-woody-real-estate",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Real Estate",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "investments",
+        "target_amount": 10,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Fundrise"
+        ],
+        "categories": [],
+        "sort_order": 12
+      }
+    },
+    {
+      "id": "csp-woody-long-term-emergency-fund",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Long Term Emergency Fund",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "savings",
+        "target_amount": 200,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Emergency HYSA"
+        ],
+        "categories": [],
+        "sort_order": 13
+      }
+    },
+    {
+      "id": "csp-woody-vacations",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Vacations",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "savings",
+        "target_amount": 50,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Vacation HYSA"
+        ],
+        "categories": [],
+        "sort_order": 14
+      }
+    },
+    {
+      "id": "csp-woody-getting-an-apartment",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Getting an apartment",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "savings",
+        "target_amount": 50,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Apartment HYSA"
+        ],
+        "categories": [],
+        "sort_order": 15
+      }
+    },
+    {
+      "id": "csp-woody-gifts",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Gifts",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "savings",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [
+          "Gift",
+          "Donation",
+          "Charity"
+        ],
+        "sort_order": 16
+      }
+    },
+    {
+      "id": "csp-woody-wedding",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Wedding",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "savings",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Wedding HYSA"
+        ],
+        "categories": [],
+        "sort_order": 17,
+        "proposed": true
+      }
+    },
+    {
+      "id": "csp-woody-ring",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Ring",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "savings",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Ring HYSA"
+        ],
+        "categories": [],
+        "sort_order": 18,
+        "proposed": true
+      }
+    },
+    {
+      "id": "csp-woody-honeymoon",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Honeymoon",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "savings",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Honeymoon HYSA"
+        ],
+        "categories": [],
+        "sort_order": 19,
+        "proposed": true
+      }
+    },
+    {
+      "id": "csp-rajna-rent-mortgage",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Rent / Mortgage",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 1335,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Inkwell Rent"
+        ],
+        "categories": [],
+        "sort_order": 0
+      }
+    },
+    {
+      "id": "csp-rajna-utilities",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Utilities",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 135,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Inkwell Utilities",
+          "Inkwell Electricity",
+          "Georgia Power"
+        ],
+        "categories": [],
+        "sort_order": 1
+      }
+    },
+    {
+      "id": "csp-rajna-car-payment-transportation",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Car Payment / Transportation",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [
+          "Transportation"
+        ],
+        "sort_order": 2
+      }
+    },
+    {
+      "id": "csp-rajna-parents",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Parents",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 400,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Ammu",
+          "Remitly"
+        ],
+        "categories": [],
+        "sort_order": 3
+      }
+    },
+    {
+      "id": "csp-rajna-debt-payments",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Debt Payments",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 500,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [
+          "Credit Card Payment",
+          "Loan Payment",
+          "Interest"
+        ],
+        "sort_order": 4,
+        "direction": "fund",
+        "good_at": 1.0,
+        "warn_at": 0.8
+      }
+    },
+    {
+      "id": "csp-rajna-groceries-toiletries-supplements",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Groceries (Toiletries/Supplements)",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 150,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [
+          "Groceries"
+        ],
+        "sort_order": 5
+      }
+    },
+    {
+      "id": "csp-rajna-taxes-payment-plans",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Taxes Payment Plans",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 306,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "IRS",
+          "Comptroller of Maryland"
+        ],
+        "categories": [],
+        "sort_order": 6
+      }
+    },
+    {
+      "id": "csp-rajna-subscriptions",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Subscriptions",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 48,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Netflix",
+          "ChatGPT",
+          "Apple",
+          "Starz",
+          "Dramawave",
+          "Uber One",
+          "Google"
+        ],
+        "categories": [],
+        "sort_order": 7
+      }
+    },
+    {
+      "id": "csp-rajna-miscellaneous",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Miscellaneous",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 86,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [
+          "Misc"
+        ],
+        "sort_order": 8
+      }
+    },
+    {
+      "id": "csp-rajna-phone",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Phone",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "AT&T"
+        ],
+        "categories": [],
+        "sort_order": 9,
+        "proposed": true
+      }
+    },
+    {
+      "id": "csp-rajna-tuition-school",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Tuition / School",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Emory University",
+          "Emory SGS Office"
+        ],
+        "categories": [
+          "School"
+        ],
+        "sort_order": 10,
+        "proposed": true
+      }
+    },
+    {
+      "id": "csp-rajna-transfers-to-own-woody-s-accounts",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Transfers to own / Woody's accounts",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "fixed",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Zelle transfer",
+          "Internal transfer",
+          "Venmo"
+        ],
+        "categories": [],
+        "sort_order": 11,
+        "proposed": true
+      }
+    },
+    {
+      "id": "csp-rajna-post-tax-retirement-savings",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Post-Tax Retirement Savings",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "investments",
+        "target_amount": 25,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Roth IRA"
+        ],
+        "categories": [],
+        "sort_order": 12
+      }
+    },
+    {
+      "id": "csp-rajna-stocks",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Stocks",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "investments",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [],
+        "sort_order": 13
+      }
+    },
+    {
+      "id": "csp-rajna-long-term-emergency-fund",
+      "owner": "rajna",
+      "kind": "csp_item",
+      "name": "Long Term Emergency Fund",
+      "data": {
+        "plan_id": "csp-rajna",
+        "bucket": "savings",
+        "target_amount": 50,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [
+          "Emergency Savings"
+        ],
+        "categories": [],
+        "sort_order": 14
+      }
+    },
+    {
+      "id": "csp-woody-food",
+      "owner": "woody",
+      "kind": "csp_item",
+      "name": "Food (restaurants / takeout)",
+      "data": {
+        "plan_id": "csp-woody",
+        "bucket": "guilt_free",
+        "target_amount": 0,
+        "basis": "$",
+        "target_pct": null,
+        "sources": [],
+        "categories": [
+          "Food"
+        ],
+        "sort_order": 20
+      }
+    }
+  ]
+}

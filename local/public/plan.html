@@ -4,12 +4,13 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Finance Dashboard — Plan</title>
+<link rel="stylesheet" href="./theme.css" />
+<!-- Colors live in theme.css. theme-boot.js applies the current PROFILE's theme
+     before the first paint — blocking and classic on purpose: settings.js is a
+     deferred module, so letting it do this would flash the wrong theme on every
+     navigation. -->
+<script src="./theme-boot.js"></script>
 <style>
-  :root {
-    --bg: #0f1115; --panel: #171a21; --panel-2: #1e222b; --line: #2a2f3a;
-    --text: #e7e9ee; --muted: #9aa3b2; --accent: #4f8cff; --accent-weak: #24304b;
-    --pos: #46c08a; --neg: #ef6b7b; --warn: #e0a336;
-  }
   * { box-sizing: border-box; }
   body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); font-size: 14px; }
   header { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 16px 24px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; }
@@ -19,13 +20,18 @@
   .nav a.active { color: var(--text); background: var(--accent-weak); }
   .grow { flex: 1; }
   button, select, input { font: inherit; color: inherit; }
-  .btn { background: var(--accent); border: none; color: #fff; border-radius: 8px; padding: 7px 14px; cursor: pointer; font-weight: 600; }
-  .btn:hover { filter: brightness(1.08); }
+  .btn { background: var(--accent); border: none; color: var(--on-accent); border-radius: 8px; padding: 7px 14px; cursor: pointer; font-weight: 600; }
+  .btn:hover { filter: var(--btn-hover-filter); }
   .btn.ghost { background: var(--accent-weak); color: var(--text); }
   .btn[disabled] { opacity: .4; cursor: default; }
   .dirty-note { color: var(--warn); font-size: 12px; white-space: nowrap; }
 
   main { padding: 20px 24px 80px; max-width: 1080px; }
+  /* the Plan/Spending-Plan switcher sits above the page content, not inline
+     with the main navbar. Margin only — `.view-switch`'s own `display:
+     inline-flex` (added by view-switch.js only once it has 2+ views to show)
+     still controls whether it renders at all. */
+  #viewSwitch { margin-bottom: 16px; }
   section { margin-bottom: 26px; }
   section h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 10px; }
   table { border-collapse: collapse; width: 100%; }
@@ -36,8 +42,8 @@
   td input:focus, td select:focus { outline: none; border-color: var(--accent); background: var(--panel-2); }
   td select { background: var(--panel-2); }
   td.num input { text-align: right; font-variant-numeric: tabular-nums; }
-  tr.new-row { background: rgba(70,192,138,.10); }
-  tr.edited { background: rgba(79,140,255,.08); }
+  tr.new-row { background: var(--row-new); }
+  tr.edited { background: var(--row-edited); }
   .row-actions { width: 40px; text-align: center; }
   .del { background: transparent; border: none; color: var(--muted); cursor: pointer; border-radius: 6px; padding: 4px 8px; font-size: 15px; }
   .del:hover { color: var(--neg); background: var(--panel-2); }
@@ -64,7 +70,7 @@
   .owner-pick { display: inline-flex; gap: 6px; align-items: center; }
   .owner-av { width: 30px; height: 30px; padding: 0; border-radius: 50%; overflow: hidden; border: 2px solid var(--line); background: var(--panel-2); cursor: pointer; opacity: .4; filter: grayscale(1); transition: opacity .1s, filter .1s, border-color .1s; }
   .owner-av img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .owner-av .oi { display: grid; place-items: center; width: 100%; height: 100%; color: #fff; font-size: 12px; font-weight: 700; background: var(--accent); }
+  .owner-av .oi { display: grid; place-items: center; width: 100%; height: 100%; color: var(--on-accent); font-size: 12px; font-weight: 700; background: var(--accent); }
   .owner-av.on { opacity: 1; filter: none; border-color: var(--accent); }
   .owner-av:hover { opacity: .85; }
 
@@ -76,7 +82,7 @@
   .src-input { flex: 1 1 90px; min-width: 90px; }
 
   .userchip { display: inline-flex; align-items: center; gap: 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 5px 6px 5px 12px; cursor: pointer; }
-  .userchip .avatar { width: 24px; height: 24px; border-radius: 50%; overflow: hidden; background: var(--accent); color: #fff; display: grid; place-items: center; font-size: 11px; font-weight: 700; }
+  .userchip .avatar { width: 24px; height: 24px; border-radius: 50%; overflow: hidden; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; font-size: 11px; font-weight: 700; }
   .userchip .avatar img { width: 100%; height: 100%; object-fit: cover; }
   .userchip .switch { color: var(--muted); font-size: 11px; }
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; }
@@ -100,9 +106,13 @@
   <button id="saveBtn" class="btn" disabled>Save plan</button>
 </header>
 
-<main id="planRoot"></main>
+<main>
+  <span id="viewSwitch"></span>
+  <div id="planRoot"></div>
+</main>
 
 <div class="toast" id="toast"></div>
+<script type="module" src="./settings.js"></script>
 <script type="module" src="./plan.js"></script>
 </body>
 </html>

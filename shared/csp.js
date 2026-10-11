@@ -1,0 +1,528 @@
+// Conscious Spending Plan: target vs. actual, as a monthly average over a
+// chosen window. This is to CSPs what drift.js is to plan targets — pure,
+// no DOM, identical results in the local app and the published view.
+//
+// The shape of the answer, per plan: four buckets (Fixed Costs / Investments /
+// Savings / Guilt-Free), each a list of items, each item carrying what the CSP
+// says it should cost per month and what the ledger says it actually cost per
+// month over the window. The catch-all bucket additionally absorbs every
+// unmatched dollar of outflow as one "Unassigned" row, so the comparison
+// reconciles to the real total instead of quietly losing money.
+//
+// Decisions this file implements (TASKS.md "Resolved decisions"):
+//
+//  #4  Buckets store NO target. A bucket's target is the sum of its items;
+//      the catch-all's is the residual (take-home − the other buckets). The
+//      template's 50-60% / 10% / 5-10% / 20-35% headers are a *recommended*
+//      range (`rec_pct`) — advisory only, reported separately as `recStatus`.
+//  #5  Savings / Investments / Credit Card Payment / Loan Payment / Transfer
+//      all COUNT here — moving money into your own pots is the whole point of a
+//      CSP. That is the opposite of metrics.monthlySpend()'s NON_SPEND filter,
+//      which stays exclusive to the spend chart. But `Adjustment` and
+//      `Negative Balance` are Daily-Check reconciliation artifacts, not
+//      spending: they are excluded outright and reported on their own line so
+//      nothing vanishes silently.
+//  #6  Exactly one bucket per plan is the catch-all (`catch_all: true`). Only
+//      it gets an Unassigned row.
+//  #7  Match precedence: `sources` beats `categories` — specificity, not
+//      document order. Every ledger row is counted exactly once.
+//  #21 Card purchases count at their OWN category (net of refunds in that
+//      category); the full checking-side payment counts as `Debt Payments`.
+//      Nothing is excluded for being a transfer, and no `paydown` figure lives
+//      here — real paydown is `shared/cards.js`'s job, on the Credit subtab.
+//      So the reconciliation identity is
+//        `bucketTotal + excluded === cashOutflow + cardPurchases`,
+//      read as *commitments = cash that left + debt newly taken on*. Known and
+//      deliberate: one economic dollar can appear twice (groceries charged,
+//      then the card paid), so a bucket's percentage is a share of
+//      COMMITMENTS, not of take-home, and can exceed 100%. `cardPurchases` is
+//      returned so the UI can say that word instead of implying take-home.
+//  #22 Debt is a negative balance: on a card, a purchase is a `withdrawal`, a
+//      payment or a refund is a `deposit`. Nothing here flips a sign.
+//  #38 `Debt Payments` is under-target-is-bad with its own stricter band, so an
+//      item may override its bucket's direction (`data.direction`) and the
+//      shared thresholds (`data.good_at` / `data.warn_at`), there is a fourth
+//      `even` status for exactly-on-target, and a bucket holding an
+//      override rolls up on `worstStatus()` of its items, not its own ratio.
+
+import { live } from "./merge.js";
+import { monthsInWindow } from "./timeframe.js";
+// One edge, no cycle: cards.js imports merge/metrics/timeframe and never this
+// file. Card coverage is the one computation both screens can lie the same way
+// about, so it lives there and is called from here rather than written twice.
+import { cardCoverage as coverageOf } from "./cards.js";
+
+const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+const sum = (xs) => xs.reduce((a, b) => a + b, 0);
+
+/**
+ * Reconciliation artifacts, never real outflow: a Daily-Check correction is
+ * bookkeeping. Rajna's single $1,072.87 adjustment would otherwise read as
+ * $89/mo of phantom spending forever. Excluded rows are never matched and never
+ * land in Unassigned — they get their own `excluded` line.
+ */
+export const CSP_EXCLUDE = new Set(["Adjustment", "Negative Balance"]);
+
+/**
+ * A card-side deposit is either a PAYMENT arriving from checking or a REFUND
+ * from a merchant, and the two are counted in opposite ways (decision #21): the
+ * payment is already counted once, in full, on the checking side as
+ * `Debt Payments`, so counting the card side too would double it; the refund is
+ * a genuine reversal of a purchase and nets against its own category.
+ *
+ * Two ways to tell them apart, in order:
+ *   1. a `transfer_id` whose counterpart sits on a CASH account — the explicit
+ *      pairing of decision #23, which is what T34 writes;
+ *   2. failing that, the category, because statement-loaded payments (T26b)
+ *      have no counterpart row to pair with yet.
+ *
+ * A card→card balance transfer deliberately falls through BOTH tests and is
+ * treated as a refund on the receiving card — which is right: the charge on the
+ * sending card and the credit on the receiving one then net to zero, so moving
+ * debt around does not read as spending.
+ */
+export const CARD_PAYMENT_CATEGORIES = new Set(["Credit Card Payment", "Loan Payment"]);
+
+/** A card is where debt lives; everything else is cash the CSP spends from. */
+export const isCardAccount = (a) => a?.type === "credit_card";
+
+/**
+ * What a ledger row contributes to the CSP, signed: a purchase is positive, a
+ * refund negative. One definition, used by the engine, the drill-down panel and
+ * `check-csp.js` alike — the thing `groupRows` sums and the thing the identity
+ * is stated in.
+ */
+export const cspRowAmount = (r) => (Number(r.withdrawal) || 0) - (Number(r.deposit) || 0);
+
+/**
+ * Which way is "bad" for a bucket. Overspending a Fixed-Cost or Guilt-Free
+ * target is bad and underspending is fine; under-funding Savings or
+ * Investments is bad and over-funding is good. Unknown buckets default to
+ * `spend` (the conservative read: more than planned is worse).
+ */
+export const BUCKET_DIRECTION = { fixed: "spend", guilt_free: "spend", investments: "fund", savings: "fund" };
+
+// Thresholds, as ratios of actual to target. The `fund` direction mirrors
+// drift.js exactly (≥95% good, ≥75% warn); `spend` is its reflection (≤105%
+// good, ≤125% warn). Exported because an item that overrides them (decision
+// #38) still has to be able to say "the shared band, please".
+export const FUND_GOOD = 0.95, FUND_WARN = 0.75;
+export const SPEND_GOOD = 1.05, SPEND_WARN = 1.25;
+
+/** A direction is only one of two things; anything else reads as `spend`. */
+export const DIRECTIONS = new Set(["spend", "fund"]);
+
+/**
+ * The band an item is judged against: the shared pair for its direction, with
+ * `data.good_at` / `data.warn_at` overriding either end independently.
+ * `Debt Payments` ships 1.0 / 0.8 — stricter than the shared `fund` band at
+ * both ends, which is why decision #38 needed a threshold pair and not just a
+ * direction flip (at 96% of target the shared band says green; this says
+ * yellow).
+ */
+export function thresholdsFor(direction = "spend", data = {}) {
+  const fund = direction === "fund";
+  const n = (v, fallback) => (v == null || Number.isNaN(Number(v)) ? fallback : Number(v));
+  return {
+    good: n(data.good_at, fund ? FUND_GOOD : SPEND_GOOD),
+    warn: n(data.warn_at, fund ? FUND_WARN : SPEND_WARN),
+  };
+}
+
+/** An item's own direction if it states one, else its bucket's (decision #38). */
+export const directionFor = (data = {}, bucketDirection = "spend") =>
+  DIRECTIONS.has(data.direction) ? data.direction : bucketDirection;
+
+/**
+ * even/good/warn/bad for an actual-vs-target ratio, in the given direction and
+ * band. `even` is decision #38's fourth status: exactly on target is neither
+ * good nor bad, so it renders gray rather than claiming a verdict. It is an
+ * equality to the cent, which on a monthly average over several months will
+ * almost never fire — see TASKS.md "Open" for the tolerance question.
+ *
+ * A zero target is tested FIRST and never reads `even`: an item with no target
+ * is one nobody has budgeted, not one that landed on the nose.
+ */
+export function statusFor(actual, target, direction = "spend", thresholds) {
+  if (!target) return actual > 0 ? (direction === "fund" ? "good" : "warn") : "good";
+  if (round2(actual) === round2(target)) return "even";
+  const { good, warn } = thresholds || thresholdsFor(direction);
+  const ratio = actual / target;
+  return direction === "fund"
+    ? (ratio >= good ? "good" : ratio >= warn ? "warn" : "bad")
+    : (ratio <= good ? "good" : ratio <= warn ? "warn" : "bad");
+}
+
+// `even` ranks below `good` so that one exactly-on-target item among healthy
+// ones doesn't drag a bucket's header into gray — but a bucket whose items are
+// ALL even reads even, which is the honest answer.
+const RANK = { even: -1, good: 0, warn: 1, bad: 2 };
+/** The worst status in a set — a plan is only as healthy as its weakest bucket. */
+export const worstStatus = (list) =>
+  list.filter((s) => s in RANK).sort((a, b) => RANK[b] - RANK[a])[0] || "good";
+
+const rulesOf = (d) => ({
+  sources: (Array.isArray(d.sources) ? d.sources : []).filter(Boolean),
+  categories: (Array.isArray(d.categories) ? d.categories : []).filter(Boolean),
+});
+
+/**
+ * An item's monthly target. Both bases are stored; whichever the user typed is
+ * authoritative and the other is derived from take-home (decision #4).
+ */
+export function itemTarget(data = {}, takeHome = 0) {
+  if (data.basis === "%" && data.target_pct != null) {
+    const pct = Number(data.target_pct) || 0;
+    return { targetMonthly: round2((takeHome * pct) / 100), targetPct: pct, basis: "%" };
+  }
+  const amt = Number(data.target_amount) || 0;
+  return { targetMonthly: round2(amt), targetPct: takeHome ? round2((amt / takeHome) * 100) : 0, basis: "$" };
+}
+
+/**
+ * A plan's net worth from its own balance sheet: what it owns minus what it
+ * owes. `debt` is stored as a positive magnitude (that is how both CSP PDFs
+ * state it), so it subtracts here — the same convention as the ROADMAP's
+ * net-worth trajectory, `savings + investments − debt`, widened to include
+ * `assets`.
+ *
+ * Always an object, never null: a plan with no `net_worth` is one nobody has
+ * filled in yet, not one with no net worth, and the editor renders the four
+ * component fields either way.
+ */
+export function netWorth(nw) {
+  const n = (k) => Number(nw?.[k]) || 0;
+  const assets = n("assets"), investments = n("investments"), savings = n("savings"), debt = n("debt");
+  const owned = round2(assets + investments + savings);
+  return { assets, investments, savings, debt, owned, total: round2(owned - debt) };
+}
+
+/**
+ * Group rows for a drill-down panel: one line per category+source pair, summed
+ * signed. A card refund lands in its own group with a NEGATIVE amount rather
+ * than being folded invisibly into the charge it reverses — the merchant string
+ * differs anyway ("… (return)"), and a visible −$315.88 is how you see that a
+ * category netted down rather than simply cost less.
+ *
+ * The key separator is a literal NUL so no category/source pair can collide
+ * with another by sheer punctuation; written as an escape, not a raw byte, so
+ * the file stays text to `grep` and `diff`.
+ */
+function groupRows(rows, total) {
+  const m = new Map();
+  for (const r of rows) {
+    const category = r.description || "", source = r.source || "";
+    const key = `${category}\u0000${source}`;
+    if (!m.has(key)) m.set(key, { label: source || category || "—", category, source, amount: 0, count: 0 });
+    const g = m.get(key);
+    g.amount += cspRowAmount(r);
+    g.count++;
+  }
+  return [...m.values()]
+    .map((g) => ({ ...g, amount: round2(g.amount), share: total ? round2(g.amount / total) : 0 }))
+    .sort((a, b) => b.amount - a.amount);
+}
+
+const outflow = (rows) => round2(sum(rows.map(cspRowAmount)));
+
+/**
+ * @param {object} input
+ * @param {Array}  input.transactions  full ledger (any accounts), raw or live
+ * @param {Array}  input.accounts      accounts, for owner scoping
+ * @param {Array}  input.people        people, for the owner's pay cadence
+ * @param {Array}  input.cspPlans      plan_targets rows of kind `csp_plan`
+ * @param {Array}  input.cspItems      plan_targets rows of kind `csp_item`
+ * @param {{from:string,to:string}} input.window  "" on either side = open-ended
+ * @param {string} [input.asOf]        today; splits actual into to-date vs projected
+ */
+export function computeCsp({
+  transactions = [], accounts = [], people = [],
+  cspPlans = [], cspItems = [], window: win = {}, asOf,
+} = {}) {
+  const today = asOf || new Date().toISOString().slice(0, 10);
+  const from = win.from || "", to = win.to || "";
+  const liveRows = live(transactions);
+  const liveItems = live(cspItems);
+
+  // Both of these are deliberately computed over EVERY account, not the plan's
+  // own: telling a card payment from a card→card balance transfer means looking
+  // at where the other side of the pairing lives, and that can be a different
+  // person's checking (Woody pays a shared card) or another card entirely.
+  const cardIds = new Set(accounts.filter(isCardAccount).map((a) => a.id));
+  const transferSides = new Map();
+  for (const r of liveRows) {
+    if (!r.transfer_id) continue;
+    if (!transferSides.has(r.transfer_id)) transferSides.set(r.transfer_id, []);
+    transferSides.get(r.transfer_id).push(r);
+  }
+  const isPaymentInflow = (r) =>
+    (r.transfer_id &&
+      (transferSides.get(r.transfer_id) || []).some((o) => o.id !== r.id && !cardIds.has(o.account_id))) ||
+    CARD_PAYMENT_CATEGORIES.has(r.description || "");
+
+  const plans = live(cspPlans)
+    .filter((p) => p.kind === "csp_plan")
+    .map((pt) => buildPlan(pt, { liveRows, liveItems, accounts, people, from, to, today, isPaymentInflow }));
+
+  return { window: { from, to }, asOf: today, plans };
+}
+
+function buildPlan(pt, { liveRows, liveItems, accounts, people, from, to, today, isPaymentInflow }) {
+  const d = pt.data || {};
+  const takeHome = Number(d.take_home) || 0;
+
+  // A plan sees exactly the accounts whose owner matches its own owner — a
+  // `shared` plan sees the `shared` accounts. Deliberately NOT "mine plus
+  // shared": that would count every joint dollar once per person and break the
+  // reconciliation identity below.
+  const planAccounts = accounts.filter((a) => !a.deleted_at && a.owner === pt.owner);
+  const acctIds = new Set(planAccounts.map((a) => a.id));
+  // The partition decision #21 turns on: cash is what the plan spends FROM,
+  // a card is where debt is taken ON. Both are in scope, counted differently.
+  const cardAccounts = planAccounts.filter(isCardAccount);
+  const planCardIds = new Set(cardAccounts.map((a) => a.id));
+  const onCard = (t) => planCardIds.has(t.account_id);
+  const ownRows = liveRows.filter((t) => acctIds.has(t.account_id));
+
+  // Window length in months. An open-ended window falls back to this plan's own
+  // ledger extent, so "All time" still yields a meaningful per-month figure.
+  const dates = ownRows.map((t) => t.txn_date).sort();
+  const months = monthsInWindow({ from, to }, { fallbackFrom: dates[0], fallbackTo: dates[dates.length - 1] });
+  const effectiveFrom = from || dates[0] || today;
+  const effectiveTo = to || dates[dates.length - 1] || today;
+  const perMonth = (total) => round2(total / months);
+
+  const windowed = ownRows.filter((t) => (!from || t.txn_date >= from) && (!to || t.txn_date <= to));
+
+  // What the CSP counts, per decision #21:
+  //   · every withdrawal, on cash and on cards alike — cash leaving, and debt
+  //     taken on, both at their own category;
+  //   · card REFUNDS, as negatives, so a category nets (a $315.88 Walmart
+  //     return is not $315.88 of groceries);
+  //   · NOT card payment inflows — that dollar is already counted in full on
+  //     the checking side as `Debt Payments`, and counting the card side too
+  //     would double it;
+  //   · NOT cash deposits, which are income and transfers in, not outflow —
+  //     unchanged, and the reason a window with no card rows reproduces the
+  //     pre-card numbers to the cent.
+  const charges = windowed.filter((t) => (Number(t.withdrawal) || 0) > 0);
+  const cardInflows = windowed.filter((t) => onCard(t) && (Number(t.deposit) || 0) > 0);
+  const refundRows = cardInflows.filter((t) => !isPaymentInflow(t));
+  const paymentRows = cardInflows.filter((t) => isPaymentInflow(t));
+  const inWindow = [...charges, ...refundRows];
+
+  // Artifacts are artifacts wherever they sit: T26b's statement load put an
+  // $850 `Adjustment` (a returned payment) on the Apple Card, and that is no
+  // more real spending than Rajna's checking-side one. Decision #21 is explicit
+  // that `excluded` does NOT grow a card-transfer category — one footer line.
+  const excludedRows = inWindow.filter((t) => CSP_EXCLUDE.has(t.description || ""));
+  const rows = inWindow.filter((t) => !CSP_EXCLUDE.has(t.description || ""));
+
+  // --- items, in resolution order ------------------------------------------
+  const buckets = (Array.isArray(d.buckets) ? d.buckets : []).slice()
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  const bucketIndex = new Map(buckets.map((b, i) => [b.bucket, i]));
+
+  const items = liveItems
+    .filter((it) => it.kind === "csp_item" && (it.data?.plan_id === pt.id || (!it.data?.plan_id && it.owner === pt.owner)))
+    .map((it) => {
+      const data = it.data || {};
+      const { sources, categories } = rulesOf(data);
+      const bucket = data.bucket || buckets[0]?.bucket;
+      // Decision #38: an item may judge itself in the opposite direction to its
+      // bucket, and against a stricter band. `Debt Payments` is the case that
+      // forced it — the one `fund` line in a `spend` bucket, at 1.0 / 0.8.
+      const dir = directionFor(data, direction(bucket));
+      return {
+        itemId: it.id, name: it.name, bucket,
+        sortOrder: Number(data.sort_order) || 0, proposed: !!data.proposed,
+        sources, categories, sourceSet: new Set(sources), categorySet: new Set(categories),
+        tracked: sources.length > 0 || categories.length > 0,
+        direction: dir,
+        thresholds: thresholdsFor(dir, data),
+        overridesDirection: dir !== direction(bucket),
+        ...itemTarget(data, takeHome),
+        data,
+      };
+    })
+    .sort((a, b) => (bucketIndex.get(a.bucket) ?? 99) - (bucketIndex.get(b.bucket) ?? 99) || a.sortOrder - b.sortOrder);
+
+  // Three passes, most specific first (decision #7). An item that names both
+  // payees and categories competes in pass 1 on its payees and pass 2 on its
+  // categories — ahead of a pure-category catch-all, which only gets pass 3.
+  // Without this, Woody's category-based "Debt Payments" would swallow the
+  // source-based "Rajna Assistance Program".
+  const bySource = items.filter((i) => i.sources.length);
+  const byBoth = items.filter((i) => i.sources.length && i.categories.length);
+  const byCategory = items.filter((i) => !i.sources.length && i.categories.length);
+  const matches = (it, r) => it.sourceSet.has(r.source || "") || it.categorySet.has(r.description || "");
+
+  const assigned = new Map();   // itemId -> rows
+  for (const it of items) assigned.set(it.itemId, []);
+  const unassignedRows = [];
+  const conflicts = [];
+  const conflictCount = new Map();
+
+  for (const r of rows) {
+    const winner =
+      bySource.find((it) => it.sourceSet.has(r.source || "")) ||
+      byBoth.find((it) => it.categorySet.has(r.description || "")) ||
+      byCategory.find((it) => it.categorySet.has(r.description || ""));
+    if (winner) assigned.get(winner.itemId).push(r);
+    else unassignedRows.push(r);
+
+    // A row several items could claim is a rule-overlap the user should know
+    // about; it is still counted once, by `winner`.
+    const all = items.filter((it) => matches(it, r));
+    if (all.length > 1) {
+      conflicts.push({
+        txnId: r.id, date: r.txn_date, category: r.description || "", source: r.source || "",
+        amount: round2(Number(r.withdrawal) || 0),
+        wonBy: winner?.name || null, alsoMatched: all.filter((it) => it !== winner).map((it) => it.name),
+      });
+      for (const it of all) conflictCount.set(it.itemId, (conflictCount.get(it.itemId) || 0) + 1);
+    }
+  }
+
+  // --- roll up --------------------------------------------------------------
+  const shape = (matched) => {
+    const total = outflow(matched);
+    const toDate = outflow(matched.filter((r) => r.txn_date <= today));
+    return { total, toDate, projected: round2(total - toDate), groups: groupRows(matched, total) };
+  };
+
+  const itemsByBucket = new Map(buckets.map((b) => [b.bucket, []]));
+  for (const it of items) {
+    if (!itemsByBucket.has(it.bucket)) itemsByBucket.set(it.bucket, []);
+    const matched = assigned.get(it.itemId);
+    const s = shape(matched);
+    itemsByBucket.get(it.bucket).push({
+      itemId: it.itemId, name: it.name, bucket: it.bucket, sortOrder: it.sortOrder,
+      sources: it.sources, categories: it.categories, proposed: it.proposed,
+      targetMonthly: it.targetMonthly, targetPct: it.targetPct, basis: it.basis,
+      tracked: it.tracked,
+      direction: it.direction, thresholds: it.thresholds, overridesDirection: it.overridesDirection,
+      // An item with no match rule can't be measured: null, never a misleading $0.
+      actualMonthly: it.tracked ? perMonth(s.total) : null,
+      delta: it.tracked ? round2(perMonth(s.total) - it.targetMonthly) : null,
+      status: it.tracked ? statusFor(perMonth(s.total), it.targetMonthly, it.direction, it.thresholds) : "untracked",
+      total: s.total, toDate: s.toDate, projected: s.projected,
+      toDateMonthly: it.tracked ? perMonth(s.toDate) : null,
+      matched, groups: s.groups,
+      conflicts: conflictCount.get(it.itemId) || 0,
+    });
+  }
+
+  const un = shape(unassignedRows);
+  const exc = shape(excludedRows);
+
+  // Non-catch-all bucket targets come from their items; the catch-all's is
+  // whatever take-home is left (decision #6 — this reproduces Woody's $188 and
+  // Rajna's $335 exactly).
+  const itemsTarget = (b) => round2(sum((itemsByBucket.get(b.bucket) || []).map((i) => i.targetMonthly)));
+  const residual = round2(takeHome - sum(buckets.filter((b) => !b.catch_all).map(itemsTarget)));
+
+  const outBuckets = buckets.map((b) => {
+    const list = (itemsByBucket.get(b.bucket) || []).slice().sort((x, y) => x.sortOrder - y.sortOrder);
+    const own = itemsTarget(b);
+    const targetMonthly = b.catch_all ? Math.max(0, residual) : own;
+    const unassigned = b.catch_all
+      ? { actualMonthly: perMonth(un.total), total: un.total, toDate: un.toDate, projected: un.projected, groups: un.groups, matched: unassignedRows, count: unassignedRows.length }
+      : null;
+    const total = round2(sum(list.map((i) => i.total)) + (b.catch_all ? un.total : 0));
+    const toDate = round2(sum(list.map((i) => i.toDate)) + (b.catch_all ? un.toDate : 0));
+    const actualMonthly = perMonth(total);
+    // Decision #38's knock-on. A bucket's own ratio is only meaningful while
+    // every item in it is read the same way; once one is read the opposite way
+    // the sum is a mix of two directions, and Fixed Costs would print a green
+    // −$136.47 over a yellow `Debt Payments`. So when an item overrides, the
+    // header stops claiming a verdict of its own and reports the worst of its
+    // items instead. Untracked items carry no status and drop out.
+    const overriding = list.some((i) => i.overridesDirection);
+    const itemStatuses = list.filter((i) => i.tracked).map((i) => i.status);
+    const ownStatus = statusFor(actualMonthly, targetMonthly, direction(b.bucket));
+    return {
+      bucket: b.bucket, label: b.label || b.bucket, sortOrder: b.sort_order ?? 0,
+      catchAll: !!b.catch_all, recPct: Array.isArray(b.rec_pct) ? b.rec_pct : null,
+      direction: direction(b.bucket),
+      targetMonthly, itemsTargetMonthly: own,
+      targetPct: takeHome ? round2((targetMonthly / takeHome) * 100) : 0,
+      actualMonthly, actualPct: takeHome ? round2((actualMonthly / takeHome) * 100) : 0,
+      delta: round2(actualMonthly - targetMonthly),
+      status: overriding && itemStatuses.length ? worstStatus(itemStatuses) : ownStatus,
+      statusFromItems: overriding && itemStatuses.length > 0,
+      recStatus: recStatus(takeHome ? (actualMonthly / takeHome) * 100 : 0, b.rec_pct),
+      total, toDate, projected: round2(total - toDate),
+      items: list, unassigned,
+    };
+  });
+
+  const total = round2(sum(outBuckets.map((b) => b.total)));
+  const toDate = round2(sum(outBuckets.map((b) => b.toDate)));
+  const person = people.find((p) => p.id === pt.owner) || null;
+
+  // --- the two halves of the identity ---------------------------------------
+  // Gross on both sides, artifacts included, so the identity below is literal:
+  // `bucketTotal + excluded === cashOutflow + cardPurchases`. The display
+  // figures (`cardCharges`, `cardRefunds`) are broken out separately because
+  // "$5,842 of purchases" and "$5,842 of charges less $1,113 of returns" are
+  // different sentences and the footer should be able to say the second.
+  const cashOutflow = outflow(inWindow.filter((t) => !onCard(t)));
+  const cardPurchases = outflow(inWindow.filter(onCard));
+  const cardCharges = outflow(charges.filter(onCard));
+  const cardRefunds = round2(sum(refundRows.map((t) => Number(t.deposit) || 0)));
+  // Not counted here by design — reported so the page can point at the Credit
+  // subtab rather than leaving the figure unaccounted for.
+  const cardPayments = round2(sum(paymentRows.map((t) => Number(t.deposit) || 0)));
+
+  // --- card coverage --------------------------------------------------------
+  // The window's resolved ends, not `from`/`to`: an "All time" window has to be
+  // collapsed to this plan's own ledger extent before anyone can say how many
+  // months it is, and this is the only place that knows that.
+  const cardCoverage = coverageOf({
+    transactions: windowed, accounts: cardAccounts, window: { from: effectiveFrom, to: effectiveTo },
+  });
+
+  return {
+    planId: pt.id, owner: pt.owner, name: pt.name,
+    takeHome, grossMonthly: Number(d.gross_monthly) || 0, netWorth: netWorth(d.net_worth),
+    cadence: person?.pay_cadence || null, personName: person?.name || null,
+    // Exact, not rounded: every monthly average divides by this, and rounding
+    // it here would make `actualMonthly * months !== total`. The UI formats it.
+    months, window: { from, to }, asOf: today,
+    // The window runs past today, so part of every "actual" is the ledger's own
+    // forecast rather than history. The UI has to say so.
+    windowProjected: effectiveTo > today,
+    projectedShare: total ? round2((total - toDate) / total) : 0,
+    targetMonthly: round2(sum(outBuckets.map((b) => b.targetMonthly))),
+    actualMonthly: perMonth(total),
+    total, toDate, projected: round2(total - toDate),
+    status: worstStatus(outBuckets.map((b) => b.status)),
+    buckets: outBuckets,
+    unassigned: { actualMonthly: perMonth(un.total), total: un.total, groups: un.groups, matched: unassignedRows, count: unassignedRows.length },
+    excluded: { actualMonthly: perMonth(exc.total), total: exc.total, groups: exc.groups, count: excludedRows.length },
+    conflicts,
+    // The identity, recomputed on every call (decision #21, T37 assertion #5):
+    //   bucketTotal + excluded === cashOutflow + cardPurchases
+    // "commitments = cash that left + debt newly taken on". It is the same
+    // invariant T0 verified to the cent, restated over a wider right-hand side;
+    // `windowOutflow` is kept as the sum of the two halves so every existing
+    // caller still reads the number it always did.
+    cashOutflow, cardPurchases, cardCharges, cardRefunds, cardPayments,
+    cardAccounts: cardAccounts.map((a) => ({ id: a.id, name: a.name })),
+    cardCoverage,
+    windowOutflow: round2(cashOutflow + cardPurchases),
+    reconciles: Math.abs(total + exc.total - (cashOutflow + cardPurchases)) < 0.01,
+  };
+}
+
+const direction = (bucket) => BUCKET_DIRECTION[bucket] || "spend";
+
+/** Where an actual % sits against the template's recommended range (advisory). */
+function recStatus(actualPct, recPct) {
+  if (!Array.isArray(recPct) || !recPct.length) return null;
+  const [lo, hi = lo] = recPct;
+  if (actualPct < lo) return "below";
+  if (actualPct > hi) return "above";
+  return "within";
+}

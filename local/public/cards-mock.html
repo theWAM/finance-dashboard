@@ -1,0 +1,946 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MOCKUP — This Paycheck: Debit / Credit (Phase 13, rev 3)</title>
+<link rel="stylesheet" href="./theme.css" />
+<script src="./theme-boot.js"></script>
+<!--
+  STATIC MOCKUP for Phase 13 (TASKS.md T25–T37) — REVISION 3, after the user's
+  second round of feedback (2026-10-07). Hardcoded numbers, no server, no writes.
+
+  REV 3 CHANGED FOUR THINGS (rev 2's list follows below, still accurate except
+  where noted):
+    A. The payoff projection is a single collapsed line — title, date, warning —
+       that opens into the full chart. Default state is closed.
+    B. The two explanatory paragraphs on it are gone. The chart carries its own
+       numbers; prose restating them was noise.
+    C. The category/merchant rollup is DELETED outright, not demoted. The donut
+       answers "where did it go" and the ledger lists every merchant.
+    D. Debt Payments coloring REVERSES rev 2's claim: under target is bad, not
+       good. fund direction with 1.0 / 0.8 thresholds, plus gray for exact.
+       Flag F6 has the two sub-decisions this needs.
+
+  WHAT THE FEEDBACK CHANGED (full list in screen 0):
+    1. Credit Cards is no longer a top-level tab. It is a SUBTAB of This
+       Paycheck: [ Debit | Credit ]. Today's This Paycheck becomes "Debit".
+    2. The Credit subtab is laid out like This Paycheck — donut on top, mini
+       ledger for the same pay window underneath — not like a report.
+    3. The add row loses its "↻ repeating…" button. Add stages the row and the
+       SAME recur modal This Paycheck already ships asks once-or-repeating.
+    4. Decision #21 is SUPERSEDED. `Debt Payments` counts the FULL payment out
+       of checking, because that money leaves regardless of what the card did.
+       Card purchases additionally count at their own category. Nothing is
+       excluded. Real paydown is the Credit subtab's job, not the CSP's.
+    5. (SUPERSEDED BY REV 3 — see D above.) Rev 2 claimed a green `Debt
+       Payments` delta was correct and withdrew the per-item direction override.
+       Backwards: under-paying debt is bad, so the override is reinstated.
+    6. New: a debt-payoff projection on the Credit subtab, seeded from the
+       payments already in the ledgers, with sliders to play with the numbers.
+       Collapsed to one line by default as of rev 3.
+
+  Numbers are internally consistent. The two identities on screen:
+    net purchases − payments = debt change      (1,223.80 − 434.00 = 789.80)
+    opening owed + debt change = closing owed   (4,394.04 + 789.80 = 5,183.84)
+  and the donut's category rows sum to net purchases ($1,223.80).
+
+  Uses real theme.css tokens so every variant is faithful — gear, bottom-left.
+  The three tokens this mock originally had to define for itself
+  (--cat-groceries / --cat-transport / --cat-misc) now ship in theme.css for
+  real, in all twelve names across every variant (Phase 14 T38), so the local
+  override has been deleted rather than left to drift. See flag F2 on screen 2.
+-->
+<style>
+
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; background: var(--bg); color: var(--text); font-size: 14px; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 16px 24px; border-bottom: 1px solid var(--line); background: var(--panel); position: sticky; top: 0; z-index: 5; }
+  .nav { display: flex; gap: 4px; }
+  .nav a { color: var(--muted); text-decoration: none; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; }
+  .nav a:hover { color: var(--text); background: var(--panel-2); }
+  .nav a.active { color: var(--text); background: var(--accent-weak); }
+  .grow { flex: 1; }
+  button, select, input { font: inherit; color: inherit; }
+  .btn { background: var(--accent); border: none; color: var(--on-accent); border-radius: 8px; padding: 7px 14px; cursor: pointer; font-weight: 600; }
+  .btn:hover { filter: var(--btn-hover-filter); }
+  .btn.ghost { background: var(--accent-weak); color: var(--text); }
+  .btn[disabled] { opacity: .4; cursor: default; }
+  select, input[type=text], input[type=date], input[type=number] { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; color: var(--text); }
+  .userchip { display: inline-flex; align-items: center; gap: 8px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px 4px 4px; cursor: pointer; font-weight: 600; }
+  .userchip .av { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; font-size: 12px; }
+
+  main { padding: 20px 24px 120px; max-width: 1100px; }
+  .mockbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 20px; padding: 12px 14px; border: 1px solid var(--banner-warn-line); background: var(--banner-warn-bg); border-radius: 12px; }
+  .mockbar b { color: var(--warn); }
+  .mockbar .sp { flex: 1; }
+  .mockbar a { color: var(--text); text-decoration: none; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 600; }
+  .mockbar a:hover { border-color: var(--accent); color: var(--accent); }
+
+  .screen { margin-bottom: 52px; }
+  .screen > h2 { font-size: 12px; letter-spacing: .10em; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+  .muted { color: var(--muted); }
+  .sm { font-size: 12px; }
+  .pos { color: var(--pos); } .neg { color: var(--neg); } .warnc { color: var(--warn); }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ---- This Paycheck chrome, lifted verbatim from paycheck.html ---------- */
+  .window-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 16px 28px; margin-bottom: 18px; }
+  .window-head .title { font-size: 20px; font-weight: 700; }
+  .window-nav { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+  .navarrow { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; color: var(--text); cursor: pointer; width: 30px; height: 30px; font-size: 17px; line-height: 1; display: grid; place-items: center; }
+  .navarrow:hover { border-color: var(--accent); }
+  .winrange { background: transparent; border: 1px solid transparent; border-radius: 8px; color: var(--muted); font-size: 13px; padding: 6px 10px; cursor: pointer; white-space: nowrap; }
+  .winrange:hover { border-color: var(--line); color: var(--text); }
+  .winrange .today-dot { color: var(--pos); margin-left: 6px; }
+  .navcurrent { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; cursor: pointer; width: 30px; height: 30px; display: grid; place-items: center; }
+  .navcurrent.on-current { border-color: var(--pos); }
+  .navcurrent .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pos); display: block; }
+  .stat { display: flex; flex-direction: column; gap: 2px; }
+  .stat .label { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  .stat .value { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 17px; }
+  .value.neg { color: var(--neg); } .value.pos { color: var(--pos); }
+
+  .banner { border-radius: 10px; padding: 10px 14px; margin-bottom: 16px; font-size: 13px; }
+  .banner.warn { background: var(--banner-warn-bg); border: 1px solid var(--banner-warn-line); color: var(--warn); }
+  .banner.ok { background: var(--banner-ok-bg); border: 1px solid var(--banner-ok-line); color: var(--pos); }
+
+  .chart-card { background: var(--panel-2); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; }
+  .chart-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 12px; }
+  .chart-body { display: flex; align-items: center; gap: 32px; flex-wrap: wrap; }
+  #donut path, .donut path { stroke: var(--panel-2); stroke-width: 2; }
+  .slice-label { fill: var(--on-slice); font-size: 11px; font-weight: 700; text-anchor: middle; }
+  .donut-total { fill: var(--text); font-size: 22px; font-weight: 700; text-anchor: middle; }
+  .donut-sub { fill: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; text-anchor: middle; }
+  .legend { display: grid; grid-template-columns: auto 1fr auto auto; gap: 7px 14px; align-items: center; font-size: 13px; min-width: 360px; }
+  .legend .sw { width: 12px; height: 12px; border-radius: 3px; }
+  .legend .amt { font-variant-numeric: tabular-nums; text-align: right; }
+  .legend .pct { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+
+  .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .dirty-note { color: var(--warn); font-size: 12px; white-space: nowrap; }
+
+  table.pc { border-collapse: collapse; width: 100%; }
+  table.pc thead th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  table.pc tbody td, table.pc tfoot td { padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  table.pc td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.pc td.owed { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; padding-right: 12px; }
+  table.pc td.charge { color: var(--text); }
+  table.pc td.credit { color: var(--pos); }
+  table.pc tr.new-row { background: var(--row-new); }
+  table.pc tr.pairnote td { padding: 2px 10px 8px 10px; font-size: 12px; color: var(--muted); }
+  table.pc tr.overpaid { background: var(--row-neg); }
+  table.pc tfoot input, table.pc tfoot select { border-color: var(--line); background: var(--panel-2); width: 100%; }
+  .col-date { width: 118px; } .col-mon { width: 110px; } .col-owed { width: 130px; }
+  .row-actions { width: 40px; text-align: center; }
+  .del { background: transparent; border: none; color: var(--muted); cursor: pointer; border-radius: 6px; padding: 4px 8px; font-size: 15px; }
+  .del:hover { color: var(--neg); background: var(--panel-2); }
+  .tag { font-size: 11px; border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; color: var(--muted); margin-left: 8px; white-space: nowrap; }
+  .tag.ok { border-color: var(--banner-ok-line); color: var(--pos); }
+
+  /* ---- NEW: the Debit | Credit subtab switch -----------------------------
+     Same markup/CSS as view-switch.js already uses for Plan targets |
+     Spending Plan, so this is a second caller, not a second component. */
+  .view-switch { display: inline-flex; gap: 2px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+  .view-switch a { color: var(--muted); text-decoration: none; padding: 6px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+  .view-switch a:hover { color: var(--text); }
+  .view-switch a.active { color: var(--on-accent); background: var(--accent); }
+
+  /* ---- NEW: the card picker row ----------------------------------------- */
+  .cardbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 16px; padding: 12px 14px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; }
+  .share { font-size: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px; cursor: pointer; font-variant-numeric: tabular-nums; }
+  .share:hover { border-color: var(--accent); }
+  .share.on { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .cardmeta { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-bottom: 18px; }
+  .cardmeta div { font-size: 12px; color: var(--muted); }
+  .cardmeta b { display: block; font-size: 15px; color: var(--text); font-weight: 700; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .util { display: block; height: 6px; border-radius: 3px; background: var(--panel-2); border: 1px solid var(--line); overflow: hidden; width: 150px; margin-top: 6px; }
+  .util > i { display: block; height: 100%; background: var(--accent); }
+  .util > i.hot { background: var(--neg); }
+
+  /* ---- NEW: the payoff projection card ---------------------------------- */
+  .payoff-line { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; width: 100%; background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 13px 16px; margin-bottom: 10px; cursor: pointer; text-align: left; }
+  .payoff-line:hover { border-color: var(--accent); }
+  .payoff-line:has(+ .payoff[hidden]) { margin-bottom: 18px; }
+  .payoff-line .car { color: var(--muted); font-size: 13px; line-height: 1; }
+  .payoff-line .pl-title { font-weight: 600; }
+  .payoff-line .pl-rule { flex: 1; height: 0; border-top: 1px dashed var(--line); min-width: 24px; }
+  .payoff-line .pl-date { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--pos); }
+  .payoff-line .pl-warn { font-size: 12px; color: var(--warn); white-space: nowrap; }
+  .payoff { background: var(--panel-2); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; margin-bottom: 18px; }
+  .payoff[hidden] { display: none; }
+  .payoff-grid { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+  .payoff-chart { flex: 1 1 520px; min-width: 420px; }
+  .payoff-side { flex: 0 1 300px; }
+  .gl { stroke: var(--line); stroke-width: 1; }
+  .gl.axis { stroke: var(--muted); }
+  .gl.limit { stroke: var(--neg); stroke-dasharray: 4 4; }
+  .gtext { fill: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+  .gtext.r { text-anchor: end; }
+  .ln { fill: none; stroke-width: 2.5; stroke-linejoin: round; }
+  .ln.pace { stroke: var(--neg); }
+  .ln.stop { stroke: var(--pos); stroke-dasharray: 5 4; stroke-width: 2; }
+  .ln.what { stroke: var(--accent); }
+  .lnote { font-size: 10px; font-weight: 700; }
+  .scenarios { display: grid; gap: 8px; margin-top: 12px; }
+  .scn { display: flex; align-items: baseline; gap: 9px; font-size: 13px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+  .scn .key { flex: 1; }
+  .scn .sw { width: 14px; height: 3px; border-radius: 2px; flex: 0 0 auto; align-self: center; }
+  .scn .sw.dash { height: 0; border-top: 3px dashed var(--pos); border-radius: 0; }
+  .scn .out { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .scn.is-pace { border-color: var(--banner-warn-line); background: var(--banner-warn-bg); }
+  .sliders { display: grid; gap: 11px; }
+  .sl { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; font-size: 12px; }
+  .sl .k { color: var(--muted); }
+  .sl .v { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .sl input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); }
+  .reset { background: none; border: none; color: var(--accent); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; text-align: left; }
+
+  /* ---- csp (screen 5) --------------------------------------------------- */
+  .panel { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); overflow: hidden; }
+  .pad { padding: 16px 18px; }
+  .bucket-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 13px 18px; background: var(--panel-2); border-bottom: 1px solid var(--line); cursor: pointer; }
+  .bucket-head .ttl { font-weight: 700; letter-spacing: .05em; text-transform: uppercase; font-size: 13px; }
+  .bucket-head .grp { margin-left: auto; display: flex; flex-wrap: wrap; align-items: baseline; gap: 18px; }
+  .bucket-head .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+  .bucket-head .val { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .bucket-head .pc { font-size: 11px; color: var(--muted); }
+  .bucket-head .delta { font-weight: 700; min-width: 100px; text-align: right; font-variant-numeric: tabular-nums; }
+  /* csp.html already ships .delta.good/.warn/.bad; `even` is the new fourth
+     status this revision needs — exactly on target reads gray, not green. */
+  .delta.good { color: var(--pos); } .delta.warn { color: var(--warn); }
+  .delta.bad { color: var(--neg); }  .delta.even { color: var(--muted); }
+  .items { width: 100%; border-collapse: collapse; }
+  .items td { padding: 9px 18px; border-bottom: 1px solid var(--line); }
+  .items td.r { text-align: right; font-variant-numeric: tabular-nums; }
+  .items .sub td { padding: 2px 18px 10px 34px; font-size: 12px; color: var(--muted); }
+  .footline { display: flex; align-items: baseline; gap: 12px; padding: 10px 18px; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .footline .k { color: var(--muted); flex: 1; }
+  .coverage { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 999px; background: var(--banner-ok-bg); border: 1px solid var(--banner-ok-line); color: var(--pos); }
+  .tf-head { display: inline-flex; align-items: center; gap: 10px; }
+  .tf-toggle { display: inline-flex; align-items: center; justify-content: center; background: var(--panel-2); color: var(--muted); border: 1px solid var(--line); border-radius: 8px; padding: 6px 9px; cursor: pointer; }
+  .tf-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ---- flags + changelog ------------------------------------------------ */
+  .flag { margin-top: 12px; padding: 11px 14px; border: 1px solid var(--banner-warn-line); background: var(--banner-warn-bg); border-radius: 10px; font-size: 13px; }
+  .flag b { color: var(--warn); }
+  .flag.settled { border-color: var(--banner-ok-line); background: var(--banner-ok-bg); }
+  .flag.settled b { color: var(--pos); }
+  .changelog { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); overflow: hidden; }
+  .changelog .cl { display: grid; grid-template-columns: 26px 1fr; gap: 12px; padding: 13px 18px; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .changelog .cl:last-child { border-bottom: none; }
+  .changelog .n { color: var(--muted); font-weight: 700; }
+  .changelog .was { color: var(--muted); display: block; margin-top: 4px; }
+  code { background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; font-size: 12px; }
+
+  /* ---- modals ----------------------------------------------------------- */
+  .modal { position: fixed; inset: 0; background: var(--scrim); backdrop-filter: blur(3px); display: grid; place-items: center; z-index: 20; padding: 20px; }
+  .modal[hidden] { display: none; }
+  .modal-card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 32px; width: min(440px, 96vw); box-shadow: var(--shadow-lg); }
+  .modal-card.recur-card { padding: 26px; }
+  .recur-card h2 { text-align: left; font-size: 18px; margin: 0 0 4px; }
+  .recur-summary { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
+  .recur-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 0; color: var(--muted); font-size: 13px; }
+  .recur-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+
+  .scrim { position: fixed; inset: 0; background: var(--scrim); display: none; place-items: center; z-index: 20; padding: 20px; }
+  .scrim.open { display: grid; }
+  .impmodal { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow-lg); width: min(820px, 100%); max-height: 88vh; overflow: auto; }
+  .impmodal h3 { margin: 0; padding: 15px 18px; border-bottom: 1px solid var(--line); font-size: 15px; }
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; padding: 14px 18px 4px; }
+  .pill { font-size: 12px; font-weight: 600; border-radius: 999px; padding: 5px 12px; border: 1px solid var(--line); background: var(--panel-2); }
+  .pill.new { border-color: var(--banner-ok-line); color: var(--pos); }
+  .pill.dup { color: var(--muted); }
+  .pill.chg { border-color: var(--banner-warn-line); color: var(--warn); }
+  .conflict { margin: 10px 18px; padding: 11px 14px; border: 1px solid var(--banner-warn-line); background: var(--banner-warn-bg); border-radius: 10px; font-size: 13px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .conflict .sp { flex: 1; }
+  .rev { width: 100%; border-collapse: collapse; }
+  .rev th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); padding: 9px 12px; border-bottom: 1px solid var(--line); font-weight: 600; }
+  .rev td { padding: 7px 12px; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .rev td.r { text-align: right; font-variant-numeric: tabular-nums; }
+  .rev tr.needcat { background: var(--row-new); }
+  .rev tr.ispay td { color: var(--muted); }
+  .rev select { padding: 4px 8px; font-size: 12px; }
+  .rev .mini { background: none; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); font-size: 11px; padding: 2px 7px; cursor: pointer; }
+  .rev .mini:hover { border-color: var(--accent); color: var(--accent); }
+  .totals { display: flex; flex-wrap: wrap; gap: 18px; padding: 13px 18px; background: var(--panel-2); border-bottom: 1px solid var(--line); font-size: 13px; }
+  .match { display: flex; align-items: center; gap: 8px; padding: 11px 18px; font-size: 13px; color: var(--pos); }
+  .guarantee { padding: 11px 18px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); }
+  .foot { display: flex; align-items: center; gap: 10px; padding: 14px 18px; justify-content: flex-end; border-top: 1px solid var(--line); }
+</style>
+</head>
+<body>
+<header>
+  <nav class="nav">
+    <a href="./">Ledger</a>
+    <a href="./cards-mock.html" class="active">This Paycheck</a>
+    <a href="./plan.html">Plan</a>
+    <a href="./dashboard.html">Dashboard</a>
+  </nav>
+  <span class="grow"></span>
+  <button class="userchip"><span class="av">W</span><span>Woody</span></button>
+</header>
+
+<main>
+  <div class="mockbar">
+    <b>MOCKUP · rev 3</b>
+    <span>Static data, no server, nothing writes.</span>
+    <span class="sp"></span>
+    <a href="#s0">0 · What changed</a>
+    <a href="#s1">1 · Debit</a>
+    <a href="#s2">2 · Credit</a>
+    <a href="#s3">3 · Add expense</a>
+    <a href="#s4">4 · Import</a>
+    <a href="#s5">5 · Spending Plan</a>
+  </div>
+
+  <!-- ============ 0 — WHAT THE FEEDBACK CHANGED ====================== -->
+  <section class="screen" id="s0">
+    <h2>0 — What your feedback changed &nbsp;·&nbsp; read this first, then screen 2</h2>
+    <div class="changelog">
+      <div class="cl"><span class="n">1</span><span>
+        <b>Credit Cards is a subtab of This Paycheck, not a top-level tab.</b>
+        The header nav above has four items again — no "Credit Cards". Inside the page,
+        <code>[ Debit | Credit ]</code> switches sub-views, and today's This Paycheck is
+        <b>Debit</b>, unchanged.
+        <span class="was">Was: a fifth top-level tab with its own window control. Affects T31 (builds
+        into <code>paycheck.html</code> instead of a new <code>cards.html</code>), T33, T36.</span>
+      </span></div>
+      <div class="cl"><span class="n">2</span><span>
+        <b>Credit is laid out like This Paycheck:</b> stat row → banner → donut → mini ledger
+        for the same pay window. That is the whole screen. The category/merchant rollup is
+        <b>deleted</b> — the donut already answers "where did it go" and the ledger already lists
+        every merchant, so a third view of the same 14 rows was weight without an answer.
+        <span class="was">Was: a report — debt header, four stat tiles, then the rollup as the page body,
+        with no ledger at all. Rev 2 demoted it below the ledger; rev 3 drops it. Removes T32's
+        drill-down work and the per-merchant deep-links with it.</span>
+      </span></div>
+      <div class="cl"><span class="n">3</span><span>
+        <b>No "↻ repeating…" button.</b> Add stages the row, then the recur modal This Paycheck
+        already ships (<code>#recurModal</code>, screen 3) asks once-or-repeating with a frequency
+        and an until-date. One flow, one component, both subtabs.
+        <span class="was">Was: a separate button in the add row, i.e. a second way to do the same thing.</span>
+      </span></div>
+      <div class="cl"><span class="n">4</span><span>
+        <b>Decision #21 is superseded — <code>Debt Payments</code> counts the full payment.</b>
+        Your words: the money covering debts leaves checking no matter what you do with the card.
+        So the CSP counts the whole checking-side payment, <em>and</em> counts card purchases at
+        their own category. <b>Nothing is excluded.</b> Real paydown is measured on the Credit
+        subtab, which is what it is for.
+        <span class="was">Was: <code>paydown = max(0, payments − purchases)</code> with the rest excluded —
+        which turned your $2,000 target into a $103 actual. Rewrites T28; see screen 5.</span>
+      </span></div>
+      <div class="cl"><span class="n">5</span><span>
+        <b><code>Debt Payments</code> gets its own coloring rule — paying <em>less</em> than target
+        is red, not green.</b> Your rule, applied to the row on screen 5:
+        <code>actual &gt; target</code> → <b class="pos">green</b>;
+        <code>0.8 × target &lt; actual ≤ target</code> → <b class="warnc">yellow</b>;
+        <code>actual ≤ 0.8 × target</code> → <b class="neg">red</b>;
+        exactly on target → <b class="muted">gray</b>. At $1,793.33 against $2,000 that is
+        <b>89.7%</b> → yellow. See flag F6.
+        <span class="was">Was: rev 2 said a green delta was correct and withdrew the per-item
+        direction override. That was backwards — the override is back, as
+        <code>data.direction: "fund"</code> plus its own thresholds. T28 sub-task reinstated.</span>
+      </span></div>
+      <div class="cl"><span class="n">6</span><span>
+        <b>New: a debt-payoff projection — one collapsed line that opens into the full chart.</b>
+        Closed, it is a title, a date and a warning. Open, it is three lines — your current pace,
+        payments-only, and a what-if you drag. This is where "spending is beating paying" gets
+        called out, instead of in the CSP.
+        <span class="was">New work. Needs <code>apr</code> and <code>credit_limit</code> in
+        <code>accounts.data</code> (flag F3) and a new task after T27. Rev 3 collapsed it by
+        default and cut the explanatory prose — the numbers are on the chart.</span>
+      </span></div>
+    </div>
+  </section>
+
+  <!-- ============ 1 — DEBIT SUBTAB =================================== -->
+  <section class="screen" id="s1">
+    <h2>1 — This Paycheck → <b>Debit</b> &nbsp;·&nbsp; today's page, plus one row of chrome</h2>
+
+    <div class="window-head">
+      <div>
+        <div class="title">This Paycheck — Woody</div>
+        <div class="window-nav">
+          <span class="view-switch">
+            <a href="#s1" class="active">Debit</a>
+            <a href="#s2">Credit</a>
+          </span>
+        </div>
+        <div class="window-nav">
+          <button class="navcurrent on-current" title="Back to current paycheck"><span class="dot"></span></button>
+          <button class="navarrow">‹</button>
+          <button class="winrange">biweekly · 2026-10-01 → 2026-10-14 <span class="today-dot">· current</span></button>
+          <button class="navarrow">›</button>
+        </div>
+      </div>
+      <div class="stat"><span class="label">Starting balance</span><span class="value num">$595.35</span></div>
+      <div class="stat"><span class="label">Paycheck</span><span class="value pos num">$2,474.99</span></div>
+      <div class="stat"><span class="label">Allocated</span><span class="value num">$3,069.60</span></div>
+      <div class="stat"><span class="label">Left / ending</span><span class="value pos num">$0.74</span></div>
+    </div>
+
+    <div class="banner ok">On track — ends the pay period at $0.74.</div>
+
+    <div class="chart-card">
+      <div class="chart-title">Where this paycheck goes — by category</div>
+      <div class="chart-body">
+        <div class="muted sm" style="max-width:620px">
+          Unchanged — the donut, legend, toolbar, editable grid, add row and recur modal are
+          exactly what ships today (see the screenshot you sent). The <b>only</b> addition to the
+          Debit view is the <code>[ Debit | Credit ]</code> pill above the window arrows.
+          <br><br>
+          Account picker note: <code>Woody — Checking</code> drops out of the title on Debit and the
+          card picker appears on Credit — one account row per subtab, so the two never compete for
+          the same dropdown.
+        </div>
+      </div>
+    </div>
+
+    <div class="flag settled">
+      <b>Settled by making Credit a subtab:</b> the pay-period window (<code>‹ ›</code>, the
+      <code>navcurrent</code> dot, the date jump) is <b>shared by both subtabs</b> — switching to
+      Credit keeps you on 10/01 → 10/14. That retires the per-card timeframe control rev 1 drew and
+      revises resolved decision #25: the Credit subtab has <b>no</b> <code>MONTH_PRESETS</code>
+      chip. The monthly rollup the Spending Plan needs still uses <code>MONTH_PRESETS</code>, but
+      internally in <code>shared/cards.js</code> — it stops being a control the user has to
+      reconcile with the pay window they are looking at.
+    </div>
+  </section>
+
+  <!-- ============ 2 — CREDIT SUBTAB (the main screen) ================ -->
+  <section class="screen" id="s2">
+    <h2>2 — This Paycheck → <b>Credit</b> &nbsp;·&nbsp; the screen to sign off on</h2>
+
+    <div class="window-head">
+      <div>
+        <div class="title">This Paycheck — Woody</div>
+        <div class="window-nav">
+          <span class="view-switch">
+            <a href="#s1">Debit</a>
+            <a href="#s2" class="active">Credit</a>
+          </span>
+        </div>
+        <div class="window-nav">
+          <button class="navcurrent on-current" title="Back to current paycheck"><span class="dot"></span></button>
+          <button class="navarrow">‹</button>
+          <button class="winrange">biweekly · 2026-10-01 → 2026-10-14 <span class="today-dot">· current</span></button>
+          <button class="navarrow">›</button>
+        </div>
+      </div>
+      <div class="stat"><span class="label">Owed — all 3 cards</span><span class="value neg num">$8,389.00</span></div>
+      <div class="stat"><span class="label">Charged</span><span class="value num">$1,223.80</span></div>
+      <div class="stat"><span class="label">Paid</span><span class="value pos num">$434.00</span></div>
+      <div class="stat"><span class="label">Debt change</span><span class="value neg num">+$789.80</span></div>
+    </div>
+
+    <div class="banner warn">
+      Charging faster than you're paying — this card ends the pay period owing
+      <b class="num">$5,183.84</b>, up <b class="num">$789.80</b>. Net purchases
+      <span class="num">$1,223.80</span> − payments <span class="num">$434.00</span> =
+      <span class="num">+$789.80</span>.
+    </div>
+
+    <div class="cardbar">
+      <label class="sm muted">Card</label>
+      <select>
+        <option>Apple Card ···· 4821</option>
+        <option>Citi Card ···· 9043</option>
+        <option>Discover ···· 7712</option>
+      </select>
+      <span class="share on">Apple $5,183.84</span>
+      <span class="share">Citi $2,118.16</span>
+      <span class="share">Discover $1,087.00</span>
+      <span class="grow"></span>
+      <button class="btn" onclick="openImport()">⬆ Upload statement</button>
+    </div>
+
+    <div class="cardmeta">
+      <div>opening owed <b>$4,394.04</b></div>
+      <div>statement balance <b>$4,901.20</b></div>
+      <div>credit limit <b>$12,000.00</b></div>
+      <div>utilization <b>43%</b><span class="util"><i style="width:43%"></i></span></div>
+      <div>APR <b>24.99%</b></div>
+      <div>payment due <b>Oct 31</b></div>
+      <div>minimum <b>$142.00</b></div>
+    </div>
+
+    <!-- ---- donut: same component as This Paycheck ---------------------- -->
+    <div class="chart-card">
+      <div class="chart-title">Where this card went — by category</div>
+      <div class="chart-body">
+        <svg class="donut" viewBox="0 0 220 220" width="220" height="220" role="img" aria-label="Card spending by category">
+          <path d="M111.44 14.01 A96 96 0 0 1 192.65 158.83 L161.66 140.52 A60 60 0 0 0 110.9 50.01 Z" fill="var(--cat-groceries)"><title>Groceries: $412.80 (34%)</title></path>
+          <text class="slice-label" x="178.03" y="75.85">34%</text>
+          <path d="M191.15 161.29 A96 96 0 0 1 69.68 197.12 L84.8 164.45 A60 60 0 0 0 160.72 142.05 Z" fill="var(--cat-food)"><title>Food: $286.45 (23%)</title></path>
+          <text class="slice-label" x="132.07" y="188.81">23%</text>
+          <path d="M67.08 195.87 A96 96 0 0 1 14.14 104.86 L50.09 106.79 A60 60 0 0 0 83.18 163.67 Z" fill="var(--cat-bill)"><title>Bill: $231.96 (19%)</title></path>
+          <text class="slice-label" x="42.58" y="153.22">19%</text>
+          <path d="M14.34 101.98 A96 96 0 0 1 44.12 40.18 L68.82 66.36 A60 60 0 0 0 50.21 104.99 Z" fill="var(--cat-transport)"><title>Transportation: $148.19 (12%)</title></path>
+          <text class="slice-label" x="39.73" y="80.14">12%</text>
+          <path d="M46.24 38.23 A96 96 0 0 1 108.56 14.01 L109.1 50.01 A60 60 0 0 0 70.15 65.14 Z" fill="var(--cat-misc)"><title>Misc: $144.40 (12%)</title></path>
+          <text class="slice-label" x="81.74" y="41.3">12%</text>
+          <text class="donut-total" x="110" y="110">$1,223.80</text>
+          <text class="donut-sub" x="110" y="126">charged</text>
+        </svg>
+        <div class="legend">
+          <span class="sw" style="background:var(--cat-groceries)"></span><span>Groceries</span><span class="amt">$412.80</span><span class="pct">34%</span>
+          <span class="sw" style="background:var(--cat-food)"></span><span>Food</span><span class="amt">$286.45</span><span class="pct">23%</span>
+          <span class="sw" style="background:var(--cat-bill)"></span><span>Bill</span><span class="amt">$231.96</span><span class="pct">19%</span>
+          <span class="sw" style="background:var(--cat-transport)"></span><span>Transportation</span><span class="amt">$148.19</span><span class="pct">12%</span>
+          <span class="sw" style="background:var(--cat-misc)"></span><span>Misc</span><span class="amt">$144.40</span><span class="pct">12%</span>
+          <span></span><span class="muted sm">net of $22.60 refunded</span><span class="amt muted sm">$1,223.80</span><span class="pct">100%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- payoff projection ------------------------------------------- -->
+    <button class="payoff-line" onclick="tog('payoff-body')">
+      <span class="car">▸</span>
+      <span class="pl-title">Debt payoff projection — Apple Card ···· 4821</span>
+      <span class="pl-rule"></span>
+      <span class="pl-date">Apr 2027</span>
+      <span class="muted sm">on your planned payments</span>
+      <span class="pl-warn">⚠ never at your current charge pace</span>
+    </button>
+    <div class="payoff" id="payoff-body" hidden>
+      <div class="payoff-grid">
+        <div class="payoff-chart">
+          <svg viewBox="0 0 760 200" width="100%" height="200" role="img" aria-label="Projected balance over the next 12 months under three scenarios">
+            <!-- y gridlines: 0 / 3k / 6k / 9k / 12k(limit) -->
+            <line class="gl limit" x1="48" y1="16"  x2="736" y2="16"/>
+            <line class="gl"       x1="48" y1="53"  x2="736" y2="53"/>
+            <line class="gl"       x1="48" y1="90"  x2="736" y2="90"/>
+            <line class="gl"       x1="48" y1="127" x2="736" y2="127"/>
+            <line class="gl axis"  x1="48" y1="164" x2="736" y2="164"/>
+            <text class="gtext r" x="42" y="19" fill="var(--neg)">$12k</text>
+            <text class="gtext r" x="42" y="56">$9k</text>
+            <text class="gtext r" x="42" y="93">$6k</text>
+            <text class="gtext r" x="42" y="130">$3k</text>
+            <text class="gtext r" x="42" y="167">$0</text>
+            <text class="gtext" x="48"  y="182" text-anchor="middle">Oct</text>
+            <text class="gtext" x="220" y="182" text-anchor="middle">Jan</text>
+            <text class="gtext" x="392" y="182" text-anchor="middle">Apr</text>
+            <text class="gtext" x="564" y="182" text-anchor="middle">Jul</text>
+            <text class="gtext" x="736" y="182" text-anchor="middle">Oct '27</text>
+
+            <!-- current pace: charge $2,651.57/mo vs pay $940.33/mo -->
+            <polyline class="ln pace" points="48,100.1 105.3,77.6 162.7,54.7 220,31.3 277.3,16"/>
+            <circle cx="277.3" cy="16" r="4" fill="var(--neg)"/>
+            <text class="lnote" x="288" y="20" fill="var(--neg)">⚠ hits the $12,000 limit in 4 months — never pays off</text>
+
+            <!-- payments only: charge $0 -->
+            <polyline class="ln stop" points="48,100.1 105.3,110.3 162.7,120.8 220,131.5 277.3,142.4 334.7,153.6 392,164"/>
+            <circle cx="392" cy="164" r="4" fill="var(--pos)"/>
+            <text class="lnote" x="402" y="158" fill="var(--pos)">paid off Apr 2027</text>
+
+            <!-- what-if (the sliders) -->
+            <polyline class="ln what" points="48,100.1 105.3,108.6 162.7,117.3 220,126.2 277.3,135.3 334.7,144.6 392,154 449.3,163.7 506.7,164"/>
+            <circle cx="506.7" cy="164" r="4" fill="var(--accent)"/>
+            <text class="lnote" x="517" y="168" fill="var(--accent)">what-if: Jun 2027</text>
+
+            <circle cx="48" cy="100.1" r="4" fill="var(--text)"/>
+          </svg>
+
+          <div class="scenarios">
+            <div class="scn is-pace">
+              <span class="sw" style="background:var(--neg)"></span>
+              <span class="key"><b>At your current pace</b> — charging $2,651.57/mo, paying $940.33/mo</span>
+              <span class="out neg">never · +$1,877/mo</span>
+            </div>
+            <div class="scn">
+              <span class="sw dash"></span>
+              <span class="key"><b>If you stop charging</b> — same $940.33/mo payment, $0 new charges</span>
+              <span class="out pos">Apr 2027 · $380 interest</span>
+            </div>
+            <div class="scn">
+              <span class="sw" style="background:var(--accent)"></span>
+              <span class="key"><b>What-if</b> — the sliders on the right</span>
+              <span class="out" style="color:var(--accent)">Jun 2027 · $443 interest</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="payoff-side">
+          <div class="sliders">
+            <div class="sl">
+              <span class="k">Monthly payment</span><span class="v">$1,400</span>
+              <input type="range" min="142" max="3000" step="10" value="1400">
+            </div>
+            <div class="sl">
+              <span class="k">New charges / mo</span><span class="v">$600</span>
+              <input type="range" min="0" max="3000" step="10" value="600">
+            </div>
+            <div class="sl">
+              <span class="k">APR</span><span class="v">24.99%</span>
+              <input type="range" min="0" max="35" step="0.01" value="24.99">
+            </div>
+          </div>
+          <button class="reset" style="margin-top:14px">↺ reset to my ledger plan</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---- mini ledger: same grid, three label changes ----------------- -->
+    <div class="toolbar">
+      <span class="grow"></span>
+      <span class="dirty-note">unsaved changes</span>
+      <button class="btn ghost">Discard</button>
+      <button class="btn">Save to ledger (1)</button>
+    </div>
+
+    <table class="pc">
+      <thead>
+        <tr>
+          <th class="col-date">Date</th>
+          <th>Category</th>
+          <th>Merchant</th>
+          <th class="col-mon" style="text-align:right">Charge +</th>
+          <th class="col-mon" style="text-align:right">Credit −</th>
+          <th class="col-owed" style="text-align:right">Owed</th>
+          <th class="row-actions"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="num">10/01/2026</td><td>Groceries</td><td>Whole Foods</td><td class="num charge">142.80</td><td class="num muted">—</td><td class="owed">$4,536.84</td><td class="row-actions"><button class="del">×</button></td></tr>
+        <tr><td class="num">10/02/2026</td><td>Bill</td><td>Netflix <span class="tag">↻ monthly</span></td><td class="num charge">22.99</td><td class="num muted">—</td><td class="owed">$4,559.83</td><td class="row-actions"><button class="del">×</button></td></tr>
+        <tr><td class="num">10/02/2026</td><td>Food</td><td>Chipotle</td><td class="num charge">31.45</td><td class="num muted">—</td><td class="owed">$4,591.28</td><td class="row-actions"><button class="del">×</button></td></tr>
+        <tr><td class="num">10/03/2026</td><td>Transportation</td><td>Shell Oil 574</td><td class="num charge">58.19</td><td class="num muted">—</td><td class="owed">$4,649.47</td><td class="row-actions"><button class="del">×</button></td></tr>
+        <tr><td class="num">10/04/2026</td><td>Misc</td><td>Amazon</td><td class="num charge">87.00</td><td class="num muted">—</td><td class="owed">$4,736.47</td><td class="row-actions"><button class="del">×</button></td></tr>
+        <tr><td class="num">10/05/2026</td><td>Credit Card Payment</td><td>Apple Card</td><td class="num muted">—</td><td class="num credit">434.00</td><td class="owed">$4,302.47</td><td class="row-actions"><button class="del">×</button></td></tr>
+        <tr class="pairnote"><td colspan="7">⇄ paired with <b>Woody — Checking</b> · 10/05/2026 · −$434.00 &nbsp;<span class="tag ok">transfer_id</span> &nbsp;— edit or delete either side and both move.</td></tr>
+        <tr><td class="num">10/06/2026</td><td>Groceries</td><td>Trader Joe's</td><td class="num charge">118.00</td><td class="num muted">—</td><td class="owed">$4,420.47</td><td class="row-actions"><button class="del">×</button></td></tr>
+        <tr><td class="num">10/07/2026</td><td>Food</td><td>DoorDash</td><td class="num charge">155.00</td><td class="num muted">—</td><td class="owed">$4,575.47</td><td class="row-actions"><button class="del">×</button></td></tr>
+        <tr><td class="num">10/08/2026</td><td>Bill</td><td>Con Edison</td><td class="num charge">208.97</td><td class="num muted">—</td><td class="owed">$4,784.44</td><td class="row-actions"><button class="del">×</button></td></tr>
+        <tr><td class="num">10/09/2026</td><td>Misc</td><td>Apple <span class="tag">refund</span></td><td class="num muted">—</td><td class="num credit">22.60</td><td class="owed">$4,761.84</td><td class="row-actions"><button class="del">×</button></td></tr>
+        <tr><td class="num">10/10/2026</td><td>Groceries</td><td>Costco</td><td class="num charge">152.00</td><td class="num muted">—</td><td class="owed">$4,913.84</td><td class="row-actions"><button class="del">×</button></td></tr>
+        <tr><td class="num">10/11/2026</td><td>Transportation</td><td>MTA</td><td class="num charge">90.00</td><td class="num muted">—</td><td class="owed">$5,003.84</td><td class="row-actions"><button class="del">×</button></td></tr>
+        <tr class="new-row"><td class="num">10/12/2026</td><td>Misc</td><td>Amazon</td><td class="num charge">80.00</td><td class="num muted">—</td><td class="owed">$5,083.84</td><td class="row-actions"><button class="del">×</button></td></tr>
+        <tr><td class="num">10/13/2026</td><td>Food</td><td>SQ *Blue Bottle</td><td class="num charge">100.00</td><td class="num muted">—</td><td class="owed">$5,183.84</td><td class="row-actions"><button class="del">×</button></td></tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td><input type="date" value="2026-10-14"></td>
+          <td><input type="text" list="categories" placeholder="category"></td>
+          <td><input type="text" placeholder="merchant"></td>
+          <td><input type="text" placeholder="0.00" style="text-align:right"></td>
+          <td><input type="text" placeholder="0.00" style="text-align:right"></td>
+          <td class="owed muted sm">—</td>
+          <td class="row-actions"><button class="btn ghost" style="padding:5px 10px" onclick="openRecur()">Add</button></td>
+        </tr>
+      </tfoot>
+    </table>
+
+    <div class="flag">
+      <b>On screen, not in a tooltip.</b> Two identities, both in the banner and the stat row:
+      <code>net purchases − payments = debt change</code>
+      (<span class="num">1,223.80 − 434.00 = 789.80</span>) and
+      <code>opening owed + debt change = closing owed</code>
+      (<span class="num">4,394.04 + 789.80 = 5,183.84</span>). The donut's five rows sum to
+      <span class="num">$1,223.80</span>. Those are what T37 asserts — printing them makes a
+      regression <em>visible</em> rather than merely detectable.
+    </div>
+
+    <div class="flag" id="f1">
+      <b>F1 — refunds net into their category, they are not a fourth stat tile.</b> Rev 1 had
+      purchases / refunds / payments / debt change as four tiles. A refund really does reduce what
+      Misc cost you, so it nets: Misc is <span class="num">$167.00</span> charged −
+      <span class="num">$22.60</span> refunded = <span class="num">$144.40</span>. That collapses
+      the old three-term identity into a two-term one and frees a stat slot for
+      <b>Owed — all 3 cards</b>, which is the figure you actually came to the page for.
+      <b>Confirm:</b> a refund larger than the category's charges makes the slice negative and the
+      donut cannot draw it — proposal is to clamp the slice to zero and show the true negative in
+      the legend and the rollup row.
+    </div>
+
+    <div class="flag" id="f2">
+      <b>F2 — <code>theme.css</code> is missing the three categories a card actually uses.</b>
+      <code>CAT_COLORS</code> in <code>paycheck.js</code> maps 8 categories; <b>Groceries,
+      Transportation and Misc are not among them</b>, so on today's palette 58% of this donut
+      collapses into one gray <code>Other</code> slice — the chart would be useless on exactly the
+      data it exists for. <b>Resolved — shipped in Phase 14's T38</b>, which took the
+      <code>--cat-*</code> contract to a closed list of twelve:
+      <code>--cat-groceries</code>, <code>--cat-transport</code> and <code>--cat-misc</code> are
+      now declared in <code>theme.css</code> in every variant, so this file no longer defines
+      them locally and what you see here is the real palette. They were
+      <b>pre-validated against <code>check-theme.js</code></b> — slate-dark clears 4.5:1 on white
+      (4.74 / 5.49 / 4.54), peach-light clears it on <code>#2e2622</code>
+      (7.47 / 6.59 / 7.78) — so they landed with <b>no new <code>KNOWN</code> entry</b>, unlike 8
+      of the 9 colors already there. T38 owns them rather than T31 because three tokens
+      &times; 2 variants is a footnote, while three &times; 12 retrofitted after the palettes
+      are generated is 36 values added under the tightest constraint in the phase.
+    </div>
+
+    <div class="flag" id="f3">
+      <b>F3 — the projection needs three fields that do not exist yet.</b> <code>apr</code>,
+      <code>credit_limit</code> and <code>statement_day</code> per card, in the
+      <code>accounts.data</code> JSON blob T26 is already adding — so it is a value change, not a
+      fifth migration. Without <code>apr</code> there is no interest and the chart is a straight
+      line; without <code>credit_limit</code> there is no "hits the limit in 4 months", which is the
+      single most useful thing on this screen. <b>Needs from you:</b> APR and limit for each card.
+      Until then the proposal is to fall back to a 0% projection with the limit line hidden, and say
+      so on the chart rather than guessing an APR.
+    </div>
+
+    <div class="flag" id="f4">
+      <b>F4 — "seeded from your ledgers" has to pick a charge rate, and that is a judgment call.</b>
+      The payment side is unambiguous: future-dated <code>Credit Card Payment</code> rows are
+      literally scheduled, so the green line is a real plan. Charges are not scheduled — only
+      <code>↻</code> recurring ones are. This mockup annualizes <em>this pay window's</em> charges
+      (<span class="num">$1,223.80</span> → <span class="num">$2,651.57</span>/mo), which is
+      responsive but noisy on a two-week sample. <b>Proposal:</b> use a 3-month trailing average for
+      the red line, show the window figure beside it, and label the line "at your 3-month pace" so
+      the number is never ambiguous about where it came from.
+    </div>
+  </section>
+
+  <!-- ============ 3 — ADD EXPENSE → THE SHARED RECUR MODAL =========== -->
+  <section class="screen" id="s3">
+    <h2>3 — Add expense &nbsp;·&nbsp; no "repeating" button, the existing modal asks</h2>
+    <div class="panel pad">
+      <p class="muted" style="margin-top:0;max-width:760px">
+        Identical to This Paycheck's flow today (<code>paycheck.js:375</code> —
+        <code>pushNew(base)</code> then <code>openRecurModal(base)</code>): <b>Add</b> stages the one
+        row immediately, <em>then</em> the modal offers to repeat it. Press
+        <b>Just this once</b> and the staged row stands; press <b>Add recurring</b> and the future
+        occurrences are staged too. Either way nothing is written until <b>Save to ledger</b>.
+      </p>
+      <button class="btn" onclick="openRecur()">Add — open the recur modal</button>
+    </div>
+    <div class="flag">
+      <b>What this costs:</b> the modal markup lives in <code>paycheck.html</code> and
+      <code>generateRecurring()</code> / <code>defaultUntil()</code> in <code>paycheck.js</code>.
+      Both subtabs are now in the same page, so the modal is <b>already in scope</b> — no extraction
+      needed for this screen. T30 still wants <code>generateRecurring</code> in a shared module for
+      the importer's recurring-charge projections; that stays its own task, no longer a prerequisite
+      here. The one real change is the <code>period</code> frequency: "every pay period" is the
+      Debit window's cadence and means the same thing on a card, so it stays — but
+      <code>monthly</code> becomes the sensible default for a card, not <code>monthly</code>-by-coincidence.
+    </div>
+  </section>
+
+  <!-- ============ 4 — IMPORT ========================================= -->
+  <section class="screen" id="s4">
+    <h2>4 — Statement upload + review &nbsp;·&nbsp; unchanged from rev 1</h2>
+    <div class="panel pad">
+      <p class="muted" style="margin-top:0">Opens over either subtab from <b>⬆ Upload statement</b>.</p>
+      <button class="btn" onclick="openImport()">⬆ Upload statement — open the review modal</button>
+    </div>
+    <div class="flag">
+      Four load-bearing details, all unchanged: the <b>fresh / duplicate / conflict</b> split, so
+      dedupe is visible rather than implicit; the <b>statement-total match</b> as a precondition, not
+      a footnote; <b>?</b> on an uncategorized row — never a guess dressed as a category; and the
+      last line, which states an architectural guarantee (decision #26), not a reassurance.
+    </div>
+  </section>
+
+  <!-- ============ 5 — SPENDING PLAN under the REVISED #21 ============ -->
+  <section class="screen" id="s5">
+    <h2>5 — The Spending Plan under the <b>revised</b> #21 &nbsp;·&nbsp; T28 rewritten</h2>
+    <div class="panel">
+      <div class="cardbar" style="margin:0;border:none;border-bottom:1px solid var(--line);border-radius:0">
+        <b>Spending Plan — Woody</b>
+        <span class="muted sm">monthly average over 3 months</span>
+        <span class="grow"></span>
+        <span class="tf-head"><button class="tf-toggle"><svg viewBox="0 0 16 16" width="14" height="14"><path d="M1.5 3h13l-5 6v4l-3 1.5V9z" fill="currentColor"/></svg></button><span class="muted sm">Displaying last 3 months</span></span>
+        <span class="coverage">✓ card data covers 3 of 3 months</span>
+      </div>
+
+      <div class="bucket-head" onclick="tog('b-fixed')">
+        <span class="car muted">▾</span><span class="ttl">Fixed Costs</span>
+        <span class="grp">
+          <span><span class="lbl">target</span> <span class="val">$4,450.00</span> <span class="pc">(92.3%)</span></span>
+          <span><span class="lbl">actual</span> <span class="val">$4,313.53</span> <span class="pc">(89.5%)</span></span>
+          <span class="delta pos">−$136.47</span>
+        </span>
+      </div>
+      <div id="b-fixed">
+        <table class="items">
+          <tbody>
+            <tr><td>Rent</td><td class="r">1,850.00</td><td class="r">1,850.00</td><td class="r muted">$0.00</td></tr>
+            <tr><td>Groceries <span class="tag ok">now includes the card</span></td><td class="r">420.00</td><td class="r">496.20</td><td class="r warnc">+$76.20</td></tr>
+            <tr><td>Bills — utilities</td><td class="r">180.00</td><td class="r">174.00</td><td class="r pos">−$6.00</td></tr>
+            <tr><td>Debt Payments <span class="tag ok">full payment, as you asked</span><span class="tag">direction: fund</span></td><td class="r">2,000.00</td><td class="r">1,793.33</td><td class="r"><span class="delta warn">−$206.67</span> <span class="muted sm">89.7% of target</span></td></tr>
+            <tr class="sub"><td colspan="4">
+              window payments &nbsp;·&nbsp; Apple Card $4,310.00 &nbsp;+&nbsp; Citi Card $1,070.00
+              &nbsp;=&nbsp; <b>$5,380.00</b> over 3 months = <b>$1,793.33</b>/mo. Counted in full,
+              whatever the cards did with it. Whether those payments actually reduced a balance is
+              the <b>Credit</b> subtab's question, and it answers it with a date.
+            </td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="bucket-head"><span class="car muted">▸</span><span class="ttl">Investments</span>
+        <span class="grp"><span><span class="lbl">target</span> <span class="val">$482.00</span> <span class="pc">(10.0%)</span></span>
+        <span><span class="lbl">actual</span> <span class="val">$465.00</span> <span class="pc">(9.6%)</span></span>
+        <span class="delta warnc">−$17.00</span></span></div>
+      <div class="bucket-head"><span class="car muted">▸</span><span class="ttl">Savings Goals</span>
+        <span class="grp"><span><span class="lbl">target</span> <span class="val">$360.00</span> <span class="pc">(7.5%)</span></span>
+        <span><span class="lbl">actual</span> <span class="val">$1,594.78</span> <span class="pc">(33.1%)</span></span>
+        <span class="delta pos">+$1,234.78</span></span></div>
+      <div class="bucket-head"><span class="car muted">▸</span><span class="ttl">Guilt-Free Spending</span>
+        <span class="grp"><span><span class="lbl">target</span> <span class="val">$188.00</span> <span class="pc">(3.9%)</span></span>
+        <span><span class="lbl">actual</span> <span class="val">$1,204.41</span> <span class="pc">(25.0%)</span></span>
+        <span class="delta neg">+$1,016.41</span></span></div>
+
+      <div class="footline"><span class="k">excluded — reconciliation</span><span class="num">$0.00</span><span class="muted sm">Adjustment, Negative Balance</span></div>
+      <div class="footline"><span class="k">card purchases counted at their own category</span><span class="num">$5,842.19</span><span class="muted sm">$1,947.40/mo — into Groceries, Bill, Food, Transportation, Misc</span></div>
+      <div class="footline" style="border-bottom:none"><span class="k pos">✓ reconciles</span><span class="muted sm"><code>bucketTotal + excluded === cashOutflow + cardPurchases</code></span></div>
+    </div>
+
+    <div class="flag settled">
+      <b>This is what your point 4 does to the page.</b> <code>Debt Payments</code> reads
+      <b class="num">$1,793.33</b> against a $2,000 target — recognizably your plan — instead of rev
+      1's <span class="num">$103.33</span>. The upside survives untouched: <code>Groceries</code> moved
+      $420 → <b class="num">$496.20</b> <em>because the card data arrived</em>, and Food,
+      Transportation and Misc are populated for the first time. The <code>excluded — card
+      transfers</code> line is <b>gone</b> — nothing is excluded now, which is one fewer concept on
+      the page and one fewer thing to explain.
+    </div>
+
+    <div class="flag" id="f6">
+      <b>F6 — your coloring rule, and the two things it needs that don't exist yet.</b>
+      <code>Debt Payments</code> at <span class="num">$1,793.33</span> / <span class="num">$2,000.00</span>
+      = <b>89.7%</b> renders <b class="warnc">yellow</b> above. The rule in full:
+      <code>&gt; target</code> → <b class="pos">green</b>,
+      <code>&gt; 0.8 × target</code> → <b class="warnc">yellow</b>,
+      <code>≤ 0.8 × target</code> → <b class="neg">red</b>,
+      <code>= target</code> → <b class="muted">gray</b>.
+      <br><br>
+      That is <code>statusFor()</code>'s existing <b><code>fund</code></b> direction
+      (<a href="#" onclick="return false">shared/csp.js:58</a>) with <b>two deviations</b>, and both
+      need a decision:
+      <br>
+      <b>(a) the thresholds differ.</b> The shared <code>fund</code> band is
+      <code>FUND_GOOD = 0.95 / FUND_WARN = 0.75</code>; yours is <code>1.0 / 0.8</code> — stricter at
+      both ends. At 96% of target the shared band says green and your rule says yellow. So this is a
+      per-item <em>threshold pair</em>, not just a per-item direction. Proposal: <code>data.direction:
+      "fund"</code> plus optional <code>data.good_at</code> / <code>data.warn_at</code> on the item,
+      defaulting to the shared constants, so one item can be strict without re-tuning Savings and
+      Investments.
+      <br>
+      <b>(b) gray is a fourth status.</b> <code>statusFor()</code> returns only
+      <code>good</code>/<code>warn</code>/<code>bad</code>, and
+      <code>csp.html</code> styles exactly those three. "Exactly on target" needs an
+      <code>even</code> status and a <code>.delta.even</code> rule — both are one line each (added to
+      this mockup's <code>&lt;style&gt;</code>). Worth knowing it will almost never fire: these are
+      monthly averages over a 3-month window, so landing on the cent is near-impossible. If you meant
+      "within a dollar or two", say so and it becomes a tolerance band rather than an equality test.
+      <br><br>
+      <b>One knock-on:</b> the <b>Fixed Costs</b> header still reads
+      <b class="pos">−$136.47</b> green, because the bucket rolls up on its own <code>spend</code>
+      direction (96.9% of target → good) while its most important item is yellow. Proposal: when any
+      item overrides its direction, the bucket's status becomes <code>worstStatus()</code> of its
+      items — that helper is already exported from <code>shared/csp.js</code> for exactly this.
+    </div>
+
+    <div class="flag" id="f5">
+      <b>F5 — the one consequence worth stating out loud, since it is now deliberate.</b> A dollar
+      can appear twice: $100 of groceries charged to the card counts in
+      <code>Groceries</code>, and the $100 you later send the card counts in
+      <code>Debt Payments</code>. That is the direct consequence of counting both, and it is the
+      right call for the reason you gave — but it means <b>bucket percentages are a share of
+      commitments, not of take-home, and can exceed 100%</b> in a heavy-charge month. The identity
+      still holds exactly (<code>bucketTotal + excluded === cashOutflow + cardPurchases</code>) and
+      T37 still asserts it; what changes is the denominator. <b>Proposal:</b> keep the percentages,
+      and when <code>cardPurchases &gt; 0</code> label the column header <b>% of commitments</b>
+      rather than <b>% of take-home</b> — one honest word rather than a second actual column, which
+      is the double-signal Phase 11 spent four tasks removing.
+    </div>
+  </section>
+
+</main>
+
+<!-- ---- the recur modal, lifted verbatim from paycheck.html ------------- -->
+<div class="modal" id="recurModal" hidden onclick="if(event.target===this)closeRecur()">
+  <div class="modal-card recur-card">
+    <h2>Make this recurring?</h2>
+    <div class="recur-summary">Misc · Amazon · $80.00 — starting 2026-10-14 · Apple Card ···· 4821</div>
+    <div class="recur-row">
+      <span>Repeat</span>
+      <select>
+        <option selected>Monthly (same day)</option>
+        <option>Every pay period</option>
+        <option>Every 2 weeks</option>
+        <option>Weekly</option>
+      </select>
+    </div>
+    <div class="recur-row">
+      <span>Until</span>
+      <input type="date" value="2027-10-14">
+    </div>
+    <div class="recur-actions">
+      <button class="btn ghost" onclick="closeRecur()">Just this once</button>
+      <button class="btn" onclick="closeRecur()">Add recurring</button>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="imp" onclick="if(event.target===this)closeImport()">
+  <div class="impmodal">
+    <h3>Import statement — Apple Card ···· 4821</h3>
+    <div class="pad" style="padding-bottom:0">
+      <div class="sm muted">Detected <b style="color:var(--text)">Apple Card</b> · Sep 2026 statement · 61 rows parsed · auto-detected from the header signature</div>
+    </div>
+    <div class="pills">
+      <span class="pill new">47 new</span>
+      <span class="pill dup">13 already imported</span>
+      <span class="pill chg">1 amount changed</span>
+    </div>
+    <div class="conflict">
+      <span>⚠ settled at a different amount than the pending charge on file<br>
+        <span class="muted sm">09/14 · Delta Air Lines · <b style="color:var(--text)">$412.00 → $389.60</b></span></span>
+      <span class="sp"></span>
+      <button class="btn ghost">update</button><button class="btn ghost">skip</button>
+    </div>
+    <table class="rev">
+      <thead><tr><th style="width:34px">✓</th><th>date</th><th>merchant</th><th>category</th><th class="r">amount</th><th></th></tr></thead>
+      <tbody>
+        <tr><td><input type="checkbox" checked></td><td class="num">09/02</td><td>WHOLEFDS MKT 103</td><td><select><option selected>Groceries</option><option>Food</option></select></td><td class="r">−$84.21</td><td><button class="mini">✎ rule</button></td></tr>
+        <tr><td><input type="checkbox" checked></td><td class="num">09/02</td><td>NETFLIX.COM</td><td><select><option selected>Bill</option><option>Fun</option></select></td><td class="r">−$22.99</td><td><button class="mini">↻ monthly?</button></td></tr>
+        <tr><td><input type="checkbox" checked></td><td class="num">09/03</td><td>SHELL OIL 574</td><td><select><option selected>Transportation</option></select></td><td class="r">−$46.10</td><td></td></tr>
+        <tr class="ispay"><td><input type="checkbox" checked></td><td class="num">09/05</td><td>APPLE CARD PAYMENT</td><td>— <span class="tag">payment</span></td><td class="r pos">+$1,400.00</td><td><span class="tag ok">⇄ pairs</span></td></tr>
+        <tr class="needcat"><td><input type="checkbox" checked></td><td class="num">09/06</td><td>AMZN MKTP US*2K4</td><td><select><option selected>?</option><option>Misc</option><option>Groceries</option></select></td><td class="r">−$38.40</td><td><span class="sm muted">needs one</span></td></tr>
+        <tr><td colspan="6" class="muted sm" style="text-align:center">…42 more</td></tr>
+      </tbody>
+    </table>
+    <div class="totals">
+      <span>purchases <b class="num">−$2,104.88</b></span>
+      <span>refunds <b class="num pos">+$61.20</b></span>
+      <span>payments <b class="num pos">+$1,400.00</b></span>
+    </div>
+    <div class="match">✓ matches the statement total <b class="num">−$2,104.88</b></div>
+    <div class="guarantee">Nothing is written until you confirm. The file is parsed in this browser — never uploaded, never saved to disk.</div>
+    <div class="foot">
+      <button class="btn ghost" onclick="closeImport()">Cancel</button>
+      <button class="btn" onclick="closeImport()">Import 47 rows</button>
+    </div>
+  </div>
+</div>
+
+<datalist id="categories">
+  <option>Groceries</option><option>Food</option><option>Bill</option>
+  <option>Transportation</option><option>Misc</option><option>Fun</option>
+  <option>Housing</option><option>Credit Card Payment</option><option>Expense</option>
+</datalist>
+
+<script>
+  function tog(id) {
+    const el = document.getElementById(id); if (!el) return;
+    el.hidden = !el.hidden;
+    const car = el.previousElementSibling?.querySelector('.car');
+    if (car) car.textContent = el.hidden ? '▸' : '▾';
+  }
+  const openImport  = () => document.getElementById('imp').classList.add('open');
+  const closeImport = () => document.getElementById('imp').classList.remove('open');
+  const openRecur   = () => { document.getElementById('recurModal').hidden = false; };
+  const closeRecur  = () => { document.getElementById('recurModal').hidden = true; };
+  addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeImport(); closeRecur(); } });
+  // deep-links so either modal is reachable (and screenshot-able) directly
+  if (location.hash === '#import') openImport();
+  if (location.hash === '#recur')  openRecur();
+</script>
+<script type="module" src="./settings.js"></script>
+</body>
+</html>

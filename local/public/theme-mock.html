@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MOCKUP — Theme showcase (Phase 14, T44)</title>
+<link rel="stylesheet" href="./theme.css" />
+<!--
+  T44's showcase. Six families x two modes, side by side, rendered out of the
+  REAL theme.css — each cell below is just a <div data-theme data-mode>, which
+  is exactly what T38's attribute-selector move (theme.css blocks hang off
+  `[data-theme][data-mode]`, not `:root[...]`) was for. A mockup with its own
+  copy of the 20-odd values per cell would drift the day after it's written;
+  this one can't, because every color on the page IS the token.
+
+  The twelve cells share one markup template (below, in JS) rather than being
+  hand-copied twelve times — the thing this page exists to avoid (a
+  hand-maintained lie) starts with the page's own markup, not just its colors.
+
+  The contrast/separation figures under each cell are computed LIVE, in the
+  browser, via getComputedStyle — the same ratio() / CIEDE2000 math
+  check-theme.js runs against the stylesheet, not numbers transcribed from a
+  terminal run that go stale the next time a palette moves. Picked pairings:
+  on-accent/accent and muted/bg (both have recorded KNOWN shortfalls in
+  slate-dark) and cat-card vs cat-transport, the tightest category pair in the
+  whole table (see theme.css's derivation-rule comment and check-theme.js's
+  SEPARATION block) — Orchid is where it's narrowest of the eight new
+  variants, at 8.42 dark.
+
+  Local-only. Not on the publish copy list — this is a dev review tool, not
+  app surface.
+-->
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #0b0c0f; }
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; font-size: 14px; }
+
+  /* Page chrome is deliberately NOT themed — it's meta-UI about the mockup,
+     not content inside any one variant, so it stays fixed dark regardless of
+     what's being compared below it. */
+  .tm-head { position: sticky; top: 0; z-index: 5; background: #15171c; color: #e7e9ee; border-bottom: 1px solid #2a2f3a; padding: 14px 24px; }
+  .tm-head h1 { font-size: 15px; margin: 0 0 4px; }
+  .tm-head p { margin: 0; font-size: 12px; color: #9aa3b2; max-width: 900px; line-height: 1.5; }
+  .tm-head .k { color: #e7e9ee; font-weight: 600; }
+
+  main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+  .tm-family { margin-bottom: 44px; }
+  .tm-family > h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: #9aa3b2; margin: 0 0 14px; font-weight: 700; }
+  .tm-pair { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
+
+  /* ---- the cell: everything inside here is real theme.css content -------- */
+  .cell { flex: 1 1 440px; min-width: 380px; max-width: 540px; border-radius: 14px; padding: 18px; background: var(--bg); color: var(--text); border: 1px solid var(--line); }
+  .cell-label { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+  .cell-label .fam { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
+  .cell-label .mode { font-size: 15px; font-weight: 700; }
+  .cell-label .native { font-size: 10px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; }
+
+  .surfaces { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
+  .surfaces > div { flex: 1; padding: 9px 10px; font-size: 10px; color: var(--muted); }
+  .surfaces .s-bg { background: var(--bg); }
+  .surfaces .s-panel { background: var(--panel); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+  .surfaces .s-panel2 { background: var(--panel-2); }
+
+  .mini-chrome { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 12px; }
+  .mini-nav { display: flex; gap: 3px; }
+  .mini-nav a { font-size: 11px; font-weight: 600; color: var(--muted); padding: 4px 9px; border-radius: 6px; text-decoration: none; }
+  .mini-nav a.active { color: var(--text); background: var(--accent-weak); }
+
+  .btn-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .btn { font: inherit; font-size: 12px; font-weight: 600; border-radius: 8px; padding: 7px 13px; border: none; cursor: pointer; background: var(--accent); color: var(--on-accent); }
+  .btn:hover { filter: var(--btn-hover-filter); }
+  .btn.ghost { background: var(--accent-weak); color: var(--text); }
+  .btn.danger { background: var(--danger); color: var(--on-danger); }
+
+  .stat-row { display: flex; gap: 20px; margin-bottom: 12px; }
+  .stat .l { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .stat .v { font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; }
+  .stat .v.pos { color: var(--pos); } .stat .v.neg { color: var(--neg); }
+
+  table.mini { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 11px; }
+  table.mini td { padding: 5px 8px; border-bottom: 1px solid var(--line); }
+  table.mini td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.row-edited { background: var(--row-edited); }
+  tr.row-new { background: var(--row-new); }
+  tr.row-neg { background: var(--row-neg); }
+
+  .banner { border-radius: 8px; padding: 8px 10px; font-size: 11px; margin-bottom: 6px; }
+  .banner.warn { background: var(--banner-warn-bg); border: 1px solid var(--banner-warn-line); color: var(--warn); }
+  .banner.ok { background: var(--banner-ok-bg); border: 1px solid var(--banner-ok-line); color: var(--pos); }
+  .banner:last-of-type { margin-bottom: 12px; }
+
+  .chip { display: inline-flex; align-items: center; background: var(--accent); color: var(--on-accent); border-radius: 999px; padding: 4px 13px; font-size: 11px; font-weight: 700; margin-bottom: 12px; }
+
+  .legend { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 12px; }
+  .legend .sw { display: flex; align-items: center; justify-content: center; height: 26px; border-radius: 5px; font-size: 9px; font-weight: 700; color: var(--on-slice); letter-spacing: .02em; }
+
+  .fine { color: var(--muted); font-size: 10px; margin-bottom: 12px; }
+
+  .shadow-demo { background: var(--scrim); border-radius: 10px; padding: 18px; display: flex; justify-content: center; margin-bottom: 12px; }
+  .shadow-demo .card { background: var(--panel); box-shadow: var(--shadow-md); border-radius: 10px; padding: 10px 18px; font-size: 11px; color: var(--text); border: 1px solid var(--line); }
+
+  .figures { border-top: 1px solid var(--line); padding-top: 10px; font-size: 10.5px; color: var(--muted); display: grid; gap: 4px; }
+  .figures b { color: var(--text); }
+  .figures .pass { color: var(--pos); font-weight: 700; }
+  .figures .fail { color: var(--neg); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="tm-head">
+  <h1>Theme showcase — all twelve variants</h1>
+  <p>
+    Every color below is a live <span class="k">theme.css</span> token — no values are
+    copied into this page. The three figures under each cell (<span class="k">on-accent / accent</span>,
+    <span class="k">muted / bg</span>, <span class="k">cat-card vs cat-transport</span>) are computed in
+    this page's own JS, the same WCAG-ratio and CIEDE2000 math <span class="k">npm run check:theme</span>
+    runs against the stylesheet, so a palette edit shows up here without a second
+    calculation to keep in sync. A red figure is not necessarily a bug — some are
+    recorded, pre-existing shortfalls (see theme.css's <span class="k">KNOWN</span> comments); it just means
+    this page and the checker will always agree.
+  </p>
+</div>
+
+<main id="main"></main>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- color math, lifted from local/check-theme.js's PAIRS/SEPARATION logic ----
+  var HEX = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+  function hex(h) {
+    h = h.replace("#", "");
+    if (h.length === 3) h = h.split("").map(function (c) { return c + c; }).join("");
+    var n = [0, 2, 4].map(function (i) { return parseInt(h.slice(i, i + 2), 16) / 255; });
+    return n;
+  }
+  function lin(c) { return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); }
+  function lum(h) { var rgb = hex(h).map(lin); return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]; }
+  function ratio(a, b) {
+    var la = lum(a), lb = lum(b), hi = Math.max(la, lb), lo = Math.min(la, lb);
+    return (hi + 0.05) / (lo + 0.05);
+  }
+  function fLab(t) { return t > 216 / 24389 ? Math.cbrt(t) : t / (3 * Math.pow(6 / 29, 2)) + 4 / 29; }
+  function lab(h) {
+    var rgb = hex(h).map(lin), r = rgb[0], g = rgb[1], b = rgb[2];
+    var X = (0.4124564 * r + 0.3575761 * g + 0.1804375 * b) / 0.95047;
+    var Y = 0.2126729 * r + 0.7151522 * g + 0.0721750 * b;
+    var Z = (0.0193339 * r + 0.1191920 * g + 0.9503041 * b) / 1.08883;
+    return [116 * fLab(Y) - 16, 500 * (fLab(X) - fLab(Y)), 200 * (fLab(Y) - fLab(Z))];
+  }
+  var RAD = Math.PI / 180;
+  function deltaE(c1, c2) {
+    var A = lab(c1), B = lab(c2);
+    var L1 = A[0], a1 = A[1], b1 = A[2], L2 = B[0], a2 = B[1], b2 = B[2];
+    var Cb = (Math.hypot(a1, b1) + Math.hypot(a2, b2)) / 2;
+    var G = 0.5 * (1 - Math.sqrt(Math.pow(Cb, 7) / (Math.pow(Cb, 7) + Math.pow(25, 7))));
+    var ap1 = (1 + G) * a1, ap2 = (1 + G) * a2;
+    var Cp1 = Math.hypot(ap1, b1), Cp2 = Math.hypot(ap2, b2);
+    function ang(x, y) { if (x === 0 && y === 0) return 0; var d = Math.atan2(y, x) / RAD; return d < 0 ? d + 360 : d; }
+    var hp1 = ang(ap1, b1), hp2 = ang(ap2, b2);
+    var dL = L2 - L1, dC = Cp2 - Cp1, dh = 0;
+    if (Cp1 * Cp2 !== 0) { dh = hp2 - hp1; if (dh > 180) dh -= 360; else if (dh < -180) dh += 360; }
+    var dH = 2 * Math.sqrt(Cp1 * Cp2) * Math.sin((dh / 2) * RAD);
+    var Lb = (L1 + L2) / 2, Cpb = (Cp1 + Cp2) / 2, hb;
+    if (Cp1 * Cp2 !== 0) hb = Math.abs(hp1 - hp2) > 180 ? (hp1 + hp2 + 360) / 2 : (hp1 + hp2) / 2;
+    else hb = hp1 + hp2;
+    var T = 1 - 0.17 * Math.cos((hb - 30) * RAD) + 0.24 * Math.cos(2 * hb * RAD)
+      + 0.32 * Math.cos((3 * hb + 6) * RAD) - 0.20 * Math.cos((4 * hb - 63) * RAD);
+    var Sl = 1 + (0.015 * Math.pow(Lb - 50, 2)) / Math.sqrt(20 + Math.pow(Lb - 50, 2));
+    var Sc = 1 + 0.045 * Cpb, Sh = 1 + 0.015 * Cpb * T;
+    var Rt = -Math.sin(2 * (30 * Math.exp(-Math.pow((hb - 275) / 25, 2))) * RAD)
+      * 2 * Math.sqrt(Math.pow(Cpb, 7) / (Math.pow(Cpb, 7) + Math.pow(25, 7)));
+    return Math.sqrt(Math.pow(dL / Sl, 2) + Math.pow(dC / Sc, 2) + Math.pow(dH / Sh, 2)
+      + Rt * (dC / Sc) * (dH / Sh));
+  }
+
+  // ---- the thirteen category names, theme.css's closed CATS contract ------
+  var CATS = [
+    ["housing", "HOU"], ["bill", "BIL"], ["savings", "SAV"], ["investments", "INV"],
+    ["card", "CRD"], ["loan", "LOA"], ["food", "FUD"], ["fun", "FUN"],
+    ["other", "OTH"], ["groceries", "GRO"], ["transport", "TRN"], ["misc", "MSC"],
+    ["interest", "INT"],
+  ];
+
+  var FAMILIES = [
+    { key: "slate", label: "Slate", native: "dark" },
+    { key: "peach", label: "Peach", native: "light" },
+    { key: "bordeaux", label: "Bordeaux", native: "dark" },
+    { key: "lagoon", label: "Lagoon", native: "dark" },
+    { key: "orchid", label: "Orchid", native: "light" },
+    { key: "thicket", label: "Thicket", native: "light" },
+  ];
+
+  function legendHTML() {
+    return CATS.map(function (c) {
+      return '<div class="sw" style="background:var(--cat-' + c[0] + ')">' + c[1] + '</div>';
+    }).join("");
+  }
+
+  function cellHTML(fam, mode, isNative) {
+    return ''
+      + '<div class="cell" data-theme="' + fam.key + '" data-mode="' + mode + '">'
+      + '  <div class="cell-label">'
+      + '    <span class="fam">' + fam.label + '</span>'
+      + '    <span class="mode">' + (mode === "dark" ? "Dark" : "Light") + '</span>'
+      + (isNative ? '<span class="native">native</span>' : '')
+      + '  </div>'
+
+      + '  <div class="surfaces">'
+      + '    <div class="s-bg">bg</div><div class="s-panel">panel</div><div class="s-panel2">panel-2</div>'
+      + '  </div>'
+
+      + '  <div class="mini-chrome">'
+      + '    <span class="mini-nav">'
+      + '      <a class="active">Ledger</a><a>Plan</a><a>Dashboard</a>'
+      + '    </span>'
+      + '  </div>'
+
+      + '  <div class="btn-row">'
+      + '    <button class="btn">Primary</button>'
+      + '    <button class="btn ghost">Ghost</button>'
+      + '    <button class="btn danger">Danger</button>'
+      + '  </div>'
+
+      + '  <div class="stat-row">'
+      + '    <div class="stat"><span class="l">Paycheck</span><span class="v pos">+$2,474.99</span></div>'
+      + '    <div class="stat"><span class="l">Overdue</span><span class="v neg">-$340.12</span></div>'
+      + '  </div>'
+
+      + '  <table class="mini"><tbody>'
+      + '    <tr class="row-edited"><td>10/02</td><td>Edited row</td><td class="num">$84.20</td></tr>'
+      + '    <tr class="row-new"><td>10/05</td><td>New row</td><td class="num">$40.00</td></tr>'
+      + '    <tr class="row-neg"><td>10/09</td><td>Overpaid row</td><td class="num">−$12.00</td></tr>'
+      + '  </tbody></table>'
+
+      + '  <div class="banner warn">Charging faster than you\'re paying this period.</div>'
+      + '  <div class="banner ok">On track — ends the pay period at $0.74.</div>'
+
+      + '  <span class="chip">Accent chip</span>'
+
+      + '  <div class="legend">' + legendHTML() + '</div>'
+
+      + '  <div class="fine">Muted small print — helper text, hints, secondary labels.</div>'
+
+      + '  <div class="shadow-demo"><div class="card">Card over scrim (--shadow-md)</div></div>'
+
+      + '  <div class="figures" data-figures></div>'
+      + '</div>';
+  }
+
+  var main = document.getElementById("main");
+  FAMILIES.forEach(function (fam) {
+    var section = document.createElement("div");
+    section.className = "tm-family";
+    section.innerHTML = '<h2>' + fam.label + '</h2><div class="tm-pair">'
+      + cellHTML(fam, "light", fam.native === "light")
+      + cellHTML(fam, "dark", fam.native === "dark")
+      + '</div>';
+    main.appendChild(section);
+  });
+
+  // ---- live contrast/separation figures, read back from the rendered cells ----
+  function tok(cell, name) { return getComputedStyle(cell).getPropertyValue("--" + name).trim(); }
+  function line(label, value, target, unit, ok) {
+    return '<div><b>' + label + '</b> ' + value.toFixed(2) + unit
+      + ' (target ' + target + ') '
+      + '<span class="' + (ok ? "pass" : "fail") + '">' + (ok ? "✓ pass" : "✗ below target") + '</span></div>';
+  }
+
+  document.querySelectorAll(".cell").forEach(function (cell) {
+    var onAccent = tok(cell, "on-accent"), accent = tok(cell, "accent");
+    var muted = tok(cell, "muted"), bg = tok(cell, "bg");
+    var cardC = tok(cell, "cat-card"), transportC = tok(cell, "cat-transport");
+
+    var out = document.createElement("div");
+    var html = "";
+    if (HEX.test(onAccent) && HEX.test(accent)) {
+      var r1 = ratio(onAccent, accent);
+      html += line("on-accent / accent", r1, 4.5, ":1", r1 >= 4.5);
+    }
+    if (HEX.test(muted) && HEX.test(bg)) {
+      var r2 = ratio(muted, bg);
+      html += line("muted / bg", r2, 3.0, ":1", r2 >= 3.0);
+    }
+    if (HEX.test(cardC) && HEX.test(transportC)) {
+      var dE = deltaE(cardC, transportC);
+      html += line("cat-card vs cat-transport", dE, 8.0, " ΔE", dE >= 8.0);
+    }
+    cell.querySelector("[data-figures]").innerHTML = html;
+  });
+})();
+</script>
+
+</body>
+</html>

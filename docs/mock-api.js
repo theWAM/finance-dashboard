@@ -145,13 +145,25 @@ function decorate() {
     /* Low power used to be a seventh header button hidden here; it now lives in
        the Settings panel, which stays available on the published view — theme
        and rendering are the reader's own machine preferences. */
-    #saveBtn, #discardBtn, #publishBtn, #refreshBtn, #dirtyNote { display: none !important; }`;
+    #saveBtn, #discardBtn, #publishBtn, #refreshBtn, #dirtyNote { display: none !important; }
+    /* The Credit subtab's uploader is the one write surface that isn't safe to
+       leave live: paycheck.js's own render re-sets its disabled property on
+       every card/window switch, so a one-time JS disable gets clobbered — this
+       has to hold regardless of that property, hence !important + pointer-events
+       rather than relying on the disabled property. */
+    #uploadBtn { pointer-events: none !important; opacity: .45 !important; cursor: not-allowed !important; }`;
   document.head.appendChild(style);
 
   const bar = document.createElement("div");
   bar.id = "ro-banner";
   bar.innerHTML = `🔒 <b>Read-only published view.</b> Edit any value to explore the math — nothing here is saved.`;
   document.body.prepend(bar);
+
+  // The uploader is disabled above (CSS); explain why, rather than a silent
+  // no-op — importing a real statement into a store that's discarded on
+  // reload would otherwise look like it worked.
+  const uploadBtn = document.getElementById("uploadBtn");
+  if (uploadBtn) uploadBtn.title = "Read-only published view — an imported statement wouldn't be saved.";
 
   // Rewrite the nav to the published pages only (Plan editing stays local).
   const nav = document.querySelector(".nav");

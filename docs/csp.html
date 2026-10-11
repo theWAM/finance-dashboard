@@ -111,10 +111,18 @@
   /* --- comparison columns (target vs. actual) ----------------------------- */
   .ph { color: var(--muted); font-size: 12px; }
   td.money { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; padding-right: 10px; }
+  /* A direction-overriding item is judged on "% of target", not on the sign of
+     its delta, so the ratio rides under the delta rather than beside it — the
+     column is sized for one number and a second one on the same line runs into
+     the match-rule cell. */
+  td.delta-cell .pc { display: block; margin-top: 2px; }
   /* Direction-aware: the sign alone doesn't say whether it's good news. */
   .delta.good { color: var(--pos); }
   .delta.warn { color: var(--warn); }
   .delta.bad { color: var(--neg); }
+  /* Decision #38's fourth status: exactly on target is a real answer, and it
+     is neither good nor bad, so it declines to pick a color. */
+  .delta.even { color: var(--muted); }
   /* Sits under the match-rule chips now that the Status column is gone (T11).
      `:not([hidden])` — an explicit `display` would otherwise beat the UA
      stylesheet's `[hidden] { display: none }` and show it on every row. */
@@ -164,6 +172,29 @@
   .plan-roll .nums { display: inline-flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
   .plan-roll b { font-size: 14px; }
   .recon-warn { color: var(--neg); font-size: 11px; }
+
+  /* --- T28: the card half of the plan ------------------------------------
+     Three facts the page gained when cards became part of the CSP, in the
+     order they matter: whether the window's card data is complete (because
+     missing data under-reports and looks like thrift), how much of the plan is
+     debt newly taken on rather than cash that left, and that the two still
+     reconcile. */
+  /* `hidden` is a low-specificity `display: none`, so any rule that sets
+     `display` here would beat it and leave an empty pill on the page. */
+  .coverage[hidden], .dir-tag[hidden] { display: none; }
+  .coverage { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; padding: 3px 9px; border-radius: 999px;
+              background: var(--banner-ok-bg); border: 1px solid var(--banner-ok-line); color: var(--pos); }
+  .coverage.partial { background: var(--banner-warn-bg); border-color: var(--banner-warn-line); color: var(--warn); }
+  .plan-foot { flex-basis: 100%; display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted); }
+  .plan-foot .line { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .plan-foot .line b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .plan-foot code { font-size: 10px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 1px 4px; }
+  /* The denominator's name, when `% of take-home` stops being true. */
+  .pc-basis { color: var(--muted); font-size: 11px; }
+  /* An item reading itself against the opposite direction to its bucket says
+     so on the row — it is the one thing about that line you cannot infer from
+     the numbers (decision #38). */
+  .dir-tag { font-size: 10px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 7px; margin-left: 6px; white-space: nowrap; }
   /* Fold-up controls, and the single statement that every figure below is a
      monthly average (so no number repeats a `/mo`). */
   .plan-tools { flex-basis: 100%; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

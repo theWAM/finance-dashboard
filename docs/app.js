@@ -2,6 +2,7 @@ import { payAnchor as timeframeAnchor, DEFAULT_PRESET, PRESETS } from "./shared/
 import { mountTimeframe } from "./timeframe-ui.js";
 import { formatStamp, lastUpdated } from "./shared/stamp.js";
 import { mountPlanNav } from "./nav-plan.js";
+import { askPair, loadTransferIndex, mirrorPlan, newTransferId, pairBadge, signed } from "./pairing.js";
 
 mountPlanNav(document.querySelector(".nav"), { view: null });
 
@@ -68,7 +69,16 @@ const state = {
   // computer can opt into the lighter renderer without changing anyone else's
   // experience. Default off = the original always-editable grid.
   lowPower: localStorage.getItem("lowPower") === "1",
+  // T34 — paired transfers. `transfers` is the server's group index (see
+  // GET /api/transfers); the three staged sets are decisions the user has
+  // already made about a pair but has not Saved yet, so they discard with
+  // everything else rather than acting the moment they are chosen.
+  transfers: { groups: {}, unpaired: new Set(), cards: [], summary: null, readOnly: true },
+  propagate: new Set(),   // row ids whose edit should travel to the pair
+  unlink: new Set(),      // row ids whose edit should BREAK the pair instead
+  delPairs: new Set(),    // row ids whose delete should take the whole movement
 };
+const accountById = () => new Map(state.accounts.map((a) => [a.id, a]));
 
 async function api(path, opts) {
   const res = await fetch(path, {
@@ -150,6 +160,13 @@ async function selectUser(id) {
 
 // --- accounts --------------------------------------------------------------
 
+const isCard = () => state.account?.type === "credit_card";
+
+// Grouping + ordering for the account <optgroup>s — checking first (the
+// common case), then cards, then anything else, each alphabetized within.
+const ACCOUNT_GROUP_LABELS = { checking: "Checking", credit_card: "Credit Cards", savings: "Savings", investment: "Investments", loan: "Loans" };
+const ACCOUNT_GROUP_ORDER = ["checking", "credit_card", "savings", "investment", "loan"];
+
 async function loadAccounts() {
   const { accounts } = await api("/api/accounts");
   // Personal scope: show the current person's accounts plus shared ones.
@@ -160,11 +177,30 @@ async function loadAccounts() {
 
   const sel = $("#account");
   sel.innerHTML = "";
+  // A flat list stops being scannable once card accounts join checking (up to
+  // ~5 cards per person) — group by type, checking first.
+  const groups = new Map();
   for (const a of visible) {
-    const opt = document.createElement("option");
-    opt.value = a.id;
-    opt.textContent = `${a.name} — ${fmt(a.balance)}`;
-    sel.appendChild(opt);
+    const key = a.type || "checking";
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(a);
+  }
+  const keys = [...groups.keys()].sort((a, b) => {
+    const ia = ACCOUNT_GROUP_ORDER.indexOf(a), ib = ACCOUNT_GROUP_ORDER.indexOf(b);
+    return (ia === -1 ? ACCOUNT_GROUP_ORDER.length : ia) - (ib === -1 ? ACCOUNT_GROUP_ORDER.length : ib);
+  });
+  for (const key of keys) {
+    const og = document.createElement("optgroup");
+    og.label = ACCOUNT_GROUP_LABELS[key] || (key.charAt(0).toUpperCase() + key.slice(1));
+    for (const a of groups.get(key)) {
+      const opt = document.createElement("option");
+      opt.value = a.id;
+      // Debt displays positive everywhere outside the stored balance itself.
+      const bal = key === "credit_card" ? -a.balance : a.balance;
+      opt.textContent = `${a.name} — ${fmt(bal)}`;
+      og.appendChild(opt);
+    }
+    sel.appendChild(og);
   }
   if (!state.accountId || !visible.some((a) => a.id === state.accountId)) {
     // Prefer the current person's checking account, then their busiest account,
@@ -186,14 +222,22 @@ function clearPending() {
   state.dels.clear();
   state.news = [];
   state.selected.clear();
+  state.propagate.clear();
+  state.unlink.clear();
+  state.delPairs.clear();
   addDraft = freshDraft();
 }
 
 async function loadLedger() {
-  if (!state.accountId) { state.rows = []; state.account = null; clearPending(); resetFilter(); buildFilters(); render(); $("#dailyCheck").hidden = true; return; }
-  const { account, transactions } = await api(`/api/transactions?account_id=${encodeURIComponent(state.accountId)}`);
+  $("#dailyCheck").hidden = true; // stale projection from whatever account was open before
+  if (!state.accountId) { state.rows = []; state.account = null; clearPending(); resetFilter(); buildFilters(); render(); return; }
+  const [{ account, transactions }, transfers] = await Promise.all([
+    api(`/api/transactions?account_id=${encodeURIComponent(state.accountId)}`),
+    loadTransferIndex(),
+  ]);
   state.account = account;
   state.rows = transactions;
+  state.transfers = transfers;
   clearPending();
   resetFilter();          // a fresh account starts unfiltered
   buildFilters();         // rebuild category/source checkboxes for this account
@@ -261,13 +305,35 @@ function distinctValues(key) {
   return [...set].sort((a, b) => cmp(a.toLowerCase(), b.toLowerCase()));
 }
 
+// A card can carry hundreds of distinct merchants (vs. a handful of
+// categories), which makes an uncapped checkbox list unusable. Cap at `cap`,
+// ranked by frequency so the merchants worth filtering on survive the cut,
+// but keep anything already checked visible even if it falls outside the cap.
+function topValues(key, selected, cap) {
+  const counts = new Map();
+  for (const r of state.rows) {
+    const v = r[key] ?? "";
+    counts.set(v, (counts.get(v) || 0) + 1);
+  }
+  const all = [...counts.keys()];
+  if (all.length <= cap) return { values: all.sort((a, b) => cmp(a.toLowerCase(), b.toLowerCase())), omitted: 0 };
+  const shown = new Set([...all].sort((a, b) => counts.get(b) - counts.get(a)).slice(0, cap));
+  for (const v of selected) shown.add(v);
+  return { values: [...shown].sort((a, b) => cmp(a.toLowerCase(), b.toLowerCase())), omitted: all.length - shown.size };
+}
+
+const SOURCE_FACET_CAP = 150;
+
 function buildFilters() {
-  buildMultiselect("msCategory", "Category", distinctValues("description"), state.filter.categories);
-  buildMultiselect("msSource", "Source", distinctValues("source"), state.filter.sources);
+  buildMultiselect("msCategory", "Category", distinctValues("description"), state.filter.categories, 0);
+  const { values: sources, omitted } = topValues("source", state.filter.sources, SOURCE_FACET_CAP);
+  buildMultiselect("msSource", "Source", sources, state.filter.sources, omitted);
 }
 
 // A checkbox dropdown over `values`; checking several matches ANY of them.
-function buildMultiselect(elId, label, values, selected) {
+// `omitted` (card merchant lists only) prints a note instead of silently
+// dropping the rest.
+function buildMultiselect(elId, label, values, selected, omitted = 0) {
   const el = $("#" + elId);
   el.innerHTML = "";
   const btn = document.createElement("button");
@@ -298,6 +364,12 @@ function buildMultiselect(elId, label, values, selected) {
     opt.append(cb, span);
     panel.appendChild(opt);
   }
+  if (omitted > 0) {
+    const note = document.createElement("div");
+    note.className = "ms-note";
+    note.textContent = `+${omitted} more not shown — narrow by date or category first`;
+    panel.appendChild(note);
+  }
   btn.addEventListener("click", (e) => {
     e.stopPropagation();
     const willOpen = panel.hidden;
@@ -322,6 +394,10 @@ let dcProjected = 0;
 // on-demand now: no gating, no auto-open, available whenever the bank disagrees.
 function openBalanceCheck() {
   if (!state.accountId) { toast("Pick an account first"); return; }
+  // A bank balance is a daily thing to check; a card's equivalent is a monthly
+  // statement, which this flow doesn't model — disabled below rather than
+  // faked against a comparison point that doesn't exist for every card yet.
+  if (isCard()) { toast("Balance check isn't available on card accounts"); return; }
   dcProjected = computeView().todayBal;
   $("#dcAmount").textContent = fmt(dcProjected);
   $("#dcActual").value = "";
@@ -438,10 +514,32 @@ function computeView() {
   return { rows, balById, totals: { deposits: round2(deposits), withdrawals: round2(withdrawals) }, endBal: round2(bal), todayBal, windowEndBal: round2(windowEndBal) };
 }
 
+// Debt is stored as a negative balance (decision #22); it displays positive
+// everywhere outside the stored value itself. Checking passes through
+// unchanged, so this is the only place the flip needs to happen.
+const dispBal = (b) => (isCard() ? round2(-b) : b);
+
+function relabelForAccountType() {
+  const card = isCard();
+  $("#hDep").textContent = card ? "Credit −" : "Deposit +";
+  $("#hWd").textContent = card ? "Charge +" : "Withdrawal −";
+  $("#hBal").textContent = card ? "Owed" : "Balance";
+  $("#lblIn").textContent = card ? "Credits" : "Deposits";
+  $("#lblOut").textContent = card ? "Charges" : "Withdrawals";
+  $("#lblBal").textContent = card ? "Owed" : "Balance";
+  $("#bfDep").textContent = card ? "Credit" : "Deposit";
+  $("#bfWd").textContent = card ? "Charge" : "Withdrawal";
+  const ob = Number(state.account?.opening_balance) || 0;
+  $("#openingLabel").textContent = card ? "Opening owed" : "Opening balance";
+  $("#openingValue").textContent = state.account ? fmt(card ? -ob : ob) : "—";
+}
+
 function render() {
   const { rows, balById, totals, windowEndBal } = computeView();
   const active = filterActive();
   const shown = active ? rows.filter(matchesFilter) : rows;
+
+  relabelForAccountType();
 
   const tbody = $("#rows");
   tbody.innerHTML = "";
@@ -452,7 +550,7 @@ function render() {
   const display = [...shown].sort(byDate);
   const build = state.lowPower ? rowElLP : rowEl;
   const frag = document.createDocumentFragment();
-  for (const r of display) frag.appendChild(build(r, balById.get(r._id)));
+  for (const r of display) frag.appendChild(build(r, dispBal(balById.get(r._id))));
   tbody.appendChild(frag);
   renderAddRow();
 
@@ -471,9 +569,14 @@ function render() {
   $("#totIn").textContent = fmt(shownTotals.deposits);
   $("#totOut").textContent = fmt(shownTotals.withdrawals);
   const balEl = $("#balance");
-  balEl.textContent = fmt(windowEndBal);
-  balEl.classList.toggle("neg", windowEndBal < 0);
-  balEl.title = state.filter?.to ? `Balance as of ${state.filter.to}` : "Current end balance";
+  const endBal = dispBal(windowEndBal);
+  balEl.textContent = fmt(endBal);
+  // Negative is the attention-worthy state either way: overdrawn checking, or
+  // an overpaid card (the raw balance crossed back above zero).
+  balEl.classList.toggle("neg", endBal < 0);
+  balEl.title = state.filter?.to
+    ? `${isCard() ? "Owed" : "Balance"} as of ${state.filter.to}`
+    : isCard() ? "Current amount owed" : "Current end balance";
 
   $("#fClear").hidden = !active;
   $("#fCount").textContent = active ? `showing ${shown.length} of ${rows.length}` : "";
@@ -491,6 +594,9 @@ function rowEl(row, bal) {
   else if (row._new) tr.className = "new-row";
   else if (row._edited) tr.className = "edited";
   if (state.selected.has(row._id)) tr.classList.add("row-selected");
+  // `bal` is already display-adjusted (dispBal) — negative means overdrawn on
+  // checking, overpaid on a card. Both are the attention-worthy state.
+  if (!row._deleted && bal < 0) tr.classList.add("neg-row");
 
   const checkTd = document.createElement("td");
   checkTd.className = "col-check";
@@ -515,11 +621,13 @@ function rowEl(row, bal) {
   const balTd = document.createElement("td");
   balTd.className = "bal" + (bal < 0 ? " neg" : "");
   balTd.textContent = row._deleted ? "—" : fmt(bal);
-  if (!row._deleted && bal < 0) balTd.title = "Balance goes negative here";
+  if (!row._deleted && bal < 0) balTd.title = isCard() ? "You've overpaid as of here" : "Balance goes negative here";
   tr.appendChild(balTd);
 
   const act = document.createElement("td");
   act.className = "row-actions";
+  const badge = rowPairBadge(row);
+  if (badge) act.appendChild(badge);
   const btn = document.createElement("button");
   btn.className = "del" + (row._deleted ? " restore" : "");
   btn.title = row._deleted ? "Restore" : "Delete";
@@ -558,6 +666,7 @@ function applyStage(row, field, value) {
     const e = state.edits.get(row._id) || {};
     e[field] = value;
     state.edits.set(row._id, e);
+    askPropagate(row._id, field);
   }
 }
 
@@ -609,14 +718,18 @@ function stageEdit(row, field, value) {
 
 function toggleDelete(row) { toggleDeleteById(row._id); }
 
-function toggleDeleteById(id) {
+async function toggleDeleteById(id) {
   if (String(id).startsWith("new-")) {
     state.news = state.news.filter((x) => x._tempId !== id);
   } else if (state.dels.has(id)) {
     state.dels.delete(id);
+    state.delPairs.delete(id);
   } else {
+    if (!(await askDeletePair(id))) return;
     state.dels.add(id);
     state.edits.delete(id); // pending edits on a to-be-deleted row are moot
+    state.propagate.delete(id);
+    state.unlink.delete(id);
   }
   render();
 }
@@ -637,6 +750,7 @@ function stagedValue(id, field) {
 function stageEditRaw(id, field, value) {
   if (String(id).startsWith("new-")) { const n = state.news.find((x) => x._tempId === id); if (n) n[field] = value; return; }
   const e = state.edits.get(id) || {}; e[field] = value; state.edits.set(id, e);
+  askPropagate(id, field);
 }
 
 function textCell(row, field, type, cls, list, placeholder) {
@@ -659,6 +773,7 @@ function rowElLP(row, bal) {
   else if (row._new) tr.className = "new-row";
   else if (row._edited) tr.className = "edited";
   if (state.selected.has(row._id)) tr.classList.add("row-selected");
+  if (!row._deleted && bal < 0) tr.classList.add("neg-row");
 
   const checkTd = document.createElement("td");
   checkTd.className = "col-check";
@@ -698,11 +813,13 @@ function rowElLP(row, bal) {
   const balTd = document.createElement("td");
   balTd.className = "bal" + (bal < 0 ? " neg" : "");
   balTd.textContent = row._deleted ? "—" : fmt(bal);
-  if (!row._deleted && bal < 0) balTd.title = "Balance goes negative here";
+  if (!row._deleted && bal < 0) balTd.title = isCard() ? "You've overpaid as of here" : "Balance goes negative here";
   tr.appendChild(balTd);
 
   const act = document.createElement("td");
   act.className = "row-actions";
+  const badge = rowPairBadge(row);
+  if (badge) act.appendChild(badge);
   const btn = document.createElement("button");
   btn.className = "del" + (row._deleted ? " restore" : "");
   btn.title = row._deleted ? "Restore" : "Delete";
@@ -710,6 +827,36 @@ function rowElLP(row, bal) {
   act.appendChild(btn);
   tr.appendChild(act);
   return tr;
+}
+
+/**
+ * The pairing badge for one grid row, staged decisions included — the badge has
+ * to show what the row WILL be after Save, not what it is on disk, or the
+ * preview the whole staging model exists to provide stops at pairs.
+ */
+function rowPairBadge(row) {
+  if (row._new) {
+    if (!row._mirror) return null;
+    const el = document.createElement("span");
+    el.className = "pair-badge paired staged";
+    el.textContent = "↔";
+    el.title = `Will be paired with a new row on ${row._mirror.cardName} when you Save.`;
+    return el;
+  }
+  const el = pairBadge(row, { account: state.account, index: state.transfers, accountById: accountById() });
+  if (!el) return null;
+  if (state.unlink.has(row._id) || (state.dels.has(row._id) && !state.delPairs.has(row._id))) {
+    el.className = "pair-badge unpaired staged";
+    el.textContent = "⚠";
+    el.title = "Will be unlinked on Save, leaving both ends visibly unpaired.";
+  } else if (state.propagate.has(row._id)) {
+    el.classList.add("staged");
+    el.title = "Both ends will be updated on Save.\n\n" + el.title;
+  } else if (state.delPairs.has(row._id)) {
+    el.classList.add("staged");
+    el.title = "The whole transfer will be deleted on Save.\n\n" + el.title;
+  }
+  return el;
 }
 
 // Upgrade a text cell to an input; commit on blur / Enter / Tab, cancel on Esc.
@@ -771,6 +918,118 @@ function advanceEdit(id, field, dir) {
   if (next) beginEdit(next);
 }
 
+// --- T34: paired transfers -------------------------------------------------
+//
+// Every one of these asks BEFORE staging and stages the ANSWER, so a pairing
+// decision discards with Discard like any other pending change. None of them
+// writes. The one rule they all enforce: declining leaves a VISIBLY UNPAIRED
+// row — never a pair whose two halves disagree.
+
+const PAIR_FIELDS = new Set(["txn_date", "deposit", "withdrawal", "amount"]);
+const groupFor = (row) => (row?.transfer_id ? state.transfers.groups[row.transfer_id] : null);
+const peerLines = (group, selfId) => (group?.rows || [])
+  .filter((r) => r.id !== selfId)
+  .map((r) => `<li>${r.account_name} · ${r.txn_date} · ${fmt(r.deposit - r.withdrawal)}</li>`).join("");
+
+/** Offer to mirror a brand-new payment onto the card its `source` names. */
+async function askMirrorForNew(draft) {
+  if (state.transfers.readOnly) return null; // published view: read-only, no offers
+  const plan = mirrorPlan(draft, { account: state.account, accounts: state.accounts });
+  if (plan.ok) {
+    const amt = Math.abs(signed({ deposit: Number(draft.deposit) || 0, withdrawal: Number(draft.withdrawal) || 0 }));
+    const choice = await askPair({
+      title: `Mirror this onto ${plan.card.name}?`,
+      body: `<b>${fmt(amt)}</b> on ${draft.txn_date} leaves ${state.account.name} toward <b>${plan.card.name}</b>.`
+        + ` A payment has two ends, and the other one belongs on the card.`
+        + `<br><span class="pair-note">Both rows save together under one transfer id, or neither saves.</span>`,
+      options: [
+        { value: "mirror", label: `Add both rows`, hint: `${state.account.name} −${fmt(amt)} and ${plan.card.name} +${fmt(amt)}`, primary: true },
+        { value: "solo", label: "Add this row only", hint: "The card side stays missing, and the row is flagged ⚠ unpaired" },
+        { value: "cancel", label: "Cancel", cancel: true },
+      ],
+    });
+    if (choice === "cancel") return "cancel";
+    return choice === "mirror" ? { cardId: plan.card.id, cardName: plan.card.name } : null;
+  }
+  // A card DOES claim this source but its reconciliation forbids a row here.
+  // Worth a sentence: silently not offering looks identical to not noticing.
+  if (plan.card) {
+    const choice = await askPair({
+      title: `Can't mirror onto ${plan.card.name}`,
+      body: `${plan.why}.<br><span class="pair-note">Adding the row here is fine — it just won't get a card-side twin, so it will show as ⚠ unpaired.</span>`,
+      options: [
+        { value: "solo", label: "Add this row only", primary: true },
+        { value: "cancel", label: "Cancel", cancel: true },
+      ],
+    });
+    return choice === "cancel" ? "cancel" : null;
+  }
+  return null;
+}
+
+/**
+ * An edit landed on a field that both ends of a movement share. Propagate it,
+ * or break the link — those are the only two sound answers, and the second is
+ * why declining is safe.
+ */
+async function askPropagate(id, field) {
+  if (state.transfers.readOnly) return;
+  if (!PAIR_FIELDS.has(field)) return;
+  if (state.propagate.has(id) || state.unlink.has(id)) return; // asked already
+  const row = state.rows.find((r) => r.id === id);
+  const group = groupFor(row);
+  if (!group || group.rows.length < 2) return;
+
+  const amountChanged = field !== "txn_date";
+  const split = group.rows.length > 2;
+  const merged = { ...row, ...(state.edits.get(id) || {}) };
+  const now = Math.abs(signed({ deposit: Number(merged.deposit) || 0, withdrawal: Number(merged.withdrawal) || 0 }));
+  const was = Math.abs(signed(row));
+
+  const body = `This row is one end of a transfer:<ul class="pair-peers">${peerLines(group, id)}</ul>`
+    + (amountChanged ? `Amount ${fmt(was)} → <b>${fmt(now)}</b>.` : `Date ${row.txn_date} → <b>${merged.txn_date}</b>.`)
+    + (split && amountChanged
+      ? `<br><span class="pair-note">This is a 1:${group.rows.length - 1} split — one payment that arrived as several rows — so a new total can't be divided across them without guessing. Change them individually.</span>`
+      : `<br><span class="pair-note">Leaving only one end changed would make the pair reconcile to nothing, so the other option breaks the link instead.</span>`);
+
+  const options = [];
+  if (!(split && amountChanged)) {
+    options.push({ value: "both", label: "Update both ends", hint: "Keeps the transfer balanced", primary: true });
+  }
+  options.push({ value: "unlink", label: "Change only this row", hint: "Breaks the link; both rows show as ⚠ unpaired" });
+  options.push({ value: "cancel", label: "Undo my edit", cancel: true });
+
+  const choice = await askPair({ title: "This payment is paired", body, options });
+  if (choice === "both") state.propagate.add(id);
+  else if (choice === "unlink") state.unlink.add(id);
+  else {
+    // Undo: drop the staged edit entirely and re-read from the server copy.
+    state.edits.delete(id);
+  }
+  render();
+}
+
+/** Deleting one end of a movement: take both, or leave the survivor unpaired. */
+async function askDeletePair(id) {
+  if (state.transfers.readOnly) return true;
+  const row = state.rows.find((r) => r.id === id);
+  const group = groupFor(row);
+  if (!group || group.rows.length < 2) return true;
+  const choice = await askPair({
+    title: "Delete both ends?",
+    body: `This row is one end of a transfer:<ul class="pair-peers">${peerLines(group, id)}</ul>`
+      + `<span class="pair-note">Deleting one end alone leaves the other as money with no counterpart, so it gets unlinked and flagged ⚠ rather than left in a one-sided pair.</span>`,
+    options: [
+      { value: "both", label: "Delete the whole transfer", hint: `${group.rows.length} rows across ${new Set(group.rows.map((r) => r.account_id)).size} accounts`, primary: true },
+      { value: "one", label: "Delete only this row", hint: "The other end survives, unlinked and flagged" },
+      { value: "cancel", label: "Cancel", cancel: true },
+    ],
+  });
+  if (choice === "cancel") return false;
+  if (choice === "both") state.delPairs.add(id);
+  return true;
+}
+
 // --- add row ---------------------------------------------------------------
 
 const freshDraft = () => ({ txn_date: new Date().toISOString().slice(0, 10), description: "", source: "", deposit: "", withdrawal: "" });
@@ -822,7 +1081,12 @@ function renderAddRow() {
   chk.type = "button";
   chk.className = "btn ghost bal-check";
   chk.textContent = "Check";
-  chk.title = "Compare today's projected balance to your bank and add a correction";
+  if (isCard()) {
+    chk.disabled = true;
+    chk.title = "Balance check isn't available on card accounts — reconcile against your statement instead";
+  } else {
+    chk.title = "Compare today's projected balance to your bank and add a correction";
+  }
   chk.onclick = toggleBalanceCheck;
   balTd.appendChild(chk);
   tr.appendChild(balTd);
@@ -837,13 +1101,17 @@ function renderAddRow() {
   foot.appendChild(tr);
 }
 
-function stageAdd() {
+async function stageAdd() {
   if (!addDraft.txn_date) return toast("Date is required");
   if (!addDraft.deposit && !addDraft.withdrawal) return toast("Enter a deposit or withdrawal");
-  state.news.push({ _tempId: "new-" + (++tempCounter), created_at: new Date().toISOString(), ...addDraft });
+  const draft = { _tempId: "new-" + (++tempCounter), created_at: new Date().toISOString(), ...addDraft };
+  const mirror = await askMirrorForNew(draft);
+  if (mirror === "cancel") return;          // the draft stays in the add row
+  if (mirror) draft._mirror = mirror;
+  state.news.push(draft);
   addDraft = freshDraft();
   render();
-  toast("Row added (unsaved)");
+  toast(mirror ? `Row + card-side mirror added (unsaved)` : "Row added (unsaved)");
 }
 
 // --- save / discard --------------------------------------------------------
@@ -857,7 +1125,21 @@ function renderControls() {
   save.disabled = n === 0;
   save.textContent = n ? `Save (${n})` : "Save";
   $("#discardBtn").hidden = n === 0;
-  $("#dirtyNote").hidden = n === 0;
+  const note = $("#dirtyNote");
+  note.hidden = n === 0;
+  // Pair work lands on an account you are NOT looking at, so the only place it
+  // can be seen before Save is here. Spelling it out is the difference between
+  // "I added a payment" and "I added a payment and a row on the Apple Card".
+  const mirrors = state.news.filter((x) => x._mirror);
+  const bits = [];
+  if (mirrors.length) {
+    const where = [...new Set(mirrors.map((m) => m._mirror.cardName))].join(", ");
+    bits.push(`${mirrors.length} mirrored row${mirrors.length === 1 ? "" : "s"} on ${where}`);
+  }
+  if (state.propagate.size) bits.push(`${state.propagate.size} paired edit${state.propagate.size === 1 ? "" : "s"} will update both ends`);
+  if (state.unlink.size) bits.push(`${state.unlink.size} pair${state.unlink.size === 1 ? "" : "s"} will be unlinked`);
+  if (state.delPairs.size) bits.push(`${state.delPairs.size} whole transfer${state.delPairs.size === 1 ? "" : "s"} will be deleted`);
+  note.textContent = bits.length ? `unsaved changes · ${bits.join(" · ")}` : "unsaved changes";
 }
 
 async function applyPending() {
@@ -866,20 +1148,59 @@ async function applyPending() {
   $("#saveBtn").disabled = true;
   try {
     for (const nr of state.news) {
-      await api("/api/transactions", {
-        method: "POST",
-        body: {
-          account_id: state.accountId, txn_date: nr.txn_date,
-          description: nr.description, source: nr.source,
-          deposit: Number(nr.deposit) || 0, withdrawal: Number(nr.withdrawal) || 0,
-        },
-      });
+      const parent = {
+        account_id: state.accountId, txn_date: nr.txn_date,
+        description: nr.description, source: nr.source,
+        deposit: Number(nr.deposit) || 0, withdrawal: Number(nr.withdrawal) || 0,
+      };
+      if (!nr._mirror) {
+        await api("/api/transactions", { method: "POST", body: parent });
+        continue;
+      }
+      // One call, one SQLite transaction: both ends land or neither does. A
+      // sequential POST + POST can leave the card side missing if the second
+      // call fails, which is a payment that came out of checking and arrived
+      // nowhere — exactly the state T37 assertion #3 exists to catch.
+      const transferId = newTransferId();
+      const plan = mirrorPlan({ ...parent }, { account: state.account, accounts: state.accounts, transferId });
+      if (!plan.ok) throw new Error(`can't mirror onto ${nr._mirror.cardName}: ${plan.why}`);
+      await api("/api/transfers", { method: "POST", body: { transfer_id: transferId, creates: [parent, plan.draft] } });
     }
     for (const [id, fields] of state.edits) {
+      const row = state.rows.find((r) => r.id === id);
+      const tid = row?.transfer_id;
+      if (tid && state.propagate.has(id)) {
+        // Date / amount travel to every end; the rest is this row's own content.
+        const merged = { ...row, ...fields };
+        const body = {};
+        if ("txn_date" in fields) body.txn_date = merged.txn_date;
+        if ("deposit" in fields || "withdrawal" in fields) {
+          body.amount = Math.abs(signed({ deposit: Number(merged.deposit) || 0, withdrawal: Number(merged.withdrawal) || 0 }));
+        }
+        if (Object.keys(body).length) await api(`/api/transfers/${encodeURIComponent(tid)}`, { method: "PATCH", body });
+        const own = {};
+        for (const k of ["description", "source", "note"]) if (k in fields) own[k] = fields[k];
+        if (Object.keys(own).length) await api(`/api/transactions/${id}`, { method: "PATCH", body: own });
+        continue;
+      }
       await api(`/api/transactions/${id}`, { method: "PATCH", body: fields });
+      // Declined propagation: break the link rather than leave two ends that
+      // disagree. Both rows become visibly unpaired, which is auditable.
+      if (tid && state.unlink.has(id)) {
+        await api(`/api/transfers/${encodeURIComponent(tid)}/link`, { method: "DELETE" });
+      }
     }
     for (const id of state.dels) {
+      const row = state.rows.find((r) => r.id === id);
+      const tid = row?.transfer_id;
+      if (tid && state.delPairs.has(id)) {
+        await api(`/api/transfers/${encodeURIComponent(tid)}`, { method: "DELETE" });
+        continue;
+      }
       await api(`/api/transactions/${id}`, { method: "DELETE" });
+      // The survivor would otherwise sit in a one-row group, which reads as
+      // paired. Unlink it so it shows as unpaired, which is what it is.
+      if (tid) await api(`/api/transfers/${encodeURIComponent(tid)}/link`, { method: "DELETE" });
     }
     await loadAccounts();
     await loadLedger(); // clears pending + re-renders from the server

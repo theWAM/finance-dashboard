@@ -47,7 +47,9 @@
 <!-- This page reads people straight out of snapshot.json and has no /api/ shim,
      so it hands the per-profile themes to settings.js rather than let it fetch.
      Declared (empty) before that module loads; filled in once the snapshot is
-     here, then announced with `userchange`. -->
+     here, then announced with `userchange`. The value is the stored PAIR —
+     family + mode — because a half-adopted theme lands you on a variant nobody
+     chose (see theme-boot.js). -->
 <script>window.__profileThemes = {};</script>
 <script type="module" src="./settings.js"></script>
 <script type="module">
@@ -66,7 +68,13 @@
         lastUpdated(snap.published_at) + (snap.published_by ? ` by ${snap.published_by}` : "");
 
       const people = snap.people || [];
-      for (const p of people) window.__profileThemes[p.id] = p.theme || null;
+      // Both halves of the pair, straight off the row. A snapshot published
+      // before T41 (or a row this backfill hasn't reached) still has `theme_mode`
+      // undefined, and theme-boot.js migrates the family to its native mode,
+      // which is what the value already meant.
+      for (const p of people) {
+        window.__profileThemes[p.id] = p.theme ? { family: p.theme, mode: p.theme_mode } : null;
+      }
       const sel = document.getElementById("userSel");
       for (const p of people.filter((x) => !x.deleted_at)) {
         const o = document.createElement("option"); o.value = p.id; o.textContent = p.name; sel.appendChild(o);

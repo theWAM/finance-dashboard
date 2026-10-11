@@ -10,7 +10,7 @@
 // engine is fed the *staged* rows, not the saved ones, so editing a target or a
 // match rule re-colors the comparison immediately, before any Save.
 
-import { computeCsp, itemTarget, CSP_EXCLUDE, netWorth } from "./shared/csp.js";
+import { computeCsp, itemTarget, netWorth, cspRowAmount } from "./shared/csp.js";
 import { MONTH_PRESETS, monthsInWindow } from "./shared/timeframe.js";
 import { mountTimeframe } from "./timeframe-ui.js";
 import { mountPlanNav, PLAN_VIEWS } from "./nav-plan.js";
@@ -290,7 +290,10 @@ function drillPanel(owner, view, months) {
     const tr = document.createElement("tr");
     // A row dated after today is the ledger's own forecast, not history.
     if (r.txn_date > TODAY) tr.className = "future";
-    tr.append(cell(r.txn_date), cell(r.description || "\u2014"), cell(r.source || "\u2014"), cell(fmt(r.withdrawal), "n"));
+    // Signed, via the engine's own definition: a card refund is a deposit, and
+    // showing it as $0.00 (or as a positive charge) would make a netted-down
+    // category impossible to read.
+    tr.append(cell(r.txn_date), cell(r.description || "\u2014"), cell(r.source || "\u2014"), cell(fmt(cspRowAmount(r)), "n"));
     rBody.appendChild(tr);
   }
   rTable.appendChild(rBody);
@@ -479,13 +482,16 @@ function planRollEl(plan) {
   wrap.className = "plan-roll";
   wrap.style.flexBasis = "100%";
   const nums = document.createElement("span"); nums.className = "nums";
+  const cov = document.createElement("span"); cov.className = "coverage"; cov.hidden = true;
   const recon = document.createElement("span"); recon.className = "recon-warn"; recon.style.flexBasis = "100%";
-  wrap.append(nums, recon);
+  const foot = document.createElement("div"); foot.className = "plan-foot";
+  wrap.append(nums, cov, recon, foot);
 
   derived.push(() => {
     const v = state.planView.get(planKey(plan));
     if (!v) {   // a brand-new plan with no owner chosen yet: nothing to measure
       nums.textContent = ""; nums.title = ""; recon.hidden = true;
+      cov.hidden = true; foot.replaceChildren();
       return;
     }
     const targetPct = v.takeHome ? (v.targetMonthly / v.takeHome) * 100 : 0;
@@ -493,19 +499,90 @@ function planRollEl(plan) {
     nums.innerHTML =
       `<span class="grp"><span class="lbl">target</span> <b>${fmt(v.targetMonthly)}</b> <span class="pc">(${pct1(targetPct)})</span></span> ` +
       `<span class="grp"><span class="lbl">actual</span> <b>${fmt(v.actualMonthly)}</b> <span class="pc">(${pct1(actualPct)})</span></span> ` +
-      `<span class="delta ${v.status}">${signed(v.actualMonthly - v.targetMonthly)}</span>`;
+      `<span class="delta ${v.status}">${signed(v.actualMonthly - v.targetMonthly)}</span>` +
+      `<span class="pc-basis" title="${pctBasisTip(v)}">${pctBasisLabel(v)}</span>`;
     // An open window ("All time") has no length of its own \u2014 it's as long
     // as this plan's own ledger \u2014 so that figure, which the removed note
     // line used to carry, lives on a tooltip instead of a visible line.
     nums.title = closedWindowMonths() == null ? `Averaged over ${fmtMonths(v.months)}` : "";
 
+    paintCoverage(cov, v);
+    paintPlanFoot(foot, v);
+
     // The engine re-checks on every call that every windowed dollar is either
     // bucketed or explicitly excluded. If it ever stops adding up, say so here
     // rather than quietly showing numbers that don't.
     recon.hidden = v.reconciles;
-    recon.textContent = v.reconciles ? "" : `Doesn't reconcile: buckets + excluded = ${fmt(v.total + v.excluded.total)} but the window's outflow is ${fmt(v.windowOutflow)}`;
+    recon.textContent = v.reconciles
+      ? ""
+      : `Doesn't reconcile: buckets + excluded = ${fmt(v.total + v.excluded.total)} but cash out + card purchases is ${fmt(v.windowOutflow)}`;
   });
   return wrap;
+}
+
+// Decision #21's one honest word. Counting card purchases AND the card payment
+// means one economic dollar can appear twice ($100 of groceries charged, then
+// $100 sent to the card), so once a window has card data the percentages stop
+// being a share of take-home and become a share of commitments \u2014 and can
+// exceed 100%. One label, not a second column: the double signal Phase 11 spent
+// four tasks removing.
+const pctBasisLabel = (v) => (v.cardPurchases > 0.005 ? "% of commitments" : "% of take-home");
+const pctBasisTip = (v) =>
+  v.cardPurchases > 0.005
+    ? "Commitments = cash that left your accounts + debt newly taken on. A dollar charged to a card " +
+      "and later paid off counts in both its own category and in Debt Payments, deliberately \u2014 so this " +
+      "can exceed 100%. Whether charging outran paying is the Credit subtab's question."
+    : "This window has no card purchases, so every figure is a share of take-home.";
+
+// A window the cards have no rows for UNDER-reports rather than mis-attributes,
+// which is the correct failure and an invisible one: a 70% "underspend" on
+// Groceries looks like thrift and is actually missing data. So say it.
+function paintCoverage(el, v) {
+  const c = v.cardCoverage;
+  if (!c || !c.anyCards) { el.hidden = true; return; }
+  el.hidden = false;
+  el.classList.toggle("partial", !c.complete);
+  const n = (k) => `${k} month${k === 1 ? "" : "s"}`;
+  el.textContent = c.complete
+    ? `\u2713 card data covers all ${n(c.total)}`
+    : `card data covers ${c.covered} of ${n(c.total)}`;
+  el.title = c.cards
+    .map((card) => `${card.name}: ${card.months.length}/${c.total}${card.missing.length ? ` \u00b7 no rows in ${card.missing.join(", ")}` : ""}`)
+    .join("\n") + (c.complete ? "" : "\n\nUncovered months under-report every card-fed item.");
+}
+
+// The two footer lines the identity needs, and only when they say something:
+// what was excluded as reconciliation noise, and what the card side
+// contributed. Then the identity itself, so it is checkable on screen.
+function paintPlanFoot(el, v) {
+  const lines = [];
+  if (v.excluded.total > 0.005) {
+    lines.push(
+      `<span class="line"><span>excluded \u2014 reconciliation noise</span> <b>${fmt(v.excluded.actualMonthly)}</b>` +
+      `<span>Adjustment, Negative Balance \u00b7 ${v.excluded.count} row${v.excluded.count === 1 ? "" : "s"}</span></span>`,
+    );
+  }
+  if (v.cardPurchases > 0.005 || v.cardCharges > 0.005) {
+    const refunds = v.cardRefunds > 0.005 ? ` (${fmt(v.cardCharges / v.months)} charged \u2212 ${fmt(v.cardRefunds / v.months)} refunded)` : "";
+    lines.push(
+      `<span class="line"><span>card purchases, counted at their own category</span> <b>${fmt(v.cardPurchases / v.months)}</b>` +
+      `<span>${refunds}</span></span>`,
+    );
+    if (v.cardPayments > 0.005) {
+      lines.push(
+        `<span class="line"><span>card payments, counted on the checking side only</span> <b>${fmt(v.cardPayments / v.months)}</b>` +
+        `<span>already in Debt Payments \u2014 counting the card side too would double it</span></span>`,
+      );
+    }
+  }
+  if (lines.length) {
+    lines.push(
+      `<span class="line">${v.reconciles ? "\u2713 reconciles" : "\u2717 does not reconcile"}` +
+      `<code>bucketTotal + excluded === cashOutflow + cardPurchases</code>` +
+      `<span>${fmt(v.cashOutflow / v.months)} cash + ${fmt(v.cardPurchases / v.months)} card</span></span>`,
+    );
+  }
+  el.innerHTML = lines.join("");
 }
 
 function nameField(plan) {
@@ -686,10 +763,18 @@ function bucketSummaryEl(plan, b) {
     // The catch-all's target is what's left of take-home, not a sum of its
     // items. Worth surfacing; not worth a word on every line.
     const tip = v.catchAll ? ` title="Residual: take-home minus every other bucket\u2019s target"` : "";
+    // Decision #38's knock-on. Once one item in a bucket is read in the
+    // opposite direction, the bucket's own ratio is a mix of two meanings \u2014
+    // Fixed Costs would print a green \u2212$136 over a yellow Debt Payments. So
+    // the header stops claiming a verdict of its own and reports the worst of
+    // its items. The delta figure is still the bucket's; only the color moved.
+    const dTip = v.statusFromItems
+      ? ` title="This bucket holds an item measured in the opposite direction, so the color is the worst status among its items rather than the bucket\u2019s own ratio."`
+      : "";
     span.innerHTML =
       `<span class="grp"><span class="lbl">target</span> <b${tip}>${fmt(v.targetMonthly)}</b> <span class="pc">(${pct1(v.targetPct)})</span></span>` +
       `<span class="grp"><span class="lbl">actual</span> <b>${fmt(v.actualMonthly)}</b> <span class="pc">(${pct1(v.actualPct)})</span></span>` +
-      `<span class="delta ${v.status}">${signed(v.delta)}</span>`;
+      `<span class="delta ${v.status}"${dTip}>${signed(v.delta)}</span>`;
   });
   return span;
 }
@@ -738,26 +823,13 @@ function unassignedRowEl(plan, b) {
     const p = state.planView.get(planKey(plan));
     countNote.textContent = u?.count ? `(${u.count} row${u.count === 1 ? "" : "s"})` : "(none)";
     drill.amount.textContent = fmt(u?.actualMonthly || 0);
-    // `unassigned` carries no `matched` list (the engine groups it instead), so
-    // reconstruct one from the groups for the panel's row list.
-    drill.paint(u ? { ...u, matched: unassignedRows(p) } : null, p?.months, { enabled: !!u });
+    // The engine hands over the rows themselves (T28). This used to rebuild
+    // them by re-filtering the ledger, which was a second copy of "what counts"
+    // living in the UI — and it would have gone wrong the moment card refunds
+    // started counting, since those are deposits, not withdrawals.
+    drill.paint(u || null, p?.months, { enabled: !!u });
   });
   return tr;
-}
-
-// The engine returns Unassigned as groups, not rows. Rebuild the row list the
-// way the engine defines it — by subtraction: the owner's windowed, non-artifact
-// outflow minus every row an item claimed.
-function unassignedRows(planView) {
-  if (!planView) return [];
-  const taken = new Set();
-  for (const b of planView.buckets) for (const i of b.items) for (const r of i.matched) taken.add(r.id);
-  const ids = new Set(state.accounts.filter((a) => !a.deleted_at && a.owner === planView.owner).map((a) => a.id));
-  const { from, to } = planView.window;
-  return state.transactions.filter((t) =>
-    !t.deleted_at && ids.has(t.account_id) && (Number(t.withdrawal) || 0) > 0 &&
-    (!from || t.txn_date >= from) && (!to || t.txn_date <= to) &&
-    !CSP_EXCLUDE.has(t.description || "") && !taken.has(t.id));
 }
 
 function itemRowEl(plan, it) {
@@ -792,6 +864,15 @@ function itemRowEl(plan, it) {
   ruleTd.appendChild(conflictWarn);
   tr.appendChild(ruleTd);
 
+  // Decision #38. `Debt Payments` is the one `fund` line in a `spend` bucket:
+  // paying LESS debt is bad, so its delta colors the opposite way to every
+  // other row in Fixed Costs. That is not inferable from the numbers, so the
+  // row states it. There is no editor for it on purpose \u2014 it is a property of
+  // the plan's structure, set in csp-seed.json, not a per-visit preference.
+  const dirTag = document.createElement("span");
+  dirTag.className = "dir-tag"; dirTag.hidden = true;
+  nameTd.appendChild(dirTag);
+
   derived.push(() => {
     const v = state.itemView.get(key);
     const p = state.planView.get(planKey(plan));
@@ -805,7 +886,19 @@ function itemRowEl(plan, it) {
     // An item with no match rule can't be measured against the ledger at all;
     // saying so is honest where a $0 actual would just look like a failure.
     drill.amount.textContent = v.tracked ? fmt(v.actualMonthly) : "target only \u2014 not tracked";
-    deltaTd.innerHTML = v.tracked ? `<span class="delta ${v.status}">${signed(v.delta)}</span>` : "\u2014";
+    // A fund-direction item is judged on how close to target it got, so the
+    // percentage is the signal and the delta's sign alone would read backwards.
+    const ratio = v.tracked && v.targetMonthly ? ` <span class="pc">${pct1((v.actualMonthly / v.targetMonthly) * 100)} of target</span>` : "";
+    deltaTd.innerHTML = v.tracked
+      ? `<span class="delta ${v.status}">${signed(v.delta)}</span>${v.overridesDirection ? ratio : ""}`
+      : "\u2014";
+    dirTag.hidden = !v.overridesDirection;
+    if (v.overridesDirection) {
+      dirTag.textContent = `direction: ${v.direction}`;
+      dirTag.title = v.direction === "fund"
+        ? `Under target is bad here, unlike the rest of this bucket: green above ${pct1(v.thresholds.good * 100)} of target, yellow above ${pct1(v.thresholds.warn * 100)}, red below.`
+        : `Over target is bad here, unlike the rest of this bucket: green below ${pct1(v.thresholds.good * 100)} of target, yellow below ${pct1(v.thresholds.warn * 100)}, red above.`;
+    }
     conflictWarn.hidden = !v.conflicts;
     if (v.conflicts) {
       conflictWarn.title = `${v.conflicts} ledger row${v.conflicts === 1 ? "" : "s"} here also match another item's rule. Each row is still counted once — a payee rule wins over a category rule.`;

@@ -58,7 +58,7 @@
   td.bal { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); padding-right: 12px; white-space: nowrap; }
   td.bal.neg { color: var(--neg); }
   .col-date { width: 140px; } .col-dep, .col-wd, .col-bal { width: 120px; }
-  .row-actions { width: 40px; text-align: center; }
+  .row-actions { width: 62px; text-align: center; white-space: nowrap; }
   .del {
     background: transparent; border: none; color: var(--muted); cursor: pointer;
     border-radius: 6px; padding: 4px 8px; font-size: 15px;
@@ -83,6 +83,10 @@
   tr.new-row { background: var(--row-new); }
   tr.to-delete { opacity: .45; }
   tr.to-delete input { text-decoration: line-through; }
+  /* A negative *displayed* balance: an overdraft on checking, an overpayment on
+     a card (see app.js's dispBal — the sign is flipped for cards before this
+     class is ever applied, so the same class means "needs attention" on both). */
+  tr.neg-row { background: var(--row-neg); }
 
   /* Low-power mode: text cells that upgrade to an input only while editing. */
   .btn.ghost.active { border-color: var(--accent); color: var(--accent); }
@@ -118,7 +122,7 @@
     .col-date { width: 62px; }
     .col-amt  { width: 82px; }
     .col-bal  { width: 82px; }
-    .row-actions { width: 30px; }
+    .row-actions { width: 48px; }
     /* Source / Recipient (the unclassed column) takes the remaining space. */
 
     /* Abbreviate the date (2-digit year) on phones: swap the full value / native
@@ -215,8 +219,39 @@
   }
   .ms-opt:hover { background: var(--panel-2); }
   .ms-opt input { width: 15px; height: 15px; accent-color: var(--accent); }
+  .ms-note { color: var(--muted); font-size: 11px; padding: 6px 8px 2px; border-top: 1px solid var(--line); margin-top: 4px; }
 
   .flag { color: var(--neg); font-size: 11px; margin-left: 6px; }
+
+  /* T34 — the pairing badge. One glyph per row in the actions column, which is
+     the only column visible at every width. `.staged` marks a decision that is
+     pending Save rather than a fact on disk. */
+  .pair-badge {
+    display: inline-block; width: 16px; text-align: center; cursor: help;
+    font-size: 12px; font-variant-numeric: tabular-nums; vertical-align: middle;
+  }
+  .pair-badge.paired { color: var(--accent); }
+  .pair-badge.unpaired, .pair-badge.mismatched { color: var(--neg); font-weight: 700; }
+  .pair-badge.solo-ok { color: var(--muted); }
+  .pair-badge.staged { outline: 1px dashed currentColor; border-radius: 4px; }
+
+  /* The pairing question. Reuses .modal / .modal-card, narrower, and its
+     options are stacked rows rather than the who-am-I photo grid. */
+  .pair-modal .modal-card { width: min(540px, 94vw); padding: 24px 26px; text-align: left; }
+  .pair-card h2 { font-size: 18px; text-align: left; margin-bottom: 10px; }
+  .pair-card .pair-body { text-align: left; color: var(--text); margin-bottom: 18px; line-height: 1.5; }
+  .pair-note { color: var(--muted); font-size: 12.5px; }
+  ul.pair-peers { margin: 8px 0 12px; padding-left: 20px; color: var(--muted); font-size: 13px; }
+  .pair-options { display: flex; flex-direction: column; gap: 8px; }
+  .pair-opt {
+    display: flex; flex-direction: column; gap: 2px; align-items: flex-start; text-align: left;
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 14px; cursor: pointer; color: var(--text); font: inherit; width: 100%;
+  }
+  .pair-opt:hover { border-color: var(--accent); background: var(--accent-weak); }
+  .pair-opt.primary { border-color: var(--accent); }
+  .pair-opt-label { font-weight: 600; }
+  .pair-opt-hint { color: var(--muted); font-size: 12px; }
   .toast {
     position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
     background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px;
@@ -250,6 +285,7 @@
     <a href="./dashboard.html">Dashboard</a>
   </nav>
   <select id="account" title="Account"></select>
+  <div class="stat"><span class="label" id="openingLabel">Opening balance</span><span class="value" id="openingValue">—</span></div>
   <button id="userChip" class="userchip" title="Switch person" hidden>
     <span class="avatar" id="userAvatar"></span>
     <span id="userName"></span>
@@ -262,9 +298,9 @@
   <span id="dirtyNote" class="dirty-note" hidden>unsaved changes</span>
   <button id="discardBtn" class="btn ghost" hidden>Discard</button>
   <button id="saveBtn" class="btn" disabled>Save</button>
-  <div class="stat"><span class="label">Deposits</span><span class="value pos" id="totIn">—</span></div>
-  <div class="stat"><span class="label">Withdrawals</span><span class="value neg" id="totOut">—</span></div>
-  <div class="stat"><span class="label">Balance</span><span class="value" id="balance">—</span></div>
+  <div class="stat"><span class="label" id="lblIn">Deposits</span><span class="value pos" id="totIn">—</span></div>
+  <div class="stat"><span class="label" id="lblOut">Withdrawals</span><span class="value neg" id="totOut">—</span></div>
+  <div class="stat"><span class="label" id="lblBal">Balance</span><span class="value" id="balance">—</span></div>
 </header>
 
 <main>
@@ -285,8 +321,8 @@
       <option value="txn_date">Date</option>
       <option value="description">Category</option>
       <option value="source">Source / Recipient</option>
-      <option value="deposit">Deposit</option>
-      <option value="withdrawal">Withdrawal</option>
+      <option value="deposit" id="bfDep">Deposit</option>
+      <option value="withdrawal" id="bfWd">Withdrawal</option>
     </select>
     <span id="bulkValueWrap"></span>
     <button id="bulkApply" class="btn" disabled>Apply to selected</button>
@@ -302,10 +338,10 @@
         <th class="col-date">Date</th>
         <th class="col-cat">Category</th>
         <th>Source / Recipient</th>
-        <th class="col-dep" style="text-align:right">Deposit +</th>
-        <th class="col-wd" style="text-align:right">Withdrawal −</th>
+        <th class="col-dep" id="hDep" style="text-align:right">Deposit +</th>
+        <th class="col-wd" id="hWd" style="text-align:right">Withdrawal −</th>
         <th class="col-amt" style="text-align:right">Amount</th>
-        <th class="col-bal" style="text-align:right">Balance</th>
+        <th class="col-bal" id="hBal" style="text-align:right">Balance</th>
         <th class="row-actions"></th>
       </tr>
     </thead>

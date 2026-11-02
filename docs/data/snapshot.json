@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "version": 21,
-  "published_at": "2026-11-01T23:06:55.291Z",
+  "version": 22,
+  "published_at": "2026-11-02T18:02:05.858Z",
   "published_by": "rajna",
   "people": [
     {
@@ -13916,10 +13916,10 @@
       "description": "Credit Card Payment",
       "source": "Discover",
       "deposit": 0,
-      "withdrawal": 800,
+      "withdrawal": 600,
       "note": "forecast",
       "created_at": "2026-07-07T05:05:05.564Z",
-      "updated_at": "2026-10-08T17:37:41.827Z",
+      "updated_at": "2026-11-01T23:13:15.454Z",
       "deleted_at": null,
       "transfer_id": "tr-b32167ba-5fd5-48b1-b5ac-25b2b5fda91b",
       "external_id": null,
